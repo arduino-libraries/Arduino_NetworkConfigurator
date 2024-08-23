@@ -21,12 +21,16 @@ class NetworkConfigurator{
     models::NetworkSetting _networkSetting;
     bool _networkSettingReceived;
     bool _enableAutoReconnect;
+    bool _initConfiguratorIfConnectionFails;
     uint32_t _lastConnectionAttempt = 0;
+    uint32_t _startConnectionAttempt;
+    String _initReason;
     Preferences _preferences;
 
+    NetworkConfiguratorStates handleInit();
     NetworkConfiguratorStates handleConnecting();
     NetworkConfiguratorStates handleWaitingForConf();
 
     String decodeConnectionErrorMessage(NetworkConnectionState err);
-    NetworkConnectionState connectToNetwork();
+    NetworkConfiguratorStates connectToNetwork();
 };

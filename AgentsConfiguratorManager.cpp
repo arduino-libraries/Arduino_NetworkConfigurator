@@ -26,13 +26,13 @@ AgentsConfiguratorManagerStates AgentsConfiguratorManager::poll(){
   bool forceUpdateOptions = false;
   
   switch(_state){
-    case AgentsConfiguratorManagerStates::INIT               _state = handleInit          (); break;
-    case AgentsConfiguratorManagerStates::CONFIG_IN_PROGRESS _state = handleConfInProgress(); break;
-    case AgentsConfiguratorManagerStates::CONFIG_RECEIVED                                     break;
-    case AgentsConfiguratorManagerStates::END                                         return _state;
+    case AgentsConfiguratorManagerStates::INIT:               _state = handleInit          (); break;
+    case AgentsConfiguratorManagerStates::CONFIG_IN_PROGRESS: _state = handleConfInProgress(); break;
+    case AgentsConfiguratorManagerStates::CONFIG_RECEIVED:                                     break;
+    case AgentsConfiguratorManagerStates::END:                                         return _state;
   }
 
-  if((millis() - _lastOptionUpdate > 120000)/*&& !BLEConf.isPeerConnected()*/){ //uncomment if board doesn't support wifi and ble connectivty at the same time
+  if(_enableOptionsAutoUpdate && (millis() - _lastOptionUpdate > 120000)/*&& !BLEConf.isPeerConnected()*/){ //uncomment if board doesn't support wifi and ble connectivty at the same time
     updateAvailableOptions();
   }
 
@@ -59,13 +59,18 @@ bool AgentsConfiguratorManager::getNetworkConfigurations(models::NetworkSetting 
   return _selectedAgent->getNetworkConfigurations(netSetting);
 }
 
-bool AgentsConfiguratorManager::setConnectionStatus(String res){
+bool AgentsConfiguratorManager::setConnectionStatus(ConnectionStatusMessage msg){
   //Update all the agents in list and not only the _selectedAgent in case the configuration process is triggered by a disconnection
   for(std::list<ConfiguratorAgent *>::iterator agent=_agentsList.begin(); agent != _agentsList.end(); ++agent){
-    (*agent)->setErrorCode(res);
+    if(msg.type == ConnectionStatusMessageType::ERROR){
+      (*agent)->setErrorCode(msg.msg);
+    }else{
+      (*agent)->setInfoCode(msg.msg);
+    }
+    
   }
 
-  if(_state == AgentsConfiguratorManagerStates::CONFIG_RECEIVED){
+  if(_state == AgentsConfiguratorManagerStates::CONFIG_RECEIVED && msg.type == ConnectionStatusMessageType::ERROR){
     _state = AgentsConfiguratorManagerStates::CONFIG_IN_PROGRESS;
   }
 

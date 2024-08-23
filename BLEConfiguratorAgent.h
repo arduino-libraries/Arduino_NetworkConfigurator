@@ -13,13 +13,14 @@ class BLEConfiguratorAgent: public ConfiguratorAgent  {
     bool isPeerConnected();
     bool setAvailableOptions(NetworkOptions netOptions);
     bool setErrorCode(String error);
+    bool setInfoCode(String info);
     inline AgentTypes getAgentType() { return AgentTypes::BLE;};
   private:
     static inline ConfiguratorStates  _state = ConfiguratorStates::END ;
     static inline volatile bool  _deviceConnected = false;
     static inline NetworkOptions _netOptions={};
     static inline volatile uint8_t _paramsCompleted[2] = {0,0};
-    String _errorCode;
+    String _statusCode;
     BLEService _confService; // Bluetooth® Low Energy LED Service
     #ifdef BOARD_HAS_WIFI
     // Bluetooth® Low Energy LED Switch Characteristic - custom 128-bit UUID, read and writable by central

@@ -13,5 +13,6 @@ class ConfiguratorAgent {
     virtual bool isPeerConnected() = 0;
     virtual bool setAvailableOptions(NetworkOptions netOptions) = 0;
     virtual bool setErrorCode(String error) = 0;
+    virtual bool setInfoCode(String info) = 0;
     virtual AgentTypes getAgentType() = 0;
 };

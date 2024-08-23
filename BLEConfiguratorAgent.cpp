@@ -9,7 +9,7 @@ _ssidCharacteristic{"b0f3f174-f834-440b-be8b-e699047e33d1", BLERead | BLEWrite, 
 _pswCharacteristic{"ea1c6589-3817-4782-9d8b-c4a03708bb52", BLERead | BLEWrite, 64},
 _wifiListCharacteristic{"b03033b6-0ee3-489b-b6b5-04efa515cbdf", BLERead|BLENotify|BLEIndicate, 64},
 _statusCharacteristic{"34776508-336f-4546-9f65-fbd9c2bc42d5", BLERead | BLENotify | BLEIndicate, 256},
-_errorCode{""}
+_statusCode{""}
 {
 }
 
@@ -124,13 +124,20 @@ bool BLEConfiguratorAgent::setAvailableOptions(NetworkOptions netOptions){
   return true;
 }
 
-bool BLEConfiguratorAgent::setErrorCode(String error){
-  _errorCode = error;
+bool BLEConfiguratorAgent::setInfoCode(String info){
+  _statusCode = info;
   
-  _statusCharacteristic.setValue(_errorCode);
+  _statusCharacteristic.setValue(_statusCode);
 
-  if(_state == ConfiguratorStates::CONFIG_RECEIVED){
-    _paramsCompleted[0] = 0;
+  return true;
+}
+
+bool BLEConfiguratorAgent::setErrorCode(String error){
+  _statusCode = error;
+  _statusCharacteristic.setValue(_statusCode);
+
+  if(_state == ConfiguratorStates::CONFIG_RECEIVED){ 
+    _paramsCompleted[0] = 0;//TODO remove when implemented the "READY" command sent by the mobile app
     _paramsCompleted[1] = 0;
     _state = ConfiguratorStates::WAITING_FOR_CONFIG;
   }
