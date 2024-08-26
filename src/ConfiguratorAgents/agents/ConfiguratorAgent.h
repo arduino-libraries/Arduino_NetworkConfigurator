@@ -1,6 +1,6 @@
 #pragma once
 #include "settings/settings.h"
-#include "ConfiguratorDefinitions.h"
+#include "ConfiguratorAgents/ConfiguratorDefinitions.h"
 #include "Arduino.h"
 
 class ConfiguratorAgent {

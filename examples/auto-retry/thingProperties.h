@@ -3,8 +3,8 @@
 #include <ArduinoIoTCloud.h>
 #include <Arduino_ConnectionHandler.h>
 #include "NetworkConfigurator.h"
-#include "AgentsConfiguratorManager.h"
-#include "BLEConfiguratorAgent.h"
+#include "ConfiguratorAgents/AgentsConfiguratorManager.h"
+#include "ConfiguratorAgents/agents/BLE/BLEConfiguratorAgent.h"
 
 const char SSID[]     = SECRET_SSID;    // Network SSID (name)
 const char PASS[]     = SECRET_OPTIONAL_PASS;    // Network password (use for WPA, or use as key for WEP)

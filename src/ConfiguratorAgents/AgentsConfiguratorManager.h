@@ -1,7 +1,7 @@
 #pragma once
 #include <list>
 #include "Arduino.h"
-#include "ConfiguratorAgent.h"
+#include "agents/ConfiguratorAgent.h"
 
 
 enum class AgentsConfiguratorManagerStates {INIT, CONFIG_IN_PROGRESS, CONFIG_RECEIVED, END};

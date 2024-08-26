@@ -1,7 +1,7 @@
 #pragma once
 #include "Arduino.h"
 #include "Arduino_ConnectionHandler.h"
-#include "AgentsConfiguratorManager.h"
+#include "ConfiguratorAgents/AgentsConfiguratorManager.h"
 #include <Preferences.h>
 #include <settings/settings.h>
 

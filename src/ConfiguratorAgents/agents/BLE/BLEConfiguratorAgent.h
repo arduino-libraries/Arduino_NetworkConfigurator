@@ -1,7 +1,7 @@
 #pragma once
 #include "Arduino.h"
 #include <ArduinoBLE.h>
-#include "ConfiguratorAgent.h"
+#include "ConfiguratorAgents/agents/ConfiguratorAgent.h"
 
 class BLEConfiguratorAgent: public ConfiguratorAgent  {
   public:
