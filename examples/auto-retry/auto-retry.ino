@@ -15,98 +15,25 @@
 */
 
 #include "thingProperties.h"
-/*#include <Preferences.h>
-Preferences preferences;*/
 #define RESETCRED_BUTTON 13
 uint32_t lastUpdate = 0;
 
-/*constexpr char *SSIDKEY {"SSID"};
-constexpr char *PSWKEY {"PASSWORD"};*/
-/*char _SSID[33];
-char _PSW[65];*/
-
-
-
-ConfiguratorStates BLEConfStatus;
-
-enum class DeviceMode { CHECK_CONFIG, CONFIG, RUN };
-//DeviceMode deviceMode = DeviceMode::CHECK_CONFIG;
+enum class DeviceMode { CONFIG, RUN };
 DeviceMode deviceMode = DeviceMode::CONFIG;
 
 void handleCloudDisconnected(){
   Serial.println("cloud disconnected");
   changeMode(DeviceMode::CONFIG);
-  //BLEConf.setErrorCode("disconnected");
 } 
-
-/*String decodeWiFiConnectionErrorMessage(NetworkConnectionState err){
-  switch (err){
-    case NetworkConnectionState::ERROR:
-      return "WiFi HW error";
-    case NetworkConnectionState::INIT:
-      return "Wifi in idle";
-    case   NetworkConnectionState::CLOSED:
-      return "Wifi stopped";
-    case NetworkConnectionState::DISCONNECTED:
-      return "Connection lost";
-      //the connection handler doesn't have a state of "Fail to connect", in case of invalid credetials or 
-      //missing wifi network the FSM stays on Connecting state so use the connecting state to detect the fail to connect
-    case NetworkConnectionState::CONNECTING: 
-      return "failed to connect";
-    default:
-      return "generic error";
-  }
-}
-
-NetworkConnectionState connectWifi(){
-  ArduinoIoTPreferredConnection.configNetworkSetting(_SSID, _PSW);
-  NetworkConnectionState res = NetworkConnectionState::DISCONNECTED;
-  Serial.print("Attempting to connect to WPA SSID: ");
-  Serial.print(_SSID);
-  Serial.print(" PSW: ");
-  Serial.println(_PSW);
-  uint32_t startAttempt = millis();
-  do{
-    res = ArduinoIoTPreferredConnection.check();
-    delay(500);
-  }while(res != NetworkConnectionState::CONNECTED && millis()- startAttempt<35000);
-
-  if(res != NetworkConnectionState::CONNECTED){
-
-    WiFi.end();
-  }
-  
-
-  return res;
-
-}*/
-
-
 
 void changeMode(DeviceMode nextMode){
   if(nextMode == DeviceMode::RUN){
     if(deviceMode == DeviceMode::CONFIG){
-      //BLEConf.end();
       NetworkConf.end();
     }
-
-    /*configStart = 0;
-    lastWifiScan = 0;
-    preferences.end();
-*/
     deviceMode = DeviceMode::RUN;
   }else if(nextMode == DeviceMode::CONFIG){
     WiFi.end();
-    /*while(1){
-    if (!preferences.begin("my-app", false)) {
-      Serial.println("Cannot initialize preferences");
-      preferences.end();
-    }else{
-      Serial.println("preferences initialized");
-      break;
-    }
-   }
-    initConfigMode();*/
     NetworkConf.begin(true, "Connection Lost");
     deviceMode = DeviceMode::CONFIG;
   }
@@ -127,51 +54,13 @@ void setup() {
   
 
   pinMode(RESETCRED_BUTTON, INPUT);
- /* while(1){
-    if (!preferences.begin("my-app", false)) {
-      Serial.println("Cannot initialize preferences");
-      preferences.end();
-    }else{
-      Serial.println("preferences initialized");
-      break;
-    }
-  }*/
   
   bool resetStoredCred = false;
   if (digitalRead(RESETCRED_BUTTON) == HIGH){
-    /*Serial.println("clearing credentials");
-    preferences.clear();
-    Serial.println("cleared credentials");*/
     resetStoredCred = true;
   }
   NetworkConf.begin(true, "", resetStoredCred);
 
-  //NetworkConnectionState status = NetworkConnectionState::INIT;
-
-  /*String SSID = preferences.getString(SSIDKEY, "");
-  String Password = preferences.getString(PSWKEY, "");
-  //preferences.end();
-  if (SSID != "" && Password != ""){
-    Serial.print("found credential WiFi: ");
-    Serial.print(SSID);
-    Serial.print(" PSW: ");
-    Serial.println(Password);
-    memcpy(_SSID, SSID.c_str(), SSID.length());
-    memcpy(_PSW, Password.c_str(), Password.length());
-    status = connectWifi();
-  }
-  
-  if (status != NetworkConnectionState::CONNECTED)
-  {
-    Serial.println("not connected, starting BLE");
-    initConfigMode();
-    deviceMode = DeviceMode::CONFIG;
-  }else{
-    Serial.println("connected");
-    preferences.end();
-    deviceMode = DeviceMode::RUN;
-  }
-*/
   /*
      The following function allows you to obtain more information
      related to the state of network and IoT Cloud connection and errors
@@ -188,67 +77,7 @@ void loop() {
     if(NetworkConf.poll() == NetworkConfiguratorStates::CONFIGURED){
       changeMode(DeviceMode::RUN);
     }
-  /*  BLEConfStatus = BLEConf.poll();
-    bool forceConnect = false;
-    bool forceScan = false;
-    if(BLEConfStatus == ConfiguratorStates::CONFIG_RECEIVED){
-
-      if(BLEConf.getConfigurations(_SSID,sizeof(_SSID),_PSW, sizeof(_PSW))){
-        Serial.print("Cred received: SSID: ");
-        Serial.print(_SSID);
-        Serial.print("PSW: ");
-        Serial.println(_PSW);
-        
-        preferences.remove(SSIDKEY);
-        preferences.putString(SSIDKEY, _SSID);
-        preferences.remove(PSWKEY);
-        preferences.putString(PSWKEY,_PSW);
-
-        forceConnect = true;
-
-        
-
-
-      }else{
-        Serial.println("invalid credentials");
-        BLEConf.setErrorCode("invalid credentials");
-      }
-    } else if(BLEConfStatus == ConfiguratorStates::REQUEST_UPDATE_OPT){
-      forceScan = true;
-
-    }
-
-    if(_SSID[0] != '\0' && _PSW[0] != '\0' && (millis()-configStart > 120000 || forceConnect)){
-      NetworkConnectionState status = connectWifi();
-      if (status == NetworkConnectionState::CONNECTED)
-      {
-        Serial.println("connected");
-        BLEConf.setErrorCode("connected");
-        delay(3000);
-        changeMode(DeviceMode::RUN);
-        return;
-      }else{
-        String errStr = decodeWiFiConnectionErrorMessage(status);
-        Serial.print("connection fail: ");
-        Serial.println(errStr);
-        BLEConf.setErrorCode(errStr);
-        delay(2000);
-        configStart = millis();
-      }
-    }
-
-
-    if((millis() - lastWifiScan > 120000 || forceScan)/*&& !BLEConf.isPeerConnected()){ //uncomment if board doesn't support wifi and ble connectivty at the same time
-      WiFiOption wifiOptObj;
-      if(!scanWiFiNetworks(wifiOptObj)){
-        Serial.println("error scanning for wifi networks");
-      }
-      NetworkOptions netOption = { NetworkOptionsClass::WIFI, wifiOptObj };
-      netOption.option.wifi = wifiOptObj;
-
-      BLEConf.setAvailableOptions(netOption);
-      lastWifiScan = millis();
-    }*/
+ 
   }else if(deviceMode == DeviceMode::RUN){
     ArduinoCloud.update();
     // Your code here 
@@ -258,13 +87,8 @@ void loop() {
       counter++;
     }
   }
-
-
-  
   
 }
-
-
 
 /*
   Since Counter is READ_WRITE variable, onCounterChange() is
