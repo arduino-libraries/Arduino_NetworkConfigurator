@@ -15,12 +15,16 @@ _statusCode{""}
 
 ConfiguratorStates BLEConfiguratorAgent::begin(){
   _optionsChar = (BLECharacteristic*)&_wifiListCharacteristic;
+  if(_state != ConfiguratorStates::END){
+    return _state;
+  }
+  //BLE.debug(Serial);
   if (!BLE.begin()) {
     Serial.println("starting Bluetooth® Low Energy module failed!");
 
     return ConfiguratorStates::ERROR;
   }
-
+  Serial.println("BLEConfiguratorAgent::begin ble begin ");
   BLE.setLocalName("Arduino-provisioning");
   BLE.setAdvertisedService(_confService);
 
@@ -38,12 +42,13 @@ ConfiguratorStates BLEConfiguratorAgent::begin(){
   _confService.addCharacteristic(_wifiListCharacteristic);
   // add service
   BLE.addService(_confService);
-
+  Serial.println("BLEConfiguratorAgent::begin starting adv");
   // start advertising
   BLE.advertise();
   _state = ConfiguratorStates::INIT;
   _paramsCompleted[0] = 0;
   _paramsCompleted[1] = 0;
+  Serial.println("BLEConfiguratorAgent::begin started adv");
   return _state;
 }
 

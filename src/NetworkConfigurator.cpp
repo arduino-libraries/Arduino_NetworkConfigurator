@@ -16,6 +16,7 @@ bool NetworkConfigurator::begin(bool initConfiguratorIfConnectionFails, String c
   _initReason = cause;
   _state = NetworkConfiguratorStates::INIT;
   _startConnectionAttempt = 0;
+#ifdef ARDUINO_UNOR4_WIFI
   while(1){
     if (!_preferences.begin("my-app", false)) {
       Serial.println("Cannot initialize preferences");
@@ -29,7 +30,7 @@ bool NetworkConfigurator::begin(bool initConfiguratorIfConnectionFails, String c
   if (resetStorage){
     _preferences.clear();
   }
-
+#endif
 #ifdef BOARD_HAS_WIFI
   _networkSetting.type = NetworkAdapter::WIFI;
 #endif
@@ -57,7 +58,9 @@ NetworkConfiguratorStates NetworkConfigurator::poll(){
 bool NetworkConfigurator::end(){
   _lastConnectionAttempt = 0;
   _state = NetworkConfiguratorStates::END;
+  #ifdef ARDUINO_UNOR4_WIFI
   _preferences.end();
+  #endif
   return _agentManager->end();
 }
   
@@ -95,9 +98,6 @@ NetworkConfiguratorStates NetworkConfigurator::connectToNetwork(){
     String error = decodeConnectionErrorMessage(connectionRes);
     Serial.print("connection fail: ");
     Serial.println(error);
-    /*if(_state == NetworkConfiguratorStates::TRY_TO_CONNECT){
-      _agentManager->begin();
-    }*/
 
     _agentManager->setConnectionStatus({.type=ConnectionStatusMessageType::ERROR, .msg=error});        
     _lastConnectionAttempt = millis();
@@ -130,6 +130,7 @@ NetworkConfiguratorStates NetworkConfigurator::handleInit(){
   NetworkConfiguratorStates nextState = _state;
   if(!_networkSettingReceived){
 #ifdef BOARD_HAS_WIFI
+#ifdef ARDUINO_UNOR4_WIFI
     String SSID = _preferences.getString(SSIDKEY, "");
     String Password = _preferences.getString(PSWKEY, "");
     //preferences.end();
@@ -143,6 +144,7 @@ NetworkConfiguratorStates NetworkConfigurator::handleInit(){
       memcpy(_networkSetting.values.wifi.pwd, Password.c_str(), Password.length());
       _networkSettingReceived = true;
     }
+#endif
 #endif
   }
   if(_networkSettingReceived){
@@ -180,6 +182,7 @@ NetworkConfiguratorStates NetworkConfigurator::handleWaitingForConf(){
   if (configurationState == AgentsConfiguratorManagerStates::CONFIG_RECEIVED){
     if(_agentManager->getNetworkConfigurations(&_networkSetting)){
 #ifdef BOARD_HAS_WIFI
+#ifdef ARDUINO_UNOR4_WIFI
       Serial.print("Cred received: SSID: ");
       Serial.print(_networkSetting.values.wifi.ssid);
       Serial.print("PSW: ");
@@ -189,7 +192,7 @@ NetworkConfiguratorStates NetworkConfigurator::handleWaitingForConf(){
       _preferences.putString(SSIDKEY, _networkSetting.values.wifi.ssid);
       _preferences.remove(PSWKEY);
       _preferences.putString(PSWKEY,_networkSetting.values.wifi.pwd);
-
+#endif
 #endif
       _networkSettingReceived = true;
       nextState = NetworkConfiguratorStates::CONNECTING;

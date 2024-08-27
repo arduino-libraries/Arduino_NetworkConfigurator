@@ -7,6 +7,8 @@ bool AgentsConfiguratorManager::addAgent(ConfiguratorAgent &agent){
 }
 
 bool AgentsConfiguratorManager::begin(){
+  pinMode(LED_BUILTIN, OUTPUT);
+  updateAvailableOptions();
 
   for(std::list<ConfiguratorAgent *>::iterator agent=_agentsList.begin(); agent != _agentsList.end(); ++agent){
     if ((*agent)->begin() != ConfiguratorStates::INIT){
@@ -14,9 +16,9 @@ bool AgentsConfiguratorManager::begin(){
     }
   }
   
-  updateAvailableOptions();
 
-  pinMode(LED_BUILTIN, OUTPUT);
+
+  Serial.println("AgentsConfiguratorManager begin");
   _state = AgentsConfiguratorManagerStates::INIT;
   return true;
 
@@ -32,7 +34,17 @@ AgentsConfiguratorManagerStates AgentsConfiguratorManager::poll(){
     case AgentsConfiguratorManagerStates::END:                                         return _state;
   }
 
-  if(_enableOptionsAutoUpdate && (millis() - _lastOptionUpdate > 120000)/*&& !BLEConf.isPeerConnected()*/){ //uncomment if board doesn't support wifi and ble connectivty at the same time
+  if(_enableOptionsAutoUpdate && (millis() - _lastOptionUpdate > 120000)){ 
+    //if board doesn't support wifi and ble connectivty at the same time and the BLE peer is connected skip updateAvailableOptions
+#ifdef BOARD_HAS_WIFI
+#if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT) || \
+  defined(ARDUINO_AVR_UNO_WIFI_REV2) || defined(ARDUINO_NANO_RP2040_CONNECT)
+  if(_selectedAgent != nullptr && _selectedAgent->getAgentType() == AgentTypes::BLE && \
+   _selectedAgent->isPeerConnected()){
+    return _state;
+  }
+#endif
+#endif
     updateAvailableOptions();
   }
 
@@ -56,7 +68,17 @@ bool AgentsConfiguratorManager::getNetworkConfigurations(models::NetworkSetting 
     return false;
   }
 
-  return _selectedAgent->getNetworkConfigurations(netSetting);
+  bool res = _selectedAgent->getNetworkConfigurations(netSetting);
+#ifdef BOARD_HAS_WIFI
+#if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT) || \
+  defined(ARDUINO_AVR_UNO_WIFI_REV2) || defined(ARDUINO_NANO_RP2040_CONNECT)
+  if(_selectedAgent->getAgentType() == AgentTypes::BLE){
+    Serial.println("stop ble agent becouse config received");
+    _selectedAgent->end();
+  }
+#endif
+#endif
+  return res;
 }
 
 bool AgentsConfiguratorManager::setConnectionStatus(ConnectionStatusMessage msg){
@@ -71,6 +93,18 @@ bool AgentsConfiguratorManager::setConnectionStatus(ConnectionStatusMessage msg)
   }
 
   if(_state == AgentsConfiguratorManagerStates::CONFIG_RECEIVED && msg.type == ConnectionStatusMessageType::ERROR){
+#ifdef BOARD_HAS_WIFI
+#if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT) || \
+  defined(ARDUINO_AVR_UNO_WIFI_REV2) || defined(ARDUINO_NANO_RP2040_CONNECT)
+  std::for_each(_agentsList.begin(), _agentsList.end(), [](ConfiguratorAgent *agent){
+    if(agent->getAgentType() == AgentTypes::BLE){
+      Serial.println("begin ble agent");
+      agent->begin();
+    }
+    
+  });
+#endif
+#endif
     _state = AgentsConfiguratorManagerStates::CONFIG_IN_PROGRESS;
   }
 
@@ -118,6 +152,12 @@ bool AgentsConfiguratorManager::scanWiFiNetworks(WiFiOption &wifiOptObj){
 
     wifiOptObj.numDiscoveredWiFiNetworks++;
   }
+#ifdef BOARD_HAS_WIFI
+#if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT) || \
+  defined(ARDUINO_AVR_UNO_WIFI_REV2) || defined(ARDUINO_NANO_RP2040_CONNECT)
+  WiFi.end();
+#endif
+#endif
   return true;
 }
 
@@ -125,6 +165,16 @@ bool AgentsConfiguratorManager::scanWiFiNetworks(WiFiOption &wifiOptObj){
 
 bool AgentsConfiguratorManager::updateAvailableOptions(){
 #ifdef BOARD_HAS_WIFI
+#if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT) || \
+  defined(ARDUINO_AVR_UNO_WIFI_REV2) || defined(ARDUINO_NANO_RP2040_CONNECT)
+  std::for_each(_agentsList.begin(), _agentsList.end(), [](ConfiguratorAgent *agent){
+    if(agent->getAgentType() == AgentTypes::BLE){
+      agent->end();
+      Serial.println("stopped ble agent for updating av option");
+    }
+    
+  });
+#endif
   WiFiOption wifiOptObj;
 
 
@@ -134,13 +184,24 @@ bool AgentsConfiguratorManager::updateAvailableOptions(){
   }
 
   NetworkOptions netOption = { NetworkOptionsClass::WIFI, wifiOptObj };
-  //netOption.option.wifi = wifiOptObj;
 #endif
 
   for(std::list<ConfiguratorAgent *>::iterator agent=_agentsList.begin(); agent != _agentsList.end(); ++agent){
     (*agent)->setAvailableOptions(netOption);
   }
 
+#ifdef BOARD_HAS_WIFI
+#if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT) || \
+  defined(ARDUINO_AVR_UNO_WIFI_REV2) || defined(ARDUINO_NANO_RP2040_CONNECT)
+  std::for_each(_agentsList.begin(), _agentsList.end(), [](ConfiguratorAgent *agent){
+    if(agent->getAgentType() == AgentTypes::BLE){
+      Serial.println("begin ble agent");
+      agent->begin();
+    }
+    
+  });
+#endif
+#endif
   _lastOptionUpdate = millis();
   return true;
 }

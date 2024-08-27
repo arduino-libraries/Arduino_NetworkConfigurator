@@ -2,7 +2,9 @@
 #include "Arduino.h"
 #include "Arduino_ConnectionHandler.h"
 #include "ConfiguratorAgents/AgentsConfiguratorManager.h"
-#include <Preferences.h>
+#ifdef ARDUINO_UNOR4_WIFI
+#include <Preferences.h> //TODO REPLACE with final lib
+#endif
 #include <settings/settings.h>
 
 enum class NetworkConfiguratorStates {INIT, CONNECTING, WAITING_FOR_CONFIG, CONFIGURED, END};
@@ -25,7 +27,9 @@ class NetworkConfigurator{
     uint32_t _lastConnectionAttempt = 0;
     uint32_t _startConnectionAttempt;
     String _initReason;
+#ifdef ARDUINO_UNOR4_WIFI
     Preferences _preferences;
+#endif
 
     NetworkConfiguratorStates handleInit();
     NetworkConfiguratorStates handleConnecting();
