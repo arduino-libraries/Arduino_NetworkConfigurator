@@ -16,7 +16,7 @@ bool AgentsConfiguratorManager::begin(){
   
   updateAvailableOptions();
 
-
+  pinMode(LED_BUILTIN, OUTPUT);
   _state = AgentsConfiguratorManagerStates::INIT;
   return true;
 
@@ -43,9 +43,9 @@ bool AgentsConfiguratorManager::end(){
   std::for_each(_agentsList.begin(), _agentsList.end(), [](ConfiguratorAgent *agent){
     agent->end();
   });
-
-   _selectedAgent = nullptr;
-   _lastOptionUpdate = 0;
+  digitalWrite(LED_BUILTIN, LOW);
+  _selectedAgent = nullptr;
+  _lastOptionUpdate = 0;
 
   return true;
 }
@@ -151,6 +151,7 @@ AgentsConfiguratorManagerStates AgentsConfiguratorManager::handleInit(){
     for(std::list<ConfiguratorAgent *>::iterator agent=_agentsList.begin(); agent != _agentsList.end(); ++agent){
       if ((*agent)->poll() == ConfiguratorStates::WAITING_FOR_CONFIG){
         _selectedAgent = *agent;
+        digitalWrite(LED_BUILTIN, HIGH);
         nextState = AgentsConfiguratorManagerStates::CONFIG_IN_PROGRESS;
         Serial.println("found peer connected to agent");
         break;
@@ -186,6 +187,7 @@ AgentsConfiguratorManagerStates AgentsConfiguratorManager::handleConfInProgress(
           (*agent)->begin();
         }
       }
+      digitalWrite(LED_BUILTIN, LOW);
       _selectedAgent = nullptr;
       nextState = AgentsConfiguratorManagerStates::INIT; 
       break;
