@@ -24,7 +24,7 @@ ConfiguratorStates BLEConfiguratorAgent::begin(){
 
     return ConfiguratorStates::ERROR;
   }
-  Serial.println("BLEConfiguratorAgent::begin ble begin ");
+ 
   BLE.setLocalName("Arduino-provisioning");
   BLE.setAdvertisedService(_confService);
 
@@ -119,7 +119,7 @@ bool BLEConfiguratorAgent::setAvailableOptions(NetworkOptions netOptions){
   }
   
   if(_deviceConnected && _optionsChar->subscribed()){
-    sendOptions(*_optionsChar);
+    sendOptions(*_optionsChar);//TODO make this not blocking
   }
   if(_state == ConfiguratorStates::REQUEST_UPDATE_OPT){
     _state = ConfiguratorStates::WAITING_FOR_CONFIG;

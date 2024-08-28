@@ -15,6 +15,7 @@
 */
 
 #include "thingProperties.h"
+#include "utility/watchdog/Watchdog.h"
 #define RESETCRED_BUTTON 13
 uint32_t lastUpdate = 0;
 
@@ -23,7 +24,7 @@ DeviceMode deviceMode = DeviceMode::CONFIG;
 
 void handleCloudDisconnected(){
   Serial.println("cloud disconnected");
-  changeMode(DeviceMode::CONFIG);
+  changeMode(DeviceMode::CONFIG); //Move this inside ArduinoIoTCloud for have this event only when network is disconnected
 } 
 
 void changeMode(DeviceMode nextMode){
@@ -50,12 +51,8 @@ void setup() {
   initProperties();
 
   // Connect to Arduino IoT Cloud
-#if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT) || \
-  defined(ARDUINO_AVR_UNO_WIFI_REV2) || defined(ARDUINO_NANO_RP2040_CONNECT)
-  ArduinoCloud.begin(ArduinoIoTPreferredConnection,false);
- #else
   ArduinoCloud.begin(ArduinoIoTPreferredConnection);
- #endif 
+
 
 
   pinMode(RESETCRED_BUTTON, INPUT);
@@ -79,6 +76,9 @@ void setup() {
 
 void loop() {
   if(deviceMode == DeviceMode::CONFIG){
+    #if defined (ARDUINO_ARCH_SAMD) || defined (ARDUINO_ARCH_MBED)
+    watchdog_reset();
+    #endif
     if(NetworkConf.poll() == NetworkConfiguratorStates::CONFIGURED){
       changeMode(DeviceMode::RUN);
     }
