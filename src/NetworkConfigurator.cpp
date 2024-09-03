@@ -89,7 +89,7 @@ NetworkConfiguratorStates NetworkConfigurator::connectToNetwork(){
     _enableAutoReconnect = false;
     delay(3000);
     nextState = NetworkConfiguratorStates::CONFIGURED;
-  }else if(connectionRes != NetworkConnectionState::CONNECTED && millis() -_startConnectionAttempt >35000)//connection attempt failed
+  }else if(connectionRes != NetworkConnectionState::CONNECTED && millis() -_startConnectionAttempt >NC_CONNECTION_TIMEOUT)//connection attempt failed
   {
 #ifdef BOARD_HAS_WIFI
     WiFi.end();

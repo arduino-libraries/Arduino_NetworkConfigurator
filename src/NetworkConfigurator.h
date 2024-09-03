@@ -6,6 +6,7 @@
 #include <Preferences.h> //TODO REPLACE with final lib
 #endif
 #include <settings/settings.h>
+#define NC_CONNECTION_TIMEOUT 10000
 
 enum class NetworkConfiguratorStates {INIT, CONNECTING, WAITING_FOR_CONFIG, CONFIGURED, END};
 
