@@ -2,6 +2,7 @@
 #include "Arduino.h"
 #include <ArduinoBLE.h>
 #include "ConfiguratorAgents/agents/ConfiguratorAgent.h"
+#include <memory>
 
 class BLEConfiguratorAgent: public ConfiguratorAgent  {
   public:
@@ -20,6 +21,10 @@ class BLEConfiguratorAgent: public ConfiguratorAgent  {
     static inline volatile bool  _deviceConnected = false;
     static inline NetworkOptions _netOptions={};
     static inline volatile uint8_t _paramsCompleted[2] = {0,0};
+    static inline std::unique_ptr<char[]> _optionsBuf;
+    static inline bool _hasOptionsTosend = false;
+    static inline int _bytesOptionsSent = 0;
+    static inline int _bytesToSend = 0;
     String _statusCode;
     BLEService _confService; // Bluetooth® Low Energy LED Service
     #ifdef BOARD_HAS_WIFI
@@ -40,7 +45,7 @@ class BLEConfiguratorAgent: public ConfiguratorAgent  {
     static void pswCharacteristicWritten(BLEDevice central, BLECharacteristic characteristic);
     static void wifiListCharacteristicSubscribed(BLEDevice central, BLECharacteristic characteristic);
     static int  computeOptionsToSendLength();
-    static void sendOptions(BLECharacteristic characteristic);
+    static void sendOptions();
 
 };
 

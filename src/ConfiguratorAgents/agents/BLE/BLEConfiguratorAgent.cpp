@@ -60,6 +60,11 @@ ConfiguratorStates BLEConfiguratorAgent::end(){
   if (_state != ConfiguratorStates::END){
     BLE.stopAdvertise();
     BLE.end();
+    if(_optionsBuf){
+      Serial.println("clear optionsBuf");
+      _optionsBuf.reset();
+    }
+  
     _state = ConfiguratorStates::END;
   }
 
@@ -72,6 +77,23 @@ ConfiguratorStates BLEConfiguratorAgent::poll(){
     _state = ConfiguratorStates::CONFIG_RECEIVED;
   }
 
+  if(_hasOptionsTosend){
+
+    if(_bytesOptionsSent < _bytesToSend){
+      _bytesOptionsSent += _optionsChar->write(&_optionsBuf[_bytesOptionsSent]);
+      Serial.print("transferred: ");
+      Serial.print(_bytesOptionsSent);
+      Serial.print(" of ");
+      Serial.println(_bytesToSend);
+      delay(1000);
+    }else{
+      _bytesOptionsSent = 0;
+      _bytesToSend = 0;
+      _hasOptionsTosend = false;
+      _optionsBuf.reset();
+      Serial.println("transfer completed");
+    }
+  }
 
   return _state;
 
@@ -119,7 +141,7 @@ bool BLEConfiguratorAgent::setAvailableOptions(NetworkOptions netOptions){
   }
   
   if(_deviceConnected && _optionsChar->subscribed()){
-    sendOptions(*_optionsChar);//TODO make this not blocking
+    sendOptions();
   }
   if(_state == ConfiguratorStates::REQUEST_UPDATE_OPT){
     _state = ConfiguratorStates::WAITING_FOR_CONFIG;
@@ -203,14 +225,14 @@ int BLEConfiguratorAgent::computeOptionsToSendLength(){
 
 void BLEConfiguratorAgent::wifiListCharacteristicSubscribed(BLEDevice central, BLECharacteristic characteristic){
 
-  sendOptions(characteristic);
+  sendOptions();
   
 }
 
-void BLEConfiguratorAgent::sendOptions(BLECharacteristic characteristic){
+void BLEConfiguratorAgent::sendOptions(){
   Serial.println("Sending networks");
   int dataLengthToSend = computeOptionsToSendLength();
-  char bufferToSend[dataLengthToSend];
+  _optionsBuf = std::unique_ptr<char[]>(new char[dataLengthToSend]);
   int handle = 0;
   
   if(_netOptions.type == NetworkOptionsClass::WIFI){
@@ -223,14 +245,14 @@ void BLEConfiguratorAgent::sendOptions(BLECharacteristic characteristic){
       Serial.println(i);
 
         
-      memcpy(&bufferToSend[handle], _netOptions.option.wifi.discoveredWifiNetworks[i].SSID, strlen(_netOptions.option.wifi.discoveredWifiNetworks[i].SSID));
+      memcpy(&_optionsBuf[handle], _netOptions.option.wifi.discoveredWifiNetworks[i].SSID, strlen(_netOptions.option.wifi.discoveredWifiNetworks[i].SSID));
       handle += _netOptions.option.wifi.discoveredWifiNetworks[i].SSIDsize;
-      bufferToSend[handle++] = ';';
+      _optionsBuf[handle++] = ';';
       char rssi[5];
       itoa(_netOptions.option.wifi.discoveredWifiNetworks[i].RSSI,rssi, 10);
-      memcpy(&bufferToSend[handle], rssi, strlen(rssi));
+      memcpy(&_optionsBuf[handle], rssi, strlen(rssi));
       handle += strlen(rssi);
-      bufferToSend[handle++] = '|';
+      _optionsBuf[handle++] = '|';
 
 
       if(handle > dataLengthToSend){
@@ -244,18 +266,11 @@ void BLEConfiguratorAgent::sendOptions(BLECharacteristic characteristic){
     }
   }
   
-  bufferToSend[handle] = '\0';
+  _optionsBuf[handle] = '\0';
 
   dataLengthToSend = handle;
   
-  int transferredBytes = 0;
-
-  while(transferredBytes < dataLengthToSend){
-    transferredBytes += characteristic.write(&bufferToSend[transferredBytes]);
-    Serial.print("transferred: ");
-    Serial.print(transferredBytes);
-    Serial.print(" of ");
-    Serial.println(dataLengthToSend);
-    delay(1000);
-  }
+  _bytesOptionsSent = 0;
+  _hasOptionsTosend = true;
+  _bytesToSend = dataLengthToSend;
 }
