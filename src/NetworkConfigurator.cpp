@@ -210,6 +210,7 @@ NetworkConfiguratorStates NetworkConfigurator::handleConnecting(){
   //Disable the auto update of wifi network for avoiding to perform a wifi scan while trying to connect to a wifi network
   _agentManager->disableConnOptionsAutoUpdate();
 #endif
+  _agentManager->setConnectionStatus({.type=ConnectionStatusMessageType::CONNECTING, .msg="Connecting"});
   _agentManager->poll(); //To keep alive the connection with the configurator  
   NetworkConfiguratorStates nextState = connectToNetwork();
 

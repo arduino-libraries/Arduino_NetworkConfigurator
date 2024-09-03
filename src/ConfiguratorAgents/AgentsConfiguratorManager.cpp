@@ -11,7 +11,9 @@ bool AgentsConfiguratorManager::begin(){
   updateAvailableOptions();
 
   for(std::list<ConfiguratorAgent *>::iterator agent=_agentsList.begin(); agent != _agentsList.end(); ++agent){
-    if ((*agent)->begin() != ConfiguratorStates::INIT){
+    if ((*agent)->begin() == ConfiguratorStates::ERROR){
+      Serial.print("agent type init fail: ");
+      Serial.println((int)(*agent)->getAgentType());
       return false;
     }
   }
@@ -58,7 +60,8 @@ bool AgentsConfiguratorManager::end(){
   digitalWrite(LED_BUILTIN, LOW);
   _selectedAgent = nullptr;
   _lastOptionUpdate = 0;
-
+  _connectionInProgress = false;
+  _state = AgentsConfiguratorManagerStates::END;
   return true;
 }
 
@@ -85,27 +88,46 @@ bool AgentsConfiguratorManager::setConnectionStatus(ConnectionStatusMessage msg)
   //Update all the agents in list and not only the _selectedAgent in case the configuration process is triggered by a disconnection
   for(std::list<ConfiguratorAgent *>::iterator agent=_agentsList.begin(); agent != _agentsList.end(); ++agent){
     if(msg.type == ConnectionStatusMessageType::ERROR){
+#ifdef BOARD_HAS_WIFI
+#if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT) || \
+  defined(ARDUINO_AVR_UNO_WIFI_REV2) || defined(ARDUINO_NANO_RP2040_CONNECT)
+      if(_connectionInProgress){
+        std::for_each(_agentsList.begin(), _agentsList.end(), [](ConfiguratorAgent *agent){
+          if(agent->getAgentType() == AgentTypes::BLE ){
+            Serial.println("end ble agent for connection");
+            agent->begin();
+          }
+          
+        });
+        _connectionInProgress = false;
+      }
+      
+#endif
+#endif
+      if(_state == AgentsConfiguratorManagerStates::CONFIG_RECEIVED){
+        _state = AgentsConfiguratorManagerStates::CONFIG_IN_PROGRESS;
+      }
+      
       (*agent)->setErrorCode(msg.msg);
+    }else if(msg.type == ConnectionStatusMessageType::CONNECTING){
+#ifdef BOARD_HAS_WIFI
+#if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT) || \
+  defined(ARDUINO_AVR_UNO_WIFI_REV2) || defined(ARDUINO_NANO_RP2040_CONNECT)
+      std::for_each(_agentsList.begin(), _agentsList.end(), [](ConfiguratorAgent *agent){
+        if(agent->getAgentType() == AgentTypes::BLE ){
+          Serial.println("end ble agent for connection");
+          agent->end();
+        }
+        
+      });
+#endif
+#endif
+      _connectionInProgress= true;
+      (*agent)->setInfoCode(msg.msg);
     }else{
       (*agent)->setInfoCode(msg.msg);
     }
     
-  }
-
-  if(_state == AgentsConfiguratorManagerStates::CONFIG_RECEIVED && msg.type == ConnectionStatusMessageType::ERROR){
-#ifdef BOARD_HAS_WIFI
-#if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT) || \
-  defined(ARDUINO_AVR_UNO_WIFI_REV2) || defined(ARDUINO_NANO_RP2040_CONNECT)
-  std::for_each(_agentsList.begin(), _agentsList.end(), [](ConfiguratorAgent *agent){
-    if(agent->getAgentType() == AgentTypes::BLE){
-      Serial.println("begin ble agent");
-      agent->begin();
-    }
-    
-  });
-#endif
-#endif
-    _state = AgentsConfiguratorManagerStates::CONFIG_IN_PROGRESS;
   }
 
   return true;

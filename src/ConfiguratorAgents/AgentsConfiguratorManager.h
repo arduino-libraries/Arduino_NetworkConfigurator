@@ -6,7 +6,7 @@
 
 enum class AgentsConfiguratorManagerStates {INIT, CONFIG_IN_PROGRESS, CONFIG_RECEIVED, END};
 
-enum class ConnectionStatusMessageType {INFO, ERROR};
+enum class ConnectionStatusMessageType {INFO, CONNECTING, ERROR};
 typedef struct{
   ConnectionStatusMessageType type;
   String msg;
@@ -30,6 +30,7 @@ class AgentsConfiguratorManager {
     String _error;
     uint32_t _lastOptionUpdate = 0;
     bool _enableOptionsAutoUpdate = true;
+    bool _connectionInProgress = false;
 
     AgentsConfiguratorManagerStates handleInit();
     AgentsConfiguratorManagerStates handleConfInProgress();
