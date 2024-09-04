@@ -1,7 +1,31 @@
 #include "BLEStringCharacteristic.h"
 #include "BLECharacteristic.h"
 #include "BLEConfiguratorAgent.h"
+#define BASE_LOCAL_DEVICE_NAME "Arduino"
 
+#if defined(ARDUINO_SAMD_MKRWIFI1010)
+#define DEVICE_NAME " MKR 1010 "
+#elif defined(ARDUINO_SAMD_NANO_33_IOT)
+#define DEVICE_NAME " NANO 33 IoT " 
+#elif defined(ARDUINO_AVR_UNO_WIFI_REV2)
+#define DEVICE_NAME " UNO WiFi R2 " 
+#elif defined (ARDUINO_NANO_RP2040_CONNECT)
+#define DEVICE_NAME " NANO RP2040 " 
+#elif defined(ARDUINO_PORTENTA_H7_M7)
+#define DEVICE_NAME " Portenta H7 "
+#elif defined(ARDUINO_PORTENTA_C33)
+#define DEVICE_NAME " Portenta C33 "
+#elif defined(ARDUINO_NICLA_VISION)
+#define DEVICE_NAME " Nicla Vision "
+#elif defined(ARDUINO_OPTA)
+#define DEVICE_NAME " Opta "
+#elif defined(ARDUINO_GIGA)
+#define DEVICE_NAME " Giga "
+#elif defined(ARDUINO_UNOR4_WIFI)
+#define DEVICE_NAME " UNO R4 WiFi "
+#endif
+
+#define LOCAL_NAME BASE_LOCAL_DEVICE_NAME DEVICE_NAME
 
 BLEConfiguratorAgent::BLEConfiguratorAgent():
 _confService{"5e5be887-c816-4d4f-b431-9eb34b02f4d9"},
@@ -24,8 +48,12 @@ ConfiguratorStates BLEConfiguratorAgent::begin(){
 
     return ConfiguratorStates::ERROR;
   }
- 
-  BLE.setLocalName("Arduino-provisioning");
+  _localName = generateLocalDeviceName();
+  Serial.print("Device Name: ");
+  Serial.println(_localName);
+  if(!BLE.setLocalName(_localName.c_str())){
+    Serial.println("fail to set local name");
+  }
   BLE.setAdvertisedService(_confService);
 
   BLE.setEventHandler(BLEConnected, blePeripheralConnectHandler );
@@ -85,7 +113,7 @@ ConfiguratorStates BLEConfiguratorAgent::poll(){
       Serial.print(_bytesOptionsSent);
       Serial.print(" of ");
       Serial.println(_bytesToSend);
-      delay(1000);
+      delay(500);
     }else{
       _bytesOptionsSent = 0;
       _bytesToSend = 0;
@@ -273,4 +301,14 @@ void BLEConfiguratorAgent::sendOptions(){
   _bytesOptionsSent = 0;
   _hasOptionsTosend = true;
   _bytesToSend = dataLengthToSend;
+}
+
+String BLEConfiguratorAgent::generateLocalDeviceName(){
+  _Static_assert(sizeof(LOCAL_NAME) < 24, "Error BLE device Local Name too long. Reduce DEVICE_NAME length");//Check at compile time if the local name length is valid
+  String macAddress = BLE.address();
+  String last2Bytes = macAddress.substring(12); //Get the last two bytes of mac address
+  String localName = LOCAL_NAME;
+  localName.concat("- ");
+  localName.concat(last2Bytes);
+  return localName;
 }

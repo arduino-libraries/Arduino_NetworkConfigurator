@@ -36,9 +36,9 @@ class BLEConfiguratorAgent: public ConfiguratorAgent  {
     static inline BLECharacteristic *_optionsChar;
     #endif
     BLEStringCharacteristic _statusCharacteristic;
-
+    String _localName;
     
-
+    String generateLocalDeviceName();
     static void blePeripheralConnectHandler(BLEDevice central);
     static void blePeripheralDisconnectHandler(BLEDevice central);
     static void ssidCharacteristicWritten(BLEDevice central, BLECharacteristic characteristic);
