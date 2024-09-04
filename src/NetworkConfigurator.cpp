@@ -98,8 +98,12 @@ NetworkConfiguratorStates NetworkConfigurator::connectToNetwork(){
     String error = decodeConnectionErrorMessage(connectionRes);
     Serial.print("connection fail: ");
     Serial.println(error);
-
-    _agentManager->setConnectionStatus({.type=ConnectionStatusMessageType::ERROR, .msg=error});        
+    if(_initReason != ""){
+      _agentManager->setConnectionStatus({.type=ConnectionStatusMessageType::ERROR, .msg=_initReason});
+    }else{
+      _agentManager->setConnectionStatus({.type=ConnectionStatusMessageType::ERROR, .msg=error});  
+    }
+          
     _lastConnectionAttempt = millis();
     nextState = NetworkConfiguratorStates::WAITING_FOR_CONFIG;
   }
@@ -161,6 +165,9 @@ NetworkConfiguratorStates NetworkConfigurator::handleInit(){
         if(!_agentManager->begin()){
           Serial.println("failed to init agent");
         }
+        if(_initReason != ""){
+          _agentManager->setConnectionStatus({.type=ConnectionStatusMessageType::ERROR, .msg=_initReason});
+        }
       }
     }else{
       nextState = NetworkConfiguratorStates::CONFIGURED;
@@ -181,6 +188,9 @@ NetworkConfiguratorStates NetworkConfigurator::handleWaitingForConf(){
   AgentsConfiguratorManagerStates configurationState = _agentManager->poll();
   if (configurationState == AgentsConfiguratorManagerStates::CONFIG_RECEIVED){
     if(_agentManager->getNetworkConfigurations(&_networkSetting)){
+      if(_initReason != ""){
+        _initReason = ""; //reset initReason if set, for updating the failure reason
+      }
 #ifdef BOARD_HAS_WIFI
 #ifdef ARDUINO_UNOR4_WIFI
       Serial.print("Cred received: SSID: ");
