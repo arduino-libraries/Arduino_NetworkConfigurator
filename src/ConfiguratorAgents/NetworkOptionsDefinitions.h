@@ -1,13 +1,11 @@
 #pragma once
-#include <settings/settings.h>
+#include "Arduino.h"
 #define MAX_WIFI_NETWORKS 20
 
-enum class ConfiguratorStates {INIT, WAITING_FOR_CONFIG, CONFIG_RECEIVED, REQUEST_UPDATE_OPT, END, ERROR};
-enum class AgentTypes {BLE, AP, WIRED_USB};
-enum class NetworkOptionsClass {WIFI, LAN};
+enum class NetworkOptionsClass {NONE, WIFI, LAN};
 
 typedef struct {
-  const char  *SSID;
+  char  *SSID;
   int RSSI;
   size_t SSIDsize;
 

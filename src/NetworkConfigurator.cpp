@@ -1,9 +1,15 @@
-#include "Arduino_ConnectionHandlerDefinitions.h"
+#include "ConnectionHandlerDefinitions.h"
+#include "ConfiguratorAgents/MessagesDefinitions.h"
+#include "Arduino_ConnectionHandler.h"
+#ifdef BOARD_HAS_WIFI
+#include "WiFiConnectionHandler.h"
+#endif
 #include "NetworkConfigurator.h"
+#define SERVICE_ID_FOR_AGENTMANAGER 0xB0
 constexpr char *SSIDKEY {"SSID"};
 constexpr char *PSWKEY {"PASSWORD"};
 
-NetworkConfigurator::NetworkConfigurator(AgentsConfiguratorManager &agentManager, ConnectionHandler &connectionHandler):
+NetworkConfigurator::NetworkConfigurator(AgentsConfiguratorManager &agentManager, GenericConnectionHandler &connectionHandler):
 _agentManager{&agentManager},
 _connectionHandler{&connectionHandler}
 {
@@ -32,8 +38,27 @@ bool NetworkConfigurator::begin(bool initConfiguratorIfConnectionFails, String c
   }
 #endif
 #ifdef BOARD_HAS_WIFI
-  _networkSetting.type = NetworkAdapter::WIFI;
+#ifndef ARDUINO_ARCH_ESP32
+  String fv = WiFi.firmwareVersion();
+  if (fv < WIFI_FIRMWARE_LATEST_VERSION) {
+    Serial.println("Please upgrade the firmware");
+  }
 #endif
+  _networkSetting.type = NetworkAdapter::WIFI;
+  if(!_agentManager->addRequestHandler(RequestType::SCAN, scanReqHandler)){
+    Serial.println("error adding scan request handler");
+  }
+#endif
+
+  if(!_agentManager->addRequestHandler(RequestType::CONNECT, connectReqHandler)){
+    Serial.println("error adding connect request handler");
+  }
+
+  if(!_agentManager->addReturnNetworkSettingsCallback(setNetworkSettingsHandler)){
+    Serial.println("error adding network settings handler");
+  }
+
+  updateNetworkOptions();
 
   return true;
 }
@@ -45,7 +70,27 @@ NetworkConfiguratorStates NetworkConfigurator::poll(){
     case NetworkConfiguratorStates::WAITING_FOR_CONFIG: _state = handleWaitingForConf(); break;
     case NetworkConfiguratorStates::CONNECTING:         _state = handleConnecting    (); break;
     case NetworkConfiguratorStates::CONFIGURED:                                          break;
-    case NetworkConfiguratorStates::END:                                                 break;
+    case NetworkConfiguratorStates::END:                                                 return _state;
+  }
+
+  //Handle if the scan request command is received
+  if(_scanReqReceived){
+    _scanReqReceived = false;
+    updateNetworkOptions();
+  }
+
+  //Check if update the network options 
+  if(_enableNetworkOptionsAutoUpdate && (millis() - _lastOptionUpdate > 120000)){ 
+    //if board doesn't support wifi and ble connectivty at the same time and the configuration is in progress skip updateAvailableOptions
+#ifdef BOARD_HAS_WIFI
+#if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT) || \
+  defined(ARDUINO_AVR_UNO_WIFI_REV2) || defined(ARDUINO_NANO_RP2040_CONNECT)
+  if( _agentManager->isConfigInProgress() == true){
+    return _state;
+  }
+#endif
+#endif
+    updateNetworkOptions();
   }
 
   if(_networkSettingReceived && _agentManager->isConfigInProgress() != true && (millis()-_lastConnectionAttempt > 120000 && _enableAutoReconnect)){
@@ -57,22 +102,31 @@ NetworkConfiguratorStates NetworkConfigurator::poll(){
 
 bool NetworkConfigurator::end(){
   _lastConnectionAttempt = 0;
+  _lastOptionUpdate = 0;
+  _scanReqReceived = false;
+  _agentManager->removeReturnNetworkSettingsCallback();
+  _agentManager->removeRequestHandler(RequestType::SCAN);
+  _agentManager->removeRequestHandler(RequestType::CONNECT);
   _state = NetworkConfiguratorStates::END;
   #ifdef ARDUINO_UNOR4_WIFI
   _preferences.end();
   #endif
-  return _agentManager->end();
+  return _agentManager->end(SERVICE_ID_FOR_AGENTMANAGER);
 }
   
 
 NetworkConfiguratorStates NetworkConfigurator::connectToNetwork(){
   NetworkConfiguratorStates nextState = _state;
-  _connectionHandler->updateSetting(_networkSetting);
+  if(!_connectionHandler->updateSetting(_networkSetting)){
+    Serial.println("Network parameters not supported");
+    _agentManager->setStatusMessage(MessageTypeCodes::INVALID_PARAMS);
+    return NetworkConfiguratorStates::WAITING_FOR_CONFIG;
+  }
 #ifdef BOARD_HAS_WIFI
   Serial.print("Attempting to connect to WPA SSID: ");
-  Serial.print(_networkSetting.values.wifi.ssid);
+  Serial.print(_networkSetting.wifi.ssid);
   Serial.print(" PSW: ");
-  Serial.println(_networkSetting.values.wifi.pwd);
+  Serial.println(_networkSetting.wifi.pwd);
 #endif
   if(_startConnectionAttempt == 0){
     _startConnectionAttempt = millis();
@@ -83,9 +137,8 @@ NetworkConfiguratorStates NetworkConfigurator::connectToNetwork(){
   delay(250);
   if(connectionRes == NetworkConnectionState::CONNECTED){
     _startConnectionAttempt = 0;
-    String msg = "connected";
-    Serial.println(msg);
-    _agentManager->setConnectionStatus({.type=ConnectionStatusMessageType::INFO, .msg=msg});
+    Serial.println("Connected");
+    _agentManager->setStatusMessage(MessageTypeCodes::CONNECTED);
     _enableAutoReconnect = false;
     delay(3000);
     nextState = NetworkConfiguratorStates::CONFIGURED;
@@ -95,13 +148,16 @@ NetworkConfiguratorStates NetworkConfigurator::connectToNetwork(){
     WiFi.end();
 #endif
     _startConnectionAttempt = 0;
-    String error = decodeConnectionErrorMessage(connectionRes);
+    int errorCode;
+    String errorMsg = decodeConnectionErrorMessage(connectionRes, &errorCode);
     Serial.print("connection fail: ");
-    Serial.println(error);
+    Serial.println(errorMsg);
     if(_initReason != ""){
-      _agentManager->setConnectionStatus({.type=ConnectionStatusMessageType::ERROR, .msg=_initReason});
+      Serial.print("init reason: ");
+      Serial.println(_initReason);
+      _agentManager->setStatusMessage(MessageTypeCodes::CONNECTION_LOST);
     }else{
-      _agentManager->setConnectionStatus({.type=ConnectionStatusMessageType::ERROR, .msg=error});  
+      _agentManager->setStatusMessage((MessageTypeCodes)errorCode);  
     }
           
     _lastConnectionAttempt = millis();
@@ -111,21 +167,115 @@ NetworkConfiguratorStates NetworkConfigurator::connectToNetwork(){
   return nextState;
 }
 
-String NetworkConfigurator::decodeConnectionErrorMessage(NetworkConnectionState err){
+bool NetworkConfigurator::updateNetworkOptions()
+{
+#ifdef BOARD_HAS_WIFI
+  Serial.println("Scanning");
+  _agentManager->setStatusMessage(MessageTypeCodes::SCANNING);//Notify before scan
+
+  WiFiOption wifiOptObj;
+
+  String errMsg;
+  if(!scanWiFiNetworks(wifiOptObj, &errMsg)){
+    Serial.println("error scanning for wifi networks");
+    Serial.println(errMsg);
+    
+    _agentManager->setStatusMessage(MessageTypeCodes::HW_ERROR_CONN_MODULE);
+    
+    return false;
+  }
+
+  NetworkOptions netOption = { NetworkOptionsClass::WIFI, wifiOptObj };
+#endif
+  
+  _agentManager->setNetworkOptions(netOption);
+
+  _lastOptionUpdate = millis();
+
+  return true;
+}
+
+#ifdef BOARD_HAS_WIFI
+bool NetworkConfigurator::scanWiFiNetworks(WiFiOption &wifiOptObj, String *err)
+{
+  Serial.println("Scanning");
+  wifiOptObj.numDiscoveredWiFiNetworks = 0;
+    // check for the WiFi module:
+  if (WiFi.status() == WL_NO_MODULE) {
+    *err = "Communication with WiFi module failed!";
+    return false;
+  }
+
+  int numSsid = WiFi.scanNetworks();
+  if (numSsid == -1) {
+    *err = "Couldn't get any WiFi connection";
+    return false;
+  }
+
+  // print the list of networks seen:
+  Serial.print("number of available networks:");
+  Serial.println(numSsid);
+
+  // print the network number and name for each network found:
+  for (int thisNet = 0; thisNet < numSsid && thisNet < MAX_WIFI_NETWORKS; thisNet++) {
+    Serial.print(thisNet);
+    Serial.print(") ");
+    Serial.print(WiFi.SSID(thisNet));
+    Serial.print("\tSignal: ");
+    Serial.print(WiFi.RSSI(thisNet));
+    Serial.println(" dBm");
+
+    wifiOptObj.discoveredWifiNetworks[thisNet].SSID = const_cast<char*>(WiFi.SSID(thisNet));
+
+    
+    wifiOptObj.discoveredWifiNetworks[thisNet].SSIDsize = strlen(WiFi.SSID(thisNet));
+    wifiOptObj.discoveredWifiNetworks[thisNet].RSSI = WiFi.RSSI(thisNet);
+
+    wifiOptObj.numDiscoveredWiFiNetworks++;
+  }
+
+  WiFi.end();
+  return true;
+}
+#endif
+
+void NetworkConfigurator::scanReqHandler()
+{
+  _scanReqReceived = true;
+}
+
+void NetworkConfigurator::connectReqHandler()
+{
+  _connectReqReceived = true;
+}
+
+void NetworkConfigurator::setNetworkSettingsHandler(models::NetworkSetting *netSetting)
+{
+  memcpy(&_networkSetting, netSetting, sizeof(models::NetworkSetting));
+  _networkSettingsToHandleReceived = true;
+}
+
+String NetworkConfigurator::decodeConnectionErrorMessage(NetworkConnectionState err, int *errorCode){
   switch (err){
     case NetworkConnectionState::ERROR:
+      *errorCode = (int) MessageTypeCodes::HW_ERROR_CONN_MODULE;
       return "HW error";
     case NetworkConnectionState::INIT:
+      *errorCode = (int) MessageTypeCodes::WIFI_IDLE;
       return "Peripheral in idle";
     case   NetworkConnectionState::CLOSED:
+      *errorCode = (int) MessageTypeCodes::WIFI_STOPPED;
       return "Peripheral stopped";
     case NetworkConnectionState::DISCONNECTED:
-      return "Connection lost";
+      *errorCode = (int) MessageTypeCodes::DISCONNECTED;
+      return "Disconnected";
       //the connection handler doesn't have a state of "Fail to connect", in case of invalid credetials or 
       //missing wifi network the FSM stays on Connecting state so use the connecting state to detect the fail to connect
     case NetworkConnectionState::CONNECTING: 
+      *errorCode = (int) MessageTypeCodes::FAILED_TO_CONNECT;
       return "failed to connect";
     default:
+      *errorCode = (int) MessageTypeCodes::ERROR;
       return "generic error";
   }
 }
@@ -144,8 +294,8 @@ NetworkConfiguratorStates NetworkConfigurator::handleInit(){
       Serial.print(" PSW: ");
       Serial.println(Password);
       
-      memcpy(_networkSetting.values.wifi.ssid, SSID.c_str(), SSID.length());
-      memcpy(_networkSetting.values.wifi.pwd, Password.c_str(), Password.length());
+      memcpy(_networkSetting.wifi.ssid, SSID.c_str(), SSID.length());
+      memcpy(_networkSetting.wifi.pwd, Password.c_str(), Password.length());
       _networkSettingReceived = true;
     }
 #endif
@@ -162,21 +312,20 @@ NetworkConfiguratorStates NetworkConfigurator::handleInit(){
 
       if(nextState != NetworkConfiguratorStates::CONFIGURED){
         _enableAutoReconnect = true;
-        if(!_agentManager->begin()){
+
+        if(!_agentManager->begin(SERVICE_ID_FOR_AGENTMANAGER)){
           Serial.println("failed to init agent");
         }
         if(_initReason != ""){
-          _agentManager->setConnectionStatus({.type=ConnectionStatusMessageType::ERROR, .msg=_initReason});
+          _agentManager->setStatusMessage(MessageTypeCodes::CONNECTION_LOST);
         }
       }
     }else{
       nextState = NetworkConfiguratorStates::CONFIGURED;
     }
   }else{
-    _agentManager->begin();
-    if(_initReason != ""){
-      _agentManager->setConnectionStatus({.type=ConnectionStatusMessageType::ERROR, .msg=_initReason});
-    }
+
+    _agentManager->begin(SERVICE_ID_FOR_AGENTMANAGER);
     nextState = NetworkConfiguratorStates::WAITING_FOR_CONFIG;
   }
 
@@ -185,52 +334,59 @@ NetworkConfiguratorStates NetworkConfigurator::handleInit(){
 
 NetworkConfiguratorStates NetworkConfigurator::handleWaitingForConf(){
   NetworkConfiguratorStates nextState = _state;
-  AgentsConfiguratorManagerStates configurationState = _agentManager->poll();
-  if (configurationState == AgentsConfiguratorManagerStates::CONFIG_RECEIVED){
-    if(_agentManager->getNetworkConfigurations(&_networkSetting)){
-      if(_initReason != ""){
-        _initReason = ""; //reset initReason if set, for updating the failure reason
-      }
+  _agentManager->poll();
+  if(_networkSettingsToHandleReceived){
+    _networkSettingsToHandleReceived = false;
+    if(_initReason != ""){
+      _initReason = ""; //reset initReason if set, for updating the failure reason
+    }
 #ifdef BOARD_HAS_WIFI
 #ifdef ARDUINO_UNOR4_WIFI
-      Serial.print("Cred received: SSID: ");
-      Serial.print(_networkSetting.values.wifi.ssid);
-      Serial.print("PSW: ");
-      Serial.println(_networkSetting.values.wifi.pwd);
+    Serial.print("Cred received: SSID: ");
+    Serial.print(_networkSetting.wifi.ssid);
+    Serial.print("PSW: ");
+    Serial.println(_networkSetting.wifi.pwd);
 
-      _preferences.remove(SSIDKEY);
-      _preferences.putString(SSIDKEY, _networkSetting.values.wifi.ssid);
-      _preferences.remove(PSWKEY);
-      _preferences.putString(PSWKEY,_networkSetting.values.wifi.pwd);
+    _preferences.remove(SSIDKEY);
+    _preferences.putString(SSIDKEY, _networkSetting.wifi.ssid);
+    _preferences.remove(PSWKEY);
+    _preferences.putString(PSWKEY,_networkSetting.wifi.pwd);
+
 #endif
+    //Disable the auto update of wifi network for avoiding to perform a wifi scan while trying to connect to a wifi network
+    _enableNetworkOptionsAutoUpdate = false;
 #endif
-      _networkSettingReceived = true;
-      nextState = NetworkConfiguratorStates::CONNECTING;
+    _networkSettingReceived = true;
+  }else if(_connectReqReceived){
+    _connectReqReceived = false;
+    if(!_networkSettingReceived){
+      Serial.println("Parameters not provided");
+      _agentManager->setStatusMessage(MessageTypeCodes::PARAMS_NOT_FOUND);
     }else{
-      String error = "invalid credentials";
-      Serial.println(error);
-      _agentManager->setConnectionStatus({.type=ConnectionStatusMessageType::ERROR, .msg=error});
+      nextState = NetworkConfiguratorStates::CONNECTING;
     }
   }
+
   return nextState;
 }
 
 NetworkConfiguratorStates NetworkConfigurator::handleConnecting(){
 #ifdef BOARD_HAS_WIFI
   //Disable the auto update of wifi network for avoiding to perform a wifi scan while trying to connect to a wifi network
-  _agentManager->disableConnOptionsAutoUpdate();
+  _enableNetworkOptionsAutoUpdate = false;
 #endif
-  _agentManager->setConnectionStatus({.type=ConnectionStatusMessageType::CONNECTING, .msg="Connecting"});
+  _agentManager->setStatusMessage(MessageTypeCodes::CONNECTING);
   _agentManager->poll(); //To keep alive the connection with the configurator  
   NetworkConfiguratorStates nextState = connectToNetwork();
 
 
   // Exiting from connecting state
-  if(nextState != _state){
+  if(nextState != _state && nextState != NetworkConfiguratorStates::CONFIGURED){
 #ifdef BOARD_HAS_WIFI
-    _agentManager->enableConnOptionsAutoUpdate();
+    _enableNetworkOptionsAutoUpdate = true;
 #endif  
   }
 
   return nextState;
 }
+

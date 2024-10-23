@@ -1,6 +1,7 @@
 #include "BLEStringCharacteristic.h"
 #include "BLECharacteristic.h"
 #include "BLEConfiguratorAgent.h"
+
 #define BASE_LOCAL_DEVICE_NAME "Arduino"
 
 #if defined(ARDUINO_SAMD_MKRWIFI1010)
@@ -27,26 +28,24 @@
 
 #define LOCAL_NAME BASE_LOCAL_DEVICE_NAME DEVICE_NAME
 
+#define MAX_VALIDITY_TIME 30000
+
 BLEConfiguratorAgent::BLEConfiguratorAgent():
 _confService{"5e5be887-c816-4d4f-b431-9eb34b02f4d9"},
-_ssidCharacteristic{"b0f3f174-f834-440b-be8b-e699047e33d1", BLERead | BLEWrite, 64},
-_pswCharacteristic{"ea1c6589-3817-4782-9d8b-c4a03708bb52", BLERead | BLEWrite, 64},
-_wifiListCharacteristic{"b03033b6-0ee3-489b-b6b5-04efa515cbdf", BLERead|BLENotify|BLEIndicate, 64},
-_statusCharacteristic{"34776508-336f-4546-9f65-fbd9c2bc42d5", BLERead | BLENotify | BLEIndicate, 256},
-_statusCode{""}
+_inputStreamCharacteristic {"0000ffe1-0000-1000-8000-00805f9b34fc", BLEWrite, 256},
+_outputStreamCharacteristic{"0000ffe1-0000-1000-8000-00805f9b34fa", BLEIndicate, 64}
 {
 }
 
-ConfiguratorStates BLEConfiguratorAgent::begin(){
-  _optionsChar = (BLECharacteristic*)&_wifiListCharacteristic;
-  if(_state != ConfiguratorStates::END){
+ConfiguratorAgent::AgentConfiguratorStates BLEConfiguratorAgent::begin(){
+  if(_state != AgentConfiguratorStates::END){
     return _state;
   }
   //BLE.debug(Serial);
   if (!BLE.begin()) {
     Serial.println("starting Bluetooth® Low Energy module failed!");
 
-    return ConfiguratorStates::ERROR;
+    return AgentConfiguratorStates::ERROR;
   }
   _localName = generateLocalDeviceName();
   Serial.print("Device Name: ");
@@ -59,248 +58,173 @@ ConfiguratorStates BLEConfiguratorAgent::begin(){
   BLE.setEventHandler(BLEConnected, blePeripheralConnectHandler );
   BLE.setEventHandler(BLEDisconnected, blePeripheralDisconnectHandler );
 
-  // assign event handlers for characteristic
-  _ssidCharacteristic.setEventHandler(BLEWritten, this->ssidCharacteristicWritten);
-  _pswCharacteristic.setEventHandler(BLEWritten, this->pswCharacteristicWritten);
-  _wifiListCharacteristic.setEventHandler(BLESubscribed, this->wifiListCharacteristicSubscribed);
   // add the characteristic to the service
-  _confService.addCharacteristic(_ssidCharacteristic);
-  _confService.addCharacteristic(_pswCharacteristic);
-  _confService.addCharacteristic(_statusCharacteristic);
-  _confService.addCharacteristic(_wifiListCharacteristic);
+  _confService.addCharacteristic(_outputStreamCharacteristic);
+  _confService.addCharacteristic(_inputStreamCharacteristic);
+  
   // add service
   BLE.addService(_confService);
   Serial.println("BLEConfiguratorAgent::begin starting adv");
   // start advertising
   BLE.advertise();
-  _state = ConfiguratorStates::INIT;
-  _paramsCompleted[0] = 0;
-  _paramsCompleted[1] = 0;
+  _state = AgentConfiguratorStates::INIT;
   Serial.println("BLEConfiguratorAgent::begin started adv");
   return _state;
 }
 
-ConfiguratorStates BLEConfiguratorAgent::end(){
+ConfiguratorAgent::AgentConfiguratorStates BLEConfiguratorAgent::end(){
   if(_deviceConnected){
     _deviceConnected = false;
     BLE.disconnect();
   }
-  if (_state != ConfiguratorStates::END){
+  if (_state != AgentConfiguratorStates::END){
     BLE.stopAdvertise();
     BLE.end();
-    if(_optionsBuf){
-      Serial.println("clear optionsBuf");
-      _optionsBuf.reset();
+    Packet.clear();
+    _outputMessages.clear();
+    _inputMessages.clear();
+    _state = AgentConfiguratorStates::END;
+  }
+
+  return _state;
+}
+
+ConfiguratorAgent::AgentConfiguratorStates BLEConfiguratorAgent::poll(){
+  BLE.poll();
+  if(_bleEvent.newEvent){
+    _bleEvent.newEvent = false;
+    switch (_bleEvent.type)
+    {
+    case BLEEventType::CONNECTED:
+      _deviceConnected = true;
+      _state = AgentConfiguratorStates::PEER_CONNECTED;
+      break;
+    case BLEEventType::DISCONNECTED:
+      _deviceConnected = false;
+      Packet.clear();
+      _outputMessages.clear();
+      _inputMessages.clear();
+      _state = AgentConfiguratorStates::INIT;
+      break;
+    default:
+      break;
+    }
+  }
+
+
+  if(_deviceConnected){
+    if (_inputStreamCharacteristic.written()) {
+      Serial.println("inputStreamCharacteristic written"); 
+      int receivedDataLen = _inputStreamCharacteristic.valueLength();
+      const uint8_t* val = _inputStreamCharacteristic.value();
+      PacketManager::ReceivingState res;
+      PacketManager::ReceivedData receivedData;
+      for (int i = 0; i < receivedDataLen; i++) {     
+        res = Packet.handleReceivedByte(receivedData, val[i]);
+        if(res == PacketManager::ReceivingState::ERROR){
+          Serial.println("Error receiving packet");
+          sendNak();
+          transmitStream();
+          _inputStreamCharacteristic.writeValue("");
+          break;
+        }else if(res == PacketManager::ReceivingState::RECEIVED){
+          switch (receivedData.type)
+          {
+          case PacketManager::MessageType::DATA:
+            {
+              Serial.println("Received data packet");
+              _inputMessages.addMessage(receivedData.payload);
+              //Consider all sent data as received
+              while(_outputMessages.numMessages() > 0){
+                _outputMessages.popMessage();
+              }
+              _state = AgentConfiguratorStates::RECEIVED_DATA;
+            }
+            break;
+          case PacketManager::MessageType::RESPONSE:
+            {
+              Serial.println("Received response packet");
+              for(OutputPacketBuffer *outputMsg = _outputMessages.nextMessage(); outputMsg != nullptr; outputMsg = _outputMessages.nextMessage()){
+                outputMsg->startProgress();
+              }
+            }
+            break;
+          default:
+            break;
+          }
+        }
+      }
     }
   
-    _state = ConfiguratorStates::END;
-  }
-
-  return _state;
-}
-
-ConfiguratorStates BLEConfiguratorAgent::poll(){
-  BLE.poll();
-  if (_paramsCompleted[0] == 1 && _paramsCompleted[1] == 1){
-    _state = ConfiguratorStates::CONFIG_RECEIVED;
-  }
-
-  if(_hasOptionsTosend){
-
-    if(_bytesOptionsSent < _bytesToSend){
-      _bytesOptionsSent += _optionsChar->write(&_optionsBuf[_bytesOptionsSent]);
-      Serial.print("transferred: ");
-      Serial.print(_bytesOptionsSent);
-      Serial.print(" of ");
-      Serial.println(_bytesToSend);
-      delay(500);
-    }else{
-      _bytesOptionsSent = 0;
-      _bytesToSend = 0;
-      _hasOptionsTosend = false;
-      _optionsBuf.reset();
-      Serial.println("transfer completed");
+    if(_outputStreamCharacteristic.subscribed() && _outputMessages.numMessages() > 0){
+      transmitStream();
     }
   }
 
+  if(_outputMessages.numMessages()>0){
+    checkOutputPacketValidity();
+  }
+  
   return _state;
-
 }
 
-
-bool BLEConfiguratorAgent::isPeerConnected(){
-  return _deviceConnected;
+bool BLEConfiguratorAgent::receivedDataAvailable()
+{
+  return _inputMessages.numMessages() > 0;
 }
 
-bool BLEConfiguratorAgent::getNetworkConfigurations(models::NetworkSetting *netSetting){
-  if(_state == ConfiguratorStates::CONFIG_RECEIVED){
-    if (netSetting->type == NetworkAdapter::WIFI){
-      if(_ssidCharacteristic.value().length() >= 33 || _pswCharacteristic.value().length() >= 64){
-        Serial.print("invalid cred length SSID: ");
-        Serial.print(_ssidCharacteristic.value().length());
-        Serial.print("invalid cred length PSW: ");
-        Serial.print(_pswCharacteristic.value().length());
-
-        return false;
+bool BLEConfiguratorAgent::getReceivedData(uint8_t *data, size_t *len)
+{
+  if(_inputMessages.numMessages() > 0){
+    InputPacketBuffer *msg = _inputMessages.frontMessage();
+    if(msg->len() <= *len){
+      *len = msg->len();
+      memset(data, 0x00, *len);
+      memcpy(data, &(*msg)[0], *len);
+      _inputMessages.popMessage();
+      if(_inputMessages.numMessages() == 0){
+        _state = AgentConfiguratorStates::PEER_CONNECTED;
       }
-      memset(netSetting->values.wifi.ssid, 0x00, 33);
-      memset(netSetting->values.wifi.pwd, 0x00, 64);
-      memcpy(netSetting->values.wifi.ssid, _ssidCharacteristic.value().c_str(), _ssidCharacteristic.value().length());
-      memcpy(netSetting->values.wifi.pwd, _pswCharacteristic.value().c_str(), _pswCharacteristic.value().length());
-      return true; 
-    }else{
-      Serial.println("NetSettings type not supported");
-      return false;
+      return true;
     }
-    
   }
-
-  Serial.println("No cred received");
   return false;
 }
 
-bool BLEConfiguratorAgent::setAvailableOptions(NetworkOptions netOptions){
-  Serial.println("Setting options");
-  _netOptions = netOptions;
-  if(netOptions.type == NetworkOptionsClass::WIFI){
-    Serial.println("copy wifi option");
-    memset(_netOptions.option.wifi.discoveredWifiNetworks, 0x00, sizeof(DiscoveredWiFiNetwork)*MAX_WIFI_NETWORKS );
-    memcpy(_netOptions.option.wifi.discoveredWifiNetworks, netOptions.option.wifi.discoveredWifiNetworks, sizeof(DiscoveredWiFiNetwork)*MAX_WIFI_NETWORKS  );
+size_t BLEConfiguratorAgent::getReceivedDataLength()
+{
+  if(_inputMessages.numMessages() > 0){
+    InputPacketBuffer * msg = _inputMessages.frontMessage();
+    return msg->len();
   }
-  
-  if(_deviceConnected && _optionsChar->subscribed()){
-    sendOptions();
-  }
-  if(_state == ConfiguratorStates::REQUEST_UPDATE_OPT){
-    _state = ConfiguratorStates::WAITING_FOR_CONFIG;
-  }
-  
-
-  return true;
+  return 0;
 }
 
-bool BLEConfiguratorAgent::setInfoCode(String info){
-  _statusCode = info;
-  
-  _statusCharacteristic.setValue(_statusCode);
-
-  return true;
+bool BLEConfiguratorAgent::sendData(const uint8_t *data, size_t len)
+{
+  return sendData(PacketManager::MessageType::DATA, data, len);
 }
 
-bool BLEConfiguratorAgent::setErrorCode(String error){
-  _statusCode = error;
-  _statusCharacteristic.setValue(_statusCode);
-
-  if(_state == ConfiguratorStates::CONFIG_RECEIVED){ 
-    _paramsCompleted[0] = 0;//TODO remove when implemented the "READY" command sent by the mobile app
-    _paramsCompleted[1] = 0;
-    _state = ConfiguratorStates::WAITING_FOR_CONFIG;
-  }
-
-  return true;
+bool BLEConfiguratorAgent::isPeerConnected()
+{
+  return _deviceConnected;
 }
 
 void BLEConfiguratorAgent::blePeripheralConnectHandler(BLEDevice central) {
   // central connected event handler
-  _deviceConnected = true;
-  _state = ConfiguratorStates::WAITING_FOR_CONFIG;
+  _bleEvent.type = BLEEventType::CONNECTED;
+  _bleEvent.newEvent = true;
+
   Serial.print("Connected event, central: ");
   Serial.println(central.address());
 }
 
 void BLEConfiguratorAgent::blePeripheralDisconnectHandler(BLEDevice central) {
   // central disconnected event handler
-  _state = ConfiguratorStates::INIT;
-  _deviceConnected = false;
+  _bleEvent.type = BLEEventType::DISCONNECTED;
+  _bleEvent.newEvent = true;
   Serial.print("Disconnected event, central: ");
   Serial.println(central.address());
-}
-
-void BLEConfiguratorAgent::ssidCharacteristicWritten(BLEDevice central, BLECharacteristic characteristic) {
-  // central wrote new value to characteristic, update LED
-  Serial.println("Characteristic event, written ssid");
-
-  
-  _paramsCompleted[0] = 1;
-
-
-}
-
-
-void BLEConfiguratorAgent::pswCharacteristicWritten(BLEDevice central, BLECharacteristic characteristic) {
-  // central wrote new value to characteristic, update LED
-  Serial.println("Characteristic event, written psw");
-
-  _paramsCompleted[1] = 1;
-
-}
-
-int BLEConfiguratorAgent::computeOptionsToSendLength(){
-
-  int length = 0;
-
-  if(_netOptions.type == NetworkOptionsClass::WIFI){
-    for(uint8_t i =0; i <_netOptions.option.wifi.numDiscoveredWiFiNetworks; i++){
-      length += 6;
-      length += _netOptions.option.wifi.discoveredWifiNetworks[i].SSIDsize;
-    }
-
-  }
-  return length;
-
-
-}
-
-void BLEConfiguratorAgent::wifiListCharacteristicSubscribed(BLEDevice central, BLECharacteristic characteristic){
-
-  sendOptions();
-  
-}
-
-void BLEConfiguratorAgent::sendOptions(){
-  Serial.println("Sending networks");
-  int dataLengthToSend = computeOptionsToSendLength();
-  _optionsBuf = std::unique_ptr<char[]>(new char[dataLengthToSend]);
-  int handle = 0;
-  
-  if(_netOptions.type == NetworkOptionsClass::WIFI){
-    Serial.print("networks to send: ");
-    Serial.println(_netOptions.option.wifi.numDiscoveredWiFiNetworks);
-
-    for(uint8_t i =0; i <_netOptions.option.wifi.numDiscoveredWiFiNetworks; i++){
-
-      Serial.print("Sending: ");
-      Serial.println(i);
-
-        
-      memcpy(&_optionsBuf[handle], _netOptions.option.wifi.discoveredWifiNetworks[i].SSID, strlen(_netOptions.option.wifi.discoveredWifiNetworks[i].SSID));
-      handle += _netOptions.option.wifi.discoveredWifiNetworks[i].SSIDsize;
-      _optionsBuf[handle++] = ';';
-      char rssi[5];
-      itoa(_netOptions.option.wifi.discoveredWifiNetworks[i].RSSI,rssi, 10);
-      memcpy(&_optionsBuf[handle], rssi, strlen(rssi));
-      handle += strlen(rssi);
-      _optionsBuf[handle++] = '|';
-
-
-      if(handle > dataLengthToSend){
-        Serial.print("Error more space required than provided: ");
-        Serial.print(handle);
-        Serial.print("/");
-        Serial.println(dataLengthToSend);
-        break;
-      }
-
-    }
-  }
-  
-  _optionsBuf[handle] = '\0';
-
-  dataLengthToSend = handle;
-  
-  _bytesOptionsSent = 0;
-  _hasOptionsTosend = true;
-  _bytesToSend = dataLengthToSend;
 }
 
 String BLEConfiguratorAgent::generateLocalDeviceName(){
@@ -312,3 +236,78 @@ String BLEConfiguratorAgent::generateLocalDeviceName(){
   localName.concat(last2Bytes);
   return localName;
 }
+
+BLEConfiguratorAgent::TransmissionResult BLEConfiguratorAgent::transmitStream(){
+  
+  if(!_outputStreamCharacteristic.subscribed()){
+    Serial.println("outputCharacteristic not subscribed");
+    return TransmissionResult::PEER_NOT_AVAILABLE;
+  }
+  if(_outputMessages.numMessages() == 0){
+    Serial.println("outputMessages empty");
+    return TransmissionResult::COMPLETED;
+  }
+
+  TransmissionResult res = TransmissionResult::COMPLETED;
+
+  for(OutputPacketBuffer *outputMsg = _outputMessages.nextMessage(0); outputMsg != nullptr; outputMsg = _outputMessages.nextMessage()){
+    if(outputMsg->hasBytesToSend()){
+      res = TransmissionResult::NOT_COMPLETED;
+      outputMsg->incrementBytesSent(_outputStreamCharacteristic.write(&(*outputMsg)[outputMsg->bytesSent()], outputMsg->bytesToSend()));
+      Serial.print("outputCharacteristic transferred: ");
+      Serial.print(outputMsg->bytesSent());
+      Serial.print(" of ");
+      Serial.println(outputMsg->len());
+      if(!outputMsg->hasBytesToSend()){
+        Serial.println("outputCharacteristictransfer completed");
+      }
+      delay(500);
+      break;
+    }
+  }
+
+  return res;
+}
+
+bool BLEConfiguratorAgent::sendNak()
+{
+  uint8_t data = 0x03;
+  return sendData(PacketManager::MessageType::RESPONSE, &data, sizeof(data));
+}
+
+void BLEConfiguratorAgent::checkOutputPacketValidity()
+{
+  for(OutputPacketBuffer *outputMsg = _outputMessages.nextMessage(0); outputMsg != nullptr; outputMsg = _outputMessages.nextMessage()){
+    if(outputMsg->getValidityTs() != 0 && outputMsg->getValidityTs() < millis()){
+      Serial.println("expired output message");
+      outputMsg->reset();
+    }
+  }
+}
+
+bool BLEConfiguratorAgent::sendData(PacketManager::MessageType type, const uint8_t *data, size_t len)
+{
+  OutputPacketBuffer outputMsg;
+  outputMsg.setValidityTs(millis() + MAX_VALIDITY_TIME);
+
+  if(!Packet.createPacket(outputMsg, type, data, len)){
+    Serial.println("Failed to create packet");
+    return false;
+  }
+  if(!_outputMessages.addMessage(outputMsg)){
+    Serial.println("Failed to add message to outputMessages");
+    return false;
+  }
+  
+  TransmissionResult res = TransmissionResult::NOT_COMPLETED;
+  do{
+    res = transmitStream();
+    if(res == TransmissionResult::PEER_NOT_AVAILABLE){
+      break;
+    }
+  }while(res == TransmissionResult::NOT_COMPLETED);
+
+  return true;
+}
+
+BLEConfiguratorAgent BLEAgent;

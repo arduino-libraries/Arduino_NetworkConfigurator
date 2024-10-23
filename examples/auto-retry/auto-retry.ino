@@ -18,7 +18,8 @@
 #include "utility/watchdog/Watchdog.h"
 #define RESETCRED_BUTTON 13
 uint32_t lastUpdate = 0;
-
+bool networkConfigured = false;
+bool provisioningCompleted = false;
 enum class DeviceMode { CONFIG, RUN };
 DeviceMode deviceMode = DeviceMode::CONFIG;
 
@@ -29,11 +30,9 @@ void handleCloudDisconnected(){
 
 void changeMode(DeviceMode nextMode){
   if(nextMode == DeviceMode::RUN){
-    if(deviceMode == DeviceMode::CONFIG){
-      NetworkConf.end();
-    }
     deviceMode = DeviceMode::RUN;
   }else if(nextMode == DeviceMode::CONFIG){
+    networkConfigured = false;
     WiFi.end();
     NetworkConf.begin(true, "Connection Lost");
     deviceMode = DeviceMode::CONFIG;
@@ -61,8 +60,9 @@ void setup() {
   if (digitalRead(RESETCRED_BUTTON) == HIGH){
     resetStoredCred = true;
   }
+  
   NetworkConf.begin(true, "", resetStoredCred);
-
+  ProvisioningSystem.begin();
   /*
      The following function allows you to obtain more information
      related to the state of network and IoT Cloud connection and errors
@@ -79,7 +79,17 @@ void loop() {
     #if defined (ARDUINO_ARCH_SAMD) || defined (ARDUINO_ARCH_MBED)
     watchdog_reset();
     #endif
-    if(NetworkConf.poll() == NetworkConfiguratorStates::CONFIGURED){
+    NetworkConfiguratorStates s = NetworkConf.poll();
+    if(s == NetworkConfiguratorStates::CONFIGURED){
+      NetworkConf.end();
+      networkConfigured = true;
+    }
+    if(provisioningCompleted == false && ProvisioningSystem.poll()){
+      ProvisioningSystem.end();
+      provisioningCompleted = true;
+    }
+    
+    if( networkConfigured && provisioningCompleted){
       changeMode(DeviceMode::RUN);
     }
  
