@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 2024 Arduino SA
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+*/
+
 #include "PacketManager.h"
 #include "uCRC16Lib.h"
 uint8_t PACKET_START[] = {0x55, 0xaa};
