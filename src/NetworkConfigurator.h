@@ -33,6 +33,7 @@ class NetworkConfigurator{
     bool _networkSettingReceived;
     bool _enableAutoReconnect;
     bool _initConfiguratorIfConnectionFails;
+    bool _connectionHandlerIstantiated = false;
     uint32_t _lastConnectionAttempt = 0;
     uint32_t _startConnectionAttempt;
     String _initReason;

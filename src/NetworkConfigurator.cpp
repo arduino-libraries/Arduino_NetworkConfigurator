@@ -125,11 +125,7 @@ bool NetworkConfigurator::end(){
 
 NetworkConfiguratorStates NetworkConfigurator::connectToNetwork(){
   NetworkConfiguratorStates nextState = _state;
-  if(!_connectionHandler->updateSetting(_networkSetting)){
-    Serial.println("Network parameters not supported");
-    _agentManager->setStatusMessage(MessageTypeCodes::INVALID_PARAMS);
-    return NetworkConfiguratorStates::WAITING_FOR_CONFIG;
-  }
+   Serial.println("Connecting to network");
 #ifdef BOARD_HAS_WIFI
   Serial.print("Attempting to connect to WPA SSID: ");
   Serial.print(_networkSetting.wifi.ssid);
@@ -310,6 +306,15 @@ NetworkConfiguratorStates NetworkConfigurator::handleInit(){
 #endif
   }
   if(_networkSettingReceived){
+    if(!_connectionHandlerIstantiated){
+      if(!_connectionHandler->updateSetting(_networkSetting)){
+        Serial.println("Network parameters not supported");
+        _agentManager->begin(SERVICE_ID_FOR_AGENTMANAGER);
+        return NetworkConfiguratorStates::WAITING_FOR_CONFIG;
+      }
+      _connectionHandlerIstantiated = true;
+    }
+
     if(_initConfiguratorIfConnectionFails){
       _enableAutoReconnect = false;
       nextState = connectToNetwork();
@@ -348,6 +353,14 @@ NetworkConfiguratorStates NetworkConfigurator::handleWaitingForConf(){
     if(_initReason != ""){
       _initReason = ""; //reset initReason if set, for updating the failure reason
     }
+   
+    if(!_connectionHandler->updateSetting(_networkSetting)){
+      Serial.println("Network parameters not supported");
+      _agentManager->setStatusMessage(MessageTypeCodes::INVALID_PARAMS);
+      return NetworkConfiguratorStates::WAITING_FOR_CONFIG;
+    }
+
+    _connectionHandlerIstantiated = true;
 #ifdef BOARD_HAS_WIFI
 #ifdef ARDUINO_UNOR4_WIFI
     Serial.print("Cred received: SSID: ");
