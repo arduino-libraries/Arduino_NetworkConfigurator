@@ -384,6 +384,7 @@ NetworkConfiguratorStates NetworkConfigurator::handleWaitingForConf(){
       Serial.println("Parameters not provided");
       _agentManager->setStatusMessage(MessageTypeCodes::PARAMS_NOT_FOUND);
     }else{
+      _agentManager->setStatusMessage(MessageTypeCodes::CONNECTING);
       nextState = NetworkConfiguratorStates::CONNECTING;
     }
   }
@@ -396,7 +397,6 @@ NetworkConfiguratorStates NetworkConfigurator::handleConnecting(){
   //Disable the auto update of wifi network for avoiding to perform a wifi scan while trying to connect to a wifi network
   _enableNetworkOptionsAutoUpdate = false;
 #endif
-  _agentManager->setStatusMessage(MessageTypeCodes::CONNECTING);
   _agentManager->poll(); //To keep alive the connection with the configurator  
   NetworkConfiguratorStates nextState = connectToNetwork();
 
