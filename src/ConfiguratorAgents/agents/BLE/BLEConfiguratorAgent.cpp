@@ -9,7 +9,7 @@
 #include "BLEStringCharacteristic.h"
 #include "BLECharacteristic.h"
 #include "BLEConfiguratorAgent.h"
-
+#define DEBUG_PACKET
 #define BASE_LOCAL_DEVICE_NAME "Arduino"
 
 #if defined(ARDUINO_SAMD_MKRWIFI1010)
@@ -127,7 +127,14 @@ ConfiguratorAgent::AgentConfiguratorStates BLEConfiguratorAgent::poll(){
       const uint8_t* val = _inputStreamCharacteristic.value();
       PacketManager::ReceivingState res;
       PacketManager::ReceivedData receivedData;
-      for (int i = 0; i < receivedDataLen; i++) {     
+      #ifdef DEBUG_PACKET
+        Serial.print("Received byte: ");
+      #endif
+      for (int i = 0; i < receivedDataLen; i++) {   
+#ifdef DEBUG_PACKET
+        Serial.print(val[i], HEX);
+        Serial.print(" ");
+#endif  
         res = Packet.handleReceivedByte(receivedData, val[i]);
         if(res == PacketManager::ReceivingState::ERROR){
           Serial.println("Error receiving packet");
@@ -141,6 +148,18 @@ ConfiguratorAgent::AgentConfiguratorStates BLEConfiguratorAgent::poll(){
           case PacketManager::MessageType::DATA:
             {
               Serial.println("Received data packet");
+              #ifdef DEBUG_PACKET
+              Serial.println("************************************");
+              for(uint16_t i = 0; i < receivedData.payload.len(); i++){
+                Serial.print(receivedData.payload[i], HEX);
+                Serial.print(" ");
+                if((i+1)%10 == 0){
+                  Serial.println();
+                }
+              }
+              Serial.println();
+              Serial.println("************************************");
+              #endif
               _inputMessages.addMessage(receivedData.payload);
               //Consider all sent data as received
               while(_outputMessages.numMessages() > 0){
@@ -162,6 +181,9 @@ ConfiguratorAgent::AgentConfiguratorStates BLEConfiguratorAgent::poll(){
           }
         }
       }
+      #ifdef DEBUG_PACKET
+        Serial.println();
+      #endif
     }
   
     if(_outputStreamCharacteristic.subscribed() && _outputMessages.numMessages() > 0){
@@ -302,6 +324,21 @@ bool BLEConfiguratorAgent::sendData(PacketManager::MessageType type, const uint8
     Serial.println("Failed to create packet");
     return false;
   }
+
+#ifdef DEBUG_PACKET
+  Serial.println("************************************");
+  Serial.println("Output message");
+  for(int i = 0; i < outputMsg.len(); i++){
+    Serial.print(outputMsg[i], HEX);
+    Serial.print(" ");
+    if((i+1)%10 == 0){
+      Serial.println();
+    }
+  }
+  Serial.println();
+  Serial.println("************************************");
+#endif
+
   if(!_outputMessages.addMessage(outputMsg)){
     Serial.println("Failed to add message to outputMessages");
     return false;
