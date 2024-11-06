@@ -75,6 +75,11 @@ void setup() {
 }
 
 void loop() {
+  if(provisioningCompleted == false && ProvisioningSystem.poll()){
+      ProvisioningSystem.end();
+      provisioningCompleted = true;
+  }
+
   if(deviceMode == DeviceMode::CONFIG){
     #if defined (ARDUINO_ARCH_SAMD) || defined (ARDUINO_ARCH_MBED)
     watchdog_reset();
@@ -84,12 +89,9 @@ void loop() {
       NetworkConf.end();
       networkConfigured = true;
     }
-    if(provisioningCompleted == false && ProvisioningSystem.poll()){
-      ProvisioningSystem.end();
-      provisioningCompleted = true;
-    }
     
-    if( networkConfigured && provisioningCompleted){
+    
+    if( networkConfigured){
       changeMode(DeviceMode::RUN);
     }
  
