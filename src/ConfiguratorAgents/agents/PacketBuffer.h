@@ -12,6 +12,13 @@
 
 class PacketBuffer{
 	public:
+		PacketBuffer(){};
+		PacketBuffer(const PacketBuffer& obj) : _bytesTransferred(obj._bytesTransferred), 
+		_bytesToTransfer(obj._bytesToTransfer), 
+		_validityTs(obj._validityTs){
+      allocate(obj._size);
+      memcpy(_buffer.get(), obj._buffer.get(), obj._size);
+		};
     void setValidityTs(uint32_t ts) { _validityTs = ts;};
     uint32_t getValidityTs() { return _validityTs;};
     uint8_t& operator[](size_t idx)         { return idx < _size? _buffer[idx]: _buffer[0]; };

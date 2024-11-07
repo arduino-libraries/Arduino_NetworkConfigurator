@@ -7,6 +7,7 @@
 */
 
 #pragma once
+#include <list>
 #include "Arduino.h"
 #include <ArduinoBLE.h>
 #include "ConfiguratorAgents/agents/ConfiguratorAgent.h"
@@ -38,7 +39,7 @@ class BLEConfiguratorAgent: public ConfiguratorAgent  {
     BLEService _confService; // Bluetooth® Low Energy LED Service
     BLECharacteristic _inputStreamCharacteristic;
     BLECharacteristic _outputStreamCharacteristic;
-    BLEMessageCollection<OutputPacketBuffer,3> _outputMessages;
+    std::list<OutputPacketBuffer> _outputMessagesList;
     BLEMessageCollection<InputPacketBuffer, 3> _inputMessages;
     String _localName;
 

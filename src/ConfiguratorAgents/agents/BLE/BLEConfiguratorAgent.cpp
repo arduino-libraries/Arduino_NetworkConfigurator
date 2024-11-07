@@ -5,7 +5,7 @@
   License, v. 2.0. If a copy of the MPL was not distributed with this
   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
-
+#include <algorithm>
 #include "BLEStringCharacteristic.h"
 #include "BLECharacteristic.h"
 #include "BLEConfiguratorAgent.h"
@@ -89,7 +89,7 @@ ConfiguratorAgent::AgentConfiguratorStates BLEConfiguratorAgent::end(){
     BLE.stopAdvertise();
     BLE.end();
     Packet.clear();
-    _outputMessages.clear();
+    _outputMessagesList.clear();
     _inputMessages.clear();
     _state = AgentConfiguratorStates::END;
   }
@@ -110,7 +110,7 @@ ConfiguratorAgent::AgentConfiguratorStates BLEConfiguratorAgent::poll(){
     case BLEEventType::DISCONNECTED:
       _deviceConnected = false;
       Packet.clear();
-      _outputMessages.clear();
+      _outputMessagesList.clear();
       _inputMessages.clear();
       _state = AgentConfiguratorStates::INIT;
       break;
@@ -162,17 +162,15 @@ ConfiguratorAgent::AgentConfiguratorStates BLEConfiguratorAgent::poll(){
               #endif
               _inputMessages.addMessage(receivedData.payload);
               //Consider all sent data as received
-              while(_outputMessages.numMessages() > 0){
-                _outputMessages.popMessage();
-              }
+              _outputMessagesList.clear();
               _state = AgentConfiguratorStates::RECEIVED_DATA;
             }
             break;
           case PacketManager::MessageType::RESPONSE:
             {
               Serial.println("Received response packet");
-              for(OutputPacketBuffer *outputMsg = _outputMessages.nextMessage(); outputMsg != nullptr; outputMsg = _outputMessages.nextMessage()){
-                outputMsg->startProgress();
+              for(std::list<OutputPacketBuffer>::iterator packet =_outputMessagesList.begin(); packet != _outputMessagesList.end(); ++packet){
+                packet->startProgress();
               }
             }
             break;
@@ -186,12 +184,12 @@ ConfiguratorAgent::AgentConfiguratorStates BLEConfiguratorAgent::poll(){
       #endif
     }
   
-    if(_outputStreamCharacteristic.subscribed() && _outputMessages.numMessages() > 0){
-      transmitStream();
+    if(_outputStreamCharacteristic.subscribed() && _outputMessagesList.size() > 0){
+      transmitStream();// TODO remove
     }
   }
 
-  if(_outputMessages.numMessages()>0){
+  if(_outputMessagesList.size()>0){
     checkOutputPacketValidity();
   }
   
@@ -273,22 +271,22 @@ BLEConfiguratorAgent::TransmissionResult BLEConfiguratorAgent::transmitStream(){
     Serial.println("outputCharacteristic not subscribed");
     return TransmissionResult::PEER_NOT_AVAILABLE;
   }
-  if(_outputMessages.numMessages() == 0){
+  if(_outputMessagesList.size() == 0){
     Serial.println("outputMessages empty");
     return TransmissionResult::COMPLETED;
   }
 
   TransmissionResult res = TransmissionResult::COMPLETED;
-
-  for(OutputPacketBuffer *outputMsg = _outputMessages.nextMessage(0); outputMsg != nullptr; outputMsg = _outputMessages.nextMessage()){
-    if(outputMsg->hasBytesToSend()){
+  
+  for(std::list<OutputPacketBuffer>::iterator packet =_outputMessagesList.begin(); packet != _outputMessagesList.end(); ++packet){
+    if(packet->hasBytesToSend()){
       res = TransmissionResult::NOT_COMPLETED;
-      outputMsg->incrementBytesSent(_outputStreamCharacteristic.write(&(*outputMsg)[outputMsg->bytesSent()], outputMsg->bytesToSend()));
+      packet->incrementBytesSent(_outputStreamCharacteristic.write(&(*packet)[packet->bytesSent()], packet->bytesToSend()));
       Serial.print("outputCharacteristic transferred: ");
-      Serial.print(outputMsg->bytesSent());
+      Serial.print(packet->bytesSent());
       Serial.print(" of ");
-      Serial.println(outputMsg->len());
-      if(!outputMsg->hasBytesToSend()){
+      Serial.println(packet->len());
+      if(!packet->hasBytesToSend()){
         Serial.println("outputCharacteristictransfer completed");
       }
       delay(500);
@@ -307,12 +305,13 @@ bool BLEConfiguratorAgent::sendNak()
 
 void BLEConfiguratorAgent::checkOutputPacketValidity()
 {
-  for(OutputPacketBuffer *outputMsg = _outputMessages.nextMessage(0); outputMsg != nullptr; outputMsg = _outputMessages.nextMessage()){
-    if(outputMsg->getValidityTs() != 0 && outputMsg->getValidityTs() < millis()){
+  _outputMessagesList.remove_if([](OutputPacketBuffer &packet){
+    if(packet.getValidityTs() != 0 && packet.getValidityTs() < millis()){
       Serial.println("expired output message");
-      outputMsg->reset();
+      return true;
     }
-  }
+    return false;
+  });
 }
 
 bool BLEConfiguratorAgent::sendData(PacketManager::MessageType type, const uint8_t *data, size_t len)
@@ -339,10 +338,7 @@ bool BLEConfiguratorAgent::sendData(PacketManager::MessageType type, const uint8
   Serial.println("************************************");
 #endif
 
-  if(!_outputMessages.addMessage(outputMsg)){
-    Serial.println("Failed to add message to outputMessages");
-    return false;
-  }
+  _outputMessagesList.push_back(outputMsg);
   
   TransmissionResult res = TransmissionResult::NOT_COMPLETED;
   do{

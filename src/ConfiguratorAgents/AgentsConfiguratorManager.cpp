@@ -115,7 +115,7 @@ defined(ARDUINO_AVR_UNO_WIFI_REV2) || defined(ARDUINO_NANO_RP2040_CONNECT)
     }
   }
 
-  if(msg == MessageTypeCodes::SCANNING && !_statusRequest.pending){
+  if(msg == MessageTypeCodes::SCANNING && !_selectedAgent){
     return true;
   }
     
