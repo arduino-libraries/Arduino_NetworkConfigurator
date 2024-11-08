@@ -125,26 +125,21 @@ bool NetworkConfigurator::end(){
 
 NetworkConfiguratorStates NetworkConfigurator::connectToNetwork(){
   NetworkConfiguratorStates nextState = _state;
-   Serial.println("Connecting to network");
-#ifdef BOARD_HAS_WIFI
-  Serial.print("Attempting to connect to WPA SSID: ");
-  Serial.print(_networkSetting.wifi.ssid);
-  Serial.print(" PSW: ");
-  Serial.println(_networkSetting.wifi.pwd);
-#endif
+  Serial.println("Connecting to network");
+  printNetworkSettings();
   if(_startConnectionAttempt == 0){
     _startConnectionAttempt = millis();
   }
   NetworkConnectionState connectionRes = NetworkConnectionState::DISCONNECTED;
 
   connectionRes = _connectionHandler->check();
-  delay(250);
+  delay(250); //TODO remove
   if(connectionRes == NetworkConnectionState::CONNECTED){
     _startConnectionAttempt = 0;
     Serial.println("Connected");
     _agentManager->setStatusMessage(MessageTypeCodes::CONNECTED);
     _enableAutoReconnect = false;
-    delay(3000);
+    delay(3000);//TODO remove
     nextState = NetworkConfiguratorStates::CONFIGURED;
   }else if(connectionRes != NetworkConnectionState::CONNECTED && millis() -_startConnectionAttempt >NC_CONNECTION_TIMEOUT)//connection attempt failed
   {
@@ -361,13 +356,11 @@ NetworkConfiguratorStates NetworkConfigurator::handleWaitingForConf(){
     }
 
     _connectionHandlerIstantiated = true;
+
+    printNetworkSettings();
+
 #ifdef BOARD_HAS_WIFI
 #ifdef ARDUINO_UNOR4_WIFI
-    Serial.print("Cred received: SSID: ");
-    Serial.print(_networkSetting.wifi.ssid);
-    Serial.print("PSW: ");
-    Serial.println(_networkSetting.wifi.pwd);
-
     _preferences.remove(SSIDKEY);
     _preferences.putString(SSIDKEY, _networkSetting.wifi.ssid);
     _preferences.remove(PSWKEY);
@@ -411,3 +404,128 @@ NetworkConfiguratorStates NetworkConfigurator::handleConnecting(){
   return nextState;
 }
 
+ #if defined(BOARD_HAS_ETHERNET)
+void PrintIP(models::ip_addr *ip){
+  int len = 0;
+  if(ip->type == IPType::IPv4){
+    len = 4;
+  }else{
+    len = 16;
+  }
+
+  for(int i = 0; i < len; i++){
+    Serial.print(ip->bytes[i]);
+    Serial.print(" ");
+  }
+  Serial.println();
+}
+#endif
+
+void NetworkConfigurator::printNetworkSettings(){
+  Serial.print("Network settings received: ");
+  switch(_networkSetting.type) {
+#if defined(BOARD_HAS_WIFI)
+      case NetworkAdapter::WIFI:
+        Serial.println("WIFI");
+        Serial.print("SSID: ");
+        Serial.print(_networkSetting.wifi.ssid);
+        Serial.print(" PSW: ");
+        Serial.println(_networkSetting.wifi.pwd);
+        break;
+      #endif
+
+      #if defined(BOARD_HAS_ETHERNET)
+      case NetworkAdapter::ETHERNET:
+          Serial.println("ETHERNET");
+          Serial.print("IP: ");
+          PrintIP(&_networkSetting.eth.ip);
+          Serial.print(" DNS: ");
+          PrintIP(&_networkSetting.eth.dns);
+          Serial.print(" Gateway: ");
+          PrintIP(&_networkSetting.eth.gateway);
+          Serial.print(" Netmask: ");
+          PrintIP(&_networkSetting.eth.netmask);
+          Serial.print(" Timeout: ");
+          Serial.println(_networkSetting.eth.timeout);
+          Serial.print(" Response timeout: ");
+          Serial.println(_networkSetting.eth.response_timeout);
+          break;
+      #endif
+
+      #if defined(BOARD_HAS_NB)
+      case NetworkAdapter::NB:
+          Serial.println("NB");
+          Serial.print("PIN: ");
+          Serial.println(_networkSetting.nb.pin);
+          Serial.print(" APN: ");
+          Serial.println(_networkSetting.nb.apn);
+          Serial.print(" Login: ");
+          Serial.println(_networkSetting.nb.login);
+          Serial.print(" Pass: ");
+          Serial.println(_networkSetting.nb.pass);
+          break;
+      #endif
+
+      #if defined(BOARD_HAS_GSM)
+      case NetworkAdapter::GSM:
+          Serial.println("GSM");
+          Serial.print("PIN: ");
+          Serial.println(_networkSetting.gsm.pin);
+          Serial.print(" APN: ");
+          Serial.println(_networkSetting.gsm.apn);
+          Serial.print(" Login: ");
+          Serial.println(_networkSetting.gsm.login);
+          Serial.print(" Pass: ");
+          Serial.println(_networkSetting.gsm.pass);
+          break;
+      #endif
+
+      #if defined(BOARD_HAS_CATM1_NBIOT)
+      case NetworkAdapter::CATM1:
+          Serial.println("CATM1");
+          Serial.print("PIN: ");
+          Serial.println(_networkSetting.catm1.pin);
+          Serial.print(" APN: ");
+          Serial.println(_networkSetting.catm1.apn);
+          Serial.print(" Login: ");
+          Serial.println(_networkSetting.catm1.login);
+          Serial.print(" Pass: ");
+          Serial.println(_networkSetting.catm1.pass);
+          Serial.print(" Band:");
+          Serial.println(_networkSetting.catm1.band);
+          break;
+      #endif
+
+      #if defined(BOARD_HAS_CELLULAR)
+      case NetworkAdapter::CELL:
+          Serial.println("CELL");
+          Serial.print("PIN: ");
+          Serial.println(_networkSetting.cell.pin);
+          Serial.print(" APN: ");
+          Serial.println(_networkSetting.cell.apn);
+          Serial.print(" Login: ");
+          Serial.println(_networkSetting.cell.login);
+          Serial.print(" Pass: ");
+          Serial.println(_networkSetting.cell.pass);
+          break;
+      #endif
+
+      #if defined(BOARD_HAS_LORA)
+      case NetworkAdapter::LORA:
+          Serial.println("LORA");
+          Serial.print("AppEUI: ");
+          Serial.println(_networkSetting.lora.appeui);
+          Serial.print(" AppKey: ");
+          Serial.println(_networkSetting.lora.appkey);
+          Serial.print(" Band: ");
+          Serial.println(_networkSetting.lora.band);
+          Serial.print(" Channel mask: ");
+          Serial.println(_networkSetting.lora.channelMask);
+          Serial.print(" Device class: ");
+          Serial.println(_networkSetting.lora.deviceClass);
+      #endif
+      default:
+          Serial.println("Network type not supported");
+      
+  }
+}

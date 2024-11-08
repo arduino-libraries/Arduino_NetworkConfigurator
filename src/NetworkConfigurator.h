@@ -54,6 +54,7 @@ class NetworkConfigurator{
     String decodeConnectionErrorMessage(NetworkConnectionState err, int *errorCode);
     NetworkConfiguratorStates connectToNetwork();
     bool updateNetworkOptions();
+    void printNetworkSettings();
 #ifdef BOARD_HAS_WIFI
     bool scanWiFiNetworks(WiFiOption &wifiOptObj, String *err);
 #endif
