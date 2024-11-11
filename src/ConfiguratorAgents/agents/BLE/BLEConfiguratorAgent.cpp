@@ -6,35 +6,31 @@
   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
 #include <algorithm>
+#include "utility/HCI.h"
 #include "BLEStringCharacteristic.h"
 #include "BLECharacteristic.h"
 #include "BLEConfiguratorAgent.h"
 #define DEBUG_PACKET
-#define BASE_LOCAL_DEVICE_NAME "Arduino"
+#define BASE_LOCAL_NAME "Arduino"
 
-#if defined(ARDUINO_SAMD_MKRWIFI1010)
-#define DEVICE_NAME " MKR 1010 "
-#elif defined(ARDUINO_SAMD_NANO_33_IOT)
-#define DEVICE_NAME " NANO 33 IoT " 
-#elif defined(ARDUINO_AVR_UNO_WIFI_REV2)
-#define DEVICE_NAME " UNO WiFi R2 " 
-#elif defined (ARDUINO_NANO_RP2040_CONNECT)
-#define DEVICE_NAME " NANO RP2040 " 
-#elif defined(ARDUINO_PORTENTA_H7_M7)
-#define DEVICE_NAME " Portenta H7 "
+#if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT)
+#define VID USB_VID
+#define PID USB_PID
+#elif defined (ARDUINO_NANO_RP2040_CONNECT) || defined(ARDUINO_PORTENTA_H7_M7) || \
+  defined(ARDUINO_NICLA_VISION) || defined(ARDUINO_OPTA) || defined(ARDUINO_GIGA)
+#include "pins_arduino.h"
+#define VID BOARD_VENDORID
+#define PID BOARD_PRODUCTID
 #elif defined(ARDUINO_PORTENTA_C33)
-#define DEVICE_NAME " Portenta C33 "
-#elif defined(ARDUINO_NICLA_VISION)
-#define DEVICE_NAME " Nicla Vision "
-#elif defined(ARDUINO_OPTA)
-#define DEVICE_NAME " Opta "
-#elif defined(ARDUINO_GIGA)
-#define DEVICE_NAME " Giga "
+#include "pins_arduino.h"
+#define VID USB_VID
+#define PID USB_PID
 #elif defined(ARDUINO_UNOR4_WIFI)
-#define DEVICE_NAME " UNO R4 WiFi "
+#define VID 0x2341
+#define PID 0x1002
+#else
+#error "Board not supported for BLE configuration"
 #endif
-
-#define LOCAL_NAME BASE_LOCAL_DEVICE_NAME DEVICE_NAME
 
 #define MAX_VALIDITY_TIME 30000
 
@@ -55,12 +51,15 @@ ConfiguratorAgent::AgentConfiguratorStates BLEConfiguratorAgent::begin(){
 
     return AgentConfiguratorStates::ERROR;
   }
-  _localName = generateLocalDeviceName();
-  Serial.print("Device Name: ");
-  Serial.println(_localName);
-  if(!BLE.setLocalName(_localName.c_str())){
+
+  if(!setLocalName()){
     Serial.println("fail to set local name");
   }
+   // set manufacturer data
+  if(!setManufacturerData()){
+    Serial.println("fail to set manufacturer data");
+  }
+
   BLE.setAdvertisedService(_confService);
 
   BLE.setEventHandler(BLEConnected, blePeripheralConnectHandler );
@@ -73,6 +72,7 @@ ConfiguratorAgent::AgentConfiguratorStates BLEConfiguratorAgent::begin(){
   // add service
   BLE.addService(_confService);
   Serial.println("BLEConfiguratorAgent::begin starting adv");
+
   // start advertising
   BLE.advertise();
   _state = AgentConfiguratorStates::INIT;
@@ -255,14 +255,33 @@ void BLEConfiguratorAgent::blePeripheralDisconnectHandler(BLEDevice central) {
   Serial.println(central.address());
 }
 
-String BLEConfiguratorAgent::generateLocalDeviceName(){
-  _Static_assert(sizeof(LOCAL_NAME) < 24, "Error BLE device Local Name too long. Reduce DEVICE_NAME length");//Check at compile time if the local name length is valid
-  String macAddress = BLE.address();
-  String last2Bytes = macAddress.substring(12); //Get the last two bytes of mac address
-  String localName = LOCAL_NAME;
-  localName.concat("- ");
-  localName.concat(last2Bytes);
-  return localName;
+//The local name is sent after a BLE scan Request
+bool BLEConfiguratorAgent::setLocalName(){
+  _Static_assert(sizeof(BASE_LOCAL_NAME) < 21, "Error BLE device Local Name too long. Reduce BASE_LOCAL_NAME length");//Check at compile time if the local name length is valid
+  char vid[5];
+  char pid[5];
+  sprintf(vid, "%04x", VID);
+  sprintf(pid, "%04x", PID);
+  
+  _localName = BASE_LOCAL_NAME; 
+  _localName.concat("-");
+  _localName.concat(vid);
+  _localName.concat("-");
+  _localName.concat(pid);
+  
+  return BLE.setLocalName(_localName.c_str());
+}
+
+//The manufacturer data is sent with the service uuid as advertised data
+bool BLEConfiguratorAgent::setManufacturerData(){
+  uint8_t addr[6] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+  HCI.readBdAddr(addr);
+  
+  for(int i = 0; i < 6; i++){
+    _manufacturerData[i] = addr[5-i];
+  }
+
+  return  BLE.setManufacturerData(_manufacturerData, sizeof(_manufacturerData));
 }
 
 BLEConfiguratorAgent::TransmissionResult BLEConfiguratorAgent::transmitStream(){

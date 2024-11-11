@@ -42,8 +42,10 @@ class BLEConfiguratorAgent: public ConfiguratorAgent  {
     std::list<OutputPacketBuffer> _outputMessagesList;
     BLEMessageCollection<InputPacketBuffer, 3> _inputMessages;
     String _localName;
+    uint8_t _manufacturerData[6];
 
-    String generateLocalDeviceName();
+    bool setLocalName();
+    bool setManufacturerData();
     static void blePeripheralConnectHandler(BLEDevice central);
     static void blePeripheralDisconnectHandler(BLEDevice central);
     bool sendData(PacketManager::MessageType type, const uint8_t *data, size_t len);
