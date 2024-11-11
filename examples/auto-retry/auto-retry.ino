@@ -20,31 +20,31 @@
 uint32_t lastUpdate = 0;
 bool networkConfigured = false;
 bool provisioningCompleted = false;
-enum class DeviceMode { CONFIG, RUN };
+enum class DeviceMode { CONFIG,
+                        RUN };
 DeviceMode deviceMode = DeviceMode::CONFIG;
 
-void handleCloudDisconnected(){
+void handleCloudDisconnected() {
   Serial.println("cloud disconnected");
-  changeMode(DeviceMode::CONFIG); //Move this inside ArduinoIoTCloud for have this event only when network is disconnected
-} 
+  changeMode(DeviceMode::CONFIG);  //Move this inside ArduinoIoTCloud for have this event only when network is disconnected
+}
 
-void changeMode(DeviceMode nextMode){
-  if(nextMode == DeviceMode::RUN){
+void changeMode(DeviceMode nextMode) {
+  if (nextMode == DeviceMode::RUN) {
     deviceMode = DeviceMode::RUN;
-  }else if(nextMode == DeviceMode::CONFIG){
+  } else if (nextMode == DeviceMode::CONFIG) {
     networkConfigured = false;
     WiFi.end();
     NetworkConf.begin(true, "Connection Lost");
     deviceMode = DeviceMode::CONFIG;
   }
-
 }
 
 void setup() {
   // Initialize serial and wait for port to open:
   Serial.begin(9600);
   // This delay gives the chance to wait for a Serial Monitor without blocking if none is found
-  delay(1500); 
+  delay(1500);
   ArduinoCloud.addCallback(ArduinoIoTCloudEvent::DISCONNECT, handleCloudDisconnected);
   // Defined in thingProperties.h
   initProperties();
@@ -55,12 +55,12 @@ void setup() {
 
 
   pinMode(RESETCRED_BUTTON, INPUT);
-  
+
   bool resetStoredCred = false;
-  if (digitalRead(RESETCRED_BUTTON) == HIGH){
+  if (digitalRead(RESETCRED_BUTTON) == HIGH) {
     resetStoredCred = true;
   }
-  
+
   NetworkConf.begin(true, "", resetStoredCred);
   ProvisioningSystem.begin();
   /*
@@ -75,42 +75,41 @@ void setup() {
 }
 
 void loop() {
-  if(provisioningCompleted == false && ProvisioningSystem.poll()){
-      ProvisioningSystem.end();
-      provisioningCompleted = true;
+  if (provisioningCompleted == false && ProvisioningSystem.poll()) {
+    ProvisioningSystem.end();
+    provisioningCompleted = true;
   }
 
-  if(deviceMode == DeviceMode::CONFIG){
-    #if defined (ARDUINO_ARCH_SAMD) || defined (ARDUINO_ARCH_MBED)
+  if (deviceMode == DeviceMode::CONFIG) {
+#if defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MBED)
     watchdog_reset();
-    #endif
+#endif
     NetworkConfiguratorStates s = NetworkConf.poll();
-    if(s == NetworkConfiguratorStates::CONFIGURED){
+    if (s == NetworkConfiguratorStates::CONFIGURED) {
       NetworkConf.end();
       networkConfigured = true;
     }
-    
-    
-    if( networkConfigured){
+
+
+    if (networkConfigured) {
       changeMode(DeviceMode::RUN);
     }
- 
-  }else if(deviceMode == DeviceMode::RUN){
+
+  } else if (deviceMode == DeviceMode::RUN) {
     ArduinoCloud.update();
-    // Your code here 
-    if(millis()-lastUpdate >10000){
+    // Your code here
+    if (millis() - lastUpdate > 10000) {
       Serial.println("alive");
       lastUpdate = millis();
       counter++;
     }
   }
-  
 }
 
 /*
   Since Counter is READ_WRITE variable, onCounterChange() is
   executed every time a new value is received from IoT Cloud.
 */
-void onCounterChange()  {
+void onCounterChange() {
   // Add your code here to act upon Counter change
 }

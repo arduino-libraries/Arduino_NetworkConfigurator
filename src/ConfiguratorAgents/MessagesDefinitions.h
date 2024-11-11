@@ -11,7 +11,7 @@
 
 enum class MessageTypeCodes {
   NONE                       = 0,
-  CONNECTING                 = 1, 
+  CONNECTING                 = 1,
   CONNECTED                  = 2,
   SCANNING                   = 100,
   FAILED_TO_CONNECT          = -1,
@@ -24,10 +24,12 @@ enum class MessageTypeCodes {
   SCAN_DISABLED_CONNECTING   = -100,
   HW_ERROR_CONN_MODULE       = -101,
   WIFI_IDLE                  = -102,
-  WIFI_STOPPED               = -103, 
+  WIFI_STOPPED               = -103,
   ERROR                      = -255
 };
 
 typedef MessageTypeCodes StatusMessage;
 
-enum class RemoteCommands {CONNECT = 1, GET_ID = 2, SCAN = 100};
+enum class RemoteCommands { CONNECT = 1,
+                            GET_ID  = 2,
+                            SCAN    = 100 };

@@ -7,14 +7,14 @@
 #include "ConfiguratorAgents/agents/BLE/BLEConfiguratorAgent.h"
 #include "provisioning.h"
 
-const char SSID[]     = SECRET_SSID;    // Network SSID (name)
-const char PASS[]     = SECRET_OPTIONAL_PASS;    // Network password (use for WPA, or use as key for WEP)
+const char SSID[] = SECRET_SSID;           // Network SSID (name)
+const char PASS[] = SECRET_OPTIONAL_PASS;  // Network password (use for WPA, or use as key for WEP)
 
 void onCounterChange();
 
 int counter;
 
-void initProperties(){
+void initProperties() {
 
   ArduinoCloud.addProperty(counter, READWRITE, ON_CHANGE, onCounterChange);
   ConfiguratorManager.addAgent(BLEAgent);
@@ -23,4 +23,3 @@ void initProperties(){
 GenericConnectionHandler ArduinoIoTPreferredConnection;
 NetworkConfigurator NetworkConf(ConfiguratorManager, ArduinoIoTPreferredConnection);
 Provisioning ProvisioningSystem(ConfiguratorManager);
-

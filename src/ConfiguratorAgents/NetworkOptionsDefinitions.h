@@ -10,16 +10,18 @@
 #include "Arduino.h"
 #define MAX_WIFI_NETWORKS 20
 
-enum class NetworkOptionsClass {NONE, WIFI, LAN};
+enum class NetworkOptionsClass { NONE,
+                                 WIFI,
+                                 LAN };
 
 typedef struct {
-  char  *SSID;
+  char *SSID;
   int RSSI;
   size_t SSIDsize;
 
-}DiscoveredWiFiNetwork;
+} DiscoveredWiFiNetwork;
 
-struct WiFiOption{
+struct WiFiOption {
   DiscoveredWiFiNetwork discoveredWifiNetworks[MAX_WIFI_NETWORKS];
   int numDiscoveredWiFiNetworks = 0;
 };
@@ -29,5 +31,5 @@ struct NetworkOptions {
   NetworkOptionsClass type;
   union {
     WiFiOption wifi;
-  }option;
-} ;
+  } option;
+};
