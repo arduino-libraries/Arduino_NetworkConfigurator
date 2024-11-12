@@ -35,7 +35,7 @@ void changeMode(DeviceMode nextMode) {
   } else if (nextMode == DeviceMode::CONFIG) {
     networkConfigured = false;
     WiFi.end();
-    NetworkConf.begin(true, "Connection Lost");
+    NetworkConf.begin();
     deviceMode = DeviceMode::CONFIG;
   }
 }
@@ -64,12 +64,11 @@ void setup() {
 
   pinMode(RESETCRED_BUTTON, INPUT);
 
-  bool resetStoredCred = false;
   if (digitalRead(RESETCRED_BUTTON) == HIGH) {
-    resetStoredCred = true;
+    NetworkConf.resetStoredConfiguration();
   }
-
-  NetworkConf.begin(true, "", resetStoredCred);
+  NetworkConf.startConfigurationIfConnectionFails(true);
+  NetworkConf.begin();
   ProvisioningSystem.begin();
 
   ArduinoCloud.printDebugInfo();

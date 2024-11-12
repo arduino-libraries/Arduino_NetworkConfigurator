@@ -18,18 +18,19 @@
 constexpr char *SSIDKEY{ "SSID" };
 constexpr char *PSWKEY{ "PASSWORD" };
 
-NetworkConfigurator::NetworkConfigurator(AgentsConfiguratorManager &agentManager, GenericConnectionHandler &connectionHandler)
+NetworkConfigurator::NetworkConfigurator(AgentsConfiguratorManager &agentManager, GenericConnectionHandler &connectionHandler, bool startConfigurationIfConnectionFails)
   : _agentManager{ &agentManager },
-    _connectionHandler{ &connectionHandler } {
+    _connectionHandler{ &connectionHandler },
+    _startConfigurationIfConnectionFails{ startConfigurationIfConnectionFails } {
 }
 
-bool NetworkConfigurator::begin(bool initConfiguratorIfConnectionFails, String cause, bool resetStorage) {
+bool NetworkConfigurator::begin() {
   _networkSettingReceived = false;
   _enableAutoReconnect = true;
-  _initConfiguratorIfConnectionFails = initConfiguratorIfConnectionFails;
-  _initReason = cause;
+  _connectionLostStatus = false;
   _state = NetworkConfiguratorStates::INIT;
   _startConnectionAttempt = 0;
+
 #ifdef ARDUINO_UNOR4_WIFI
   while (1) {
     if (!_preferences.begin("my-app", false)) {
@@ -40,11 +41,8 @@ bool NetworkConfigurator::begin(bool initConfiguratorIfConnectionFails, String c
       break;
     }
   }
-
-  if (resetStorage) {
-    _preferences.clear();
-  }
 #endif
+
 #ifdef BOARD_HAS_WIFI
 #ifndef ARDUINO_ARCH_ESP32
   String fv = WiFi.firmwareVersion();
@@ -107,6 +105,32 @@ NetworkConfiguratorStates NetworkConfigurator::poll() {
   return _state;
 }
 
+bool NetworkConfigurator::resetStoredConfiguration() {
+#ifdef ARDUINO_UNOR4_WIFI
+  bool initialized = false;
+  for (uint8_t attempt = 0; attempt < 3; attempt++) {
+    if (!_preferences.begin("my-app", false)) {
+      DEBUG_VERBOSE("Cannot initialize preferences");
+      _preferences.end();
+    } else {
+      DEBUG_DEBUG("preferences initialized");
+      initialized = true;
+      break;
+    }
+  }
+  if(!initialized){
+    return false;
+  }
+  
+  bool res = _preferences.clear();
+
+  _preferences.end();
+
+  return res;
+#endif
+  return false;
+}
+
 bool NetworkConfigurator::end() {
   _lastConnectionAttempt = 0;
   _lastOptionUpdate = 0;
@@ -149,9 +173,7 @@ NetworkConfiguratorStates NetworkConfigurator::connectToNetwork() {
     int errorCode;
     String errorMsg = decodeConnectionErrorMessage(connectionRes, &errorCode);
     DEBUG_INFO("Connection fail: %s", errorMsg.c_str());
-
-    if (_initReason != "") {
-      DEBUG_VERBOSE("init reason: %s", _initReason.c_str());
+    if (_connectionLostStatus) {
       _agentManager->setStatusMessage(MessageTypeCodes::CONNECTION_LOST);
     } else {
       _agentManager->setStatusMessage((MessageTypeCodes)errorCode);
@@ -292,24 +314,23 @@ NetworkConfiguratorStates NetworkConfigurator::handleInit() {
       _connectionHandlerIstantiated = true;
     }
 
-    if (_initConfiguratorIfConnectionFails) {
-      _enableAutoReconnect = false;
-      nextState = connectToNetwork();
+    // Test connection
+    _enableAutoReconnect = false;
+    nextState = connectToNetwork();
 
-      if (nextState == _state) {
-        return _state;
+    if (nextState == _state) {
+      return _state;
+    }
+
+    if (nextState != NetworkConfiguratorStates::CONFIGURED && _startConfigurationIfConnectionFails) {
+      _enableAutoReconnect = true;
+
+      if (!_agentManager->begin(SERVICE_ID_FOR_AGENTMANAGER)) {
+        DEBUG_ERROR("NetworkConfigurator::%s Failed to initialize the AgentsConfiguratorManager", __FUNCTION__);
       }
+      _connectionLostStatus = true;
+      _agentManager->setStatusMessage(MessageTypeCodes::CONNECTION_LOST);
 
-      if (nextState != NetworkConfiguratorStates::CONFIGURED) {
-        _enableAutoReconnect = true;
-
-        if (!_agentManager->begin(SERVICE_ID_FOR_AGENTMANAGER)) {
-          DEBUG_ERROR("NetworkConfigurator::%s Failed to initialize the AgentsConfiguratorManager", __FUNCTION__);
-        }
-        if (_initReason != "") {
-          _agentManager->setStatusMessage(MessageTypeCodes::CONNECTION_LOST);
-        }
-      }
     } else {
       nextState = NetworkConfiguratorStates::CONFIGURED;
     }
@@ -327,9 +348,9 @@ NetworkConfiguratorStates NetworkConfigurator::handleWaitingForConf() {
   _agentManager->poll();
   if (_networkSettingsToHandleReceived) {
     _networkSettingsToHandleReceived = false;
-    if (_initReason != "") {
-      _initReason = "";  //reset initReason if set, for updating the failure reason
-    }
+
+    _connectionLostStatus = false;  //reset for updating the failure reason
+
 
     if (!_connectionHandler->updateSetting(_networkSetting)) {
       DEBUG_WARNING("NetworkConfigurator::%s The received network parameters are not supported", __FUNCTION__);

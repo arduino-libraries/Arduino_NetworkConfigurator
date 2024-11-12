@@ -24,9 +24,13 @@ enum class NetworkConfiguratorStates { INIT,
 
 class NetworkConfigurator {
 public:
-  NetworkConfigurator(AgentsConfiguratorManager &agentManager, GenericConnectionHandler &connectionHandler);
-  bool begin(bool initConfiguratorIfConnectionFails, String cause = "", bool resetStorage = false);
+  NetworkConfigurator(AgentsConfiguratorManager &agentManager, GenericConnectionHandler &connectionHandler, bool startConfigurationIfConnectionFails = true);
+  bool begin();
   NetworkConfiguratorStates poll();
+  void startConfigurationIfConnectionFails(bool enable){
+    _startConfigurationIfConnectionFails = enable;
+  };
+  bool resetStoredConfiguration();
   bool end();
 
 private:
@@ -36,11 +40,11 @@ private:
   static inline models::NetworkSetting _networkSetting;
   bool _networkSettingReceived;
   bool _enableAutoReconnect;
-  bool _initConfiguratorIfConnectionFails;
+  bool _startConfigurationIfConnectionFails;
   bool _connectionHandlerIstantiated = false;
   uint32_t _lastConnectionAttempt = 0;
   uint32_t _startConnectionAttempt;
-  String _initReason;
+  bool _connectionLostStatus = false;
   uint32_t _lastOptionUpdate = 0;
   bool _enableNetworkOptionsAutoUpdate = true;
   bool _connectionInProgress = false;
