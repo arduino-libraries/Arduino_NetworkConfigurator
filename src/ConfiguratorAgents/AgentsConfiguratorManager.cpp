@@ -6,6 +6,7 @@
   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
 
+#include <Arduino_DebugUtils.h>
 #include <algorithm>
 #include <settings/settings.h>
 #include "AgentsConfiguratorManager.h"
@@ -23,20 +24,18 @@ bool AgentsConfiguratorManager::begin(uint8_t id) {
 
     for (std::list<ConfiguratorAgent *>::iterator agent = _agentsList.begin(); agent != _agentsList.end(); ++agent) {
       if ((*agent)->begin() == ConfiguratorAgent::AgentConfiguratorStates::ERROR) {
-        Serial.print("agent type init fail: ");
-        Serial.println((int)(*agent)->getAgentType());
+        DEBUG_ERROR("AgentsConfiguratorManager::%s agent type %d fails", __FUNCTION__, (int)(*agent)->getAgentType());
         return false;
       }
     }
 
-    Serial.println("AgentsConfiguratorManager begin");
+    DEBUG_DEBUG("AgentsConfiguratorManager begin completed");
     _state = AgentsConfiguratorManagerStates::INIT;
   }
 
   _servicesList.push_back(id);
 
   _instances++;
-
 
   return true;
 }
@@ -56,10 +55,8 @@ AgentsConfiguratorManagerStates AgentsConfiguratorManager::poll() {
 bool AgentsConfiguratorManager::end(uint8_t id) {
   std::list<uint8_t>::iterator it = std::find(_servicesList.begin(), _servicesList.end(), id);
   if (it != _servicesList.end()) {
-    Serial.println("service found removed");
     _servicesList.erase(it);
   } else {
-    Serial.println("service not found illegit end");
     return false;
   }
 
@@ -117,7 +114,7 @@ bool AgentsConfiguratorManager::setStatusMessage(StatusMessage msg) {
 
   if (_selectedAgent) {
     if (!sendStatus(msg)) {
-      Serial.println("failed to send status");
+      DEBUG_WARNING("AgentsConfiguratorManager::%s failed to send status to the peer", __FUNCTION__);
     }
   } else {
     _initStatusMsg = msg;
@@ -153,11 +150,11 @@ bool AgentsConfiguratorManager::setUID(String uid, String signature) {
   if (_statusRequest.pending && _statusRequest.key == RequestType::GET_ID) {
     if (_selectedAgent) {
       if (uid.length() > MAX_UID_SIZE) {
-        Serial.println("UID too long");
+        DEBUG_ERROR("AgentsConfiguratorManager::%s UID too long", __FUNCTION__);
         return res;
       }
       if (signature.length() > MAX_SIGNATURE_SIZE) {
-        Serial.println("Signature too long");
+        DEBUG_ERROR("AgentsConfiguratorManager::%s Signature too long", __FUNCTION__);
         return res;
       }
 
@@ -167,13 +164,13 @@ bool AgentsConfiguratorManager::setUID(String uid, String signature) {
       res = CBORAdapter::uidToCBOR(uid, data, &len);
 
       if (!res) {
-        Serial.println("failed to convert uid to CBOR");
+        DEBUG_ERROR("AgentsConfiguratorManager::%s failed to convert uid to CBOR", __FUNCTION__);
         return res;
       }
 
       res = _selectedAgent->sendData(data, len);
       if (!res) {
-        Serial.println("failed to send uid: ");
+        DEBUG_ERROR("AgentsConfiguratorManager::%s failed to send uid", __FUNCTION__);
         return res;
       }
 
@@ -182,14 +179,14 @@ bool AgentsConfiguratorManager::setUID(String uid, String signature) {
 
       res = CBORAdapter::signatureToCBOR(signature, signatureData, &len);
       if (!res) {
-        Serial.println("failed to convert signature to CBOR");
+        DEBUG_ERROR("AgentsConfiguratorManager::%s failed to convert signature to CBOR", __FUNCTION__);
         return res;
       }
 
       res = _selectedAgent->sendData(signatureData, len);
 
       if (!res) {
-        Serial.println("failed to send signature");
+        DEBUG_ERROR("AgentsConfiguratorManager::%s failed to send signature", __FUNCTION__);
         return res;
       }
       res = true;
@@ -238,7 +235,6 @@ AgentsConfiguratorManagerStates AgentsConfiguratorManager::handleInit() {
       digitalWrite(LED_BUILTIN, HIGH);
 #endif
       nextState = AgentsConfiguratorManagerStates::SEND_INITIAL_STATUS;
-      Serial.println("found peer connected to agent");
       break;
     }
   }
@@ -258,7 +254,7 @@ AgentsConfiguratorManagerStates AgentsConfiguratorManager::handleSendInitialStat
   AgentsConfiguratorManagerStates nextState = _state;
   if (_initStatusMsg != MessageTypeCodes::NONE) {
     if (!sendStatus(_initStatusMsg)) {
-      Serial.println("failed to send initial status");
+      DEBUG_WARNING("AgentsConfiguratorManager::%s failed to send initial status", __FUNCTION__);
       return nextState;
     }
     _initStatusMsg = MessageTypeCodes::NONE;
@@ -308,13 +304,13 @@ void AgentsConfiguratorManager::handleReceivedData() {
   size_t len = _selectedAgent->getReceivedDataLength();
   uint8_t data[len];
   if (!_selectedAgent->getReceivedData(data, &len)) {
-    Serial.println("failed to get received data");
+    DEBUG_WARNING("AgentsConfiguratorManager::%s failed to get received data", __FUNCTION__);
     return;
   }
 
   ProvisioningCommandDown msg;
   if (!CBORAdapter::getMsgFromCBOR(data, len, &msg)) {
-    Serial.println("Invalid message");
+    DEBUG_DEBUG("AgentsConfiguratorManager::%s Invalid message", __FUNCTION__);
     sendStatus(MessageTypeCodes::INVALID_PARAMS);
     return;
   }
@@ -322,7 +318,7 @@ void AgentsConfiguratorManager::handleReceivedData() {
   if (msg.c.id == CommandId::ProvisioningTimestamp) {
     uint64_t ts;
     if (!CBORAdapter::extractTimestamp(&msg, &ts)) {
-      Serial.println("Invalid timestamp");
+      DEBUG_DEBUG("AgentsConfiguratorManager::%s Invalid timestamp", __FUNCTION__);
       sendStatus(MessageTypeCodes::INVALID_PARAMS);
       return;
     }
@@ -339,7 +335,7 @@ void AgentsConfiguratorManager::handleReceivedData() {
   } else {
     models::NetworkSetting netSetting;
     if (!CBORAdapter::extractNetworkSetting(&msg, &netSetting)) {
-      Serial.println("Invalid networkSetting");
+      DEBUG_DEBUG("AgentsConfiguratorManager::%s Invalid network Setting", __FUNCTION__);
       sendStatus(MessageTypeCodes::INVALID_PARAMS);
       return;
     }
@@ -351,7 +347,7 @@ void AgentsConfiguratorManager::handleReceivedData() {
 
 void AgentsConfiguratorManager::handleConnectCommand() {
   if (_statusRequest.pending) {
-    Serial.println("Error: received a Connect request while executing another request");
+    DEBUG_DEBUG("AgentsConfiguratorManager::%s received a Connect request while executing another request", __FUNCTION__);
     sendStatus(MessageTypeCodes::OTHER_REQUEST_IN_EXECUTION);
     return;
   }
@@ -363,7 +359,7 @@ void AgentsConfiguratorManager::handleConnectCommand() {
 
 void AgentsConfiguratorManager::handleUpdateOptCommand() {
   if (_statusRequest.pending) {
-    Serial.println("Error: received an UpdateConnectivityOptions request while executing another request");
+    DEBUG_DEBUG("AgentsConfiguratorManager::%s received a UpdateConnectivityOptions request while executing another request", __FUNCTION__);
     sendStatus(MessageTypeCodes::OTHER_REQUEST_IN_EXECUTION);
     return;
   }
@@ -375,7 +371,7 @@ void AgentsConfiguratorManager::handleUpdateOptCommand() {
 
 void AgentsConfiguratorManager::handleGetUIDCommand() {
   if (_statusRequest.pending) {
-    Serial.println("Error: received a GetUnique request while executing another request");
+    DEBUG_DEBUG("AgentsConfiguratorManager::%s received a GetUnique request while executing another request", __FUNCTION__);
     sendStatus(MessageTypeCodes::OTHER_REQUEST_IN_EXECUTION);
     return;
   }
@@ -407,7 +403,7 @@ bool AgentsConfiguratorManager::sendNetworkOptions() {
 
   bool res = _selectedAgent->sendData(data, len);
   if (!res) {
-    Serial.println("failed to send network options");
+    DEBUG_WARNING("AgentsConfiguratorManager::%s failed to send network options", __FUNCTION__);
   }
 
   return res;
@@ -419,15 +415,13 @@ bool AgentsConfiguratorManager::sendStatus(StatusMessage msg) {
   uint8_t data[len];
   res = CBORAdapter::statusToCBOR(msg, data, &len);
   if (!res) {
-    Serial.print("failed encode status: ");
-    Serial.println((int)msg);
+    DEBUG_ERROR("AgentsConfiguratorManager::%s failed encode status: %d ", __FUNCTION__, (int)msg);
     return res;
   }
 
   res = _selectedAgent->sendData(data, len);
   if (!res) {
-    Serial.print("failed to send status: ");
-    Serial.println((int)msg);
+    DEBUG_WARNING("AgentsConfiguratorManager::%s failed to send status: %d ", __FUNCTION__, (int)msg);
   }
   return res;
 }
@@ -454,14 +448,14 @@ void AgentsConfiguratorManager::callHandler(RequestType type) {
   } else {
     String err;
     if (type == RequestType::SCAN) {
-      err += "Scan ";
+      err = "Scan ";
     } else if (type == RequestType::GET_ID) {
-      err += "Get UID ";
+      err = "Get UID ";
     } else if (type == RequestType::CONNECT) {
-      err += "Connect ";
+      err = "Connect ";
     }
-    err += "request received, but handler function is not provided";
-    Serial.println(err);
+
+    DEBUG_WARNING("AgentsConfiguratorManager::%s %s request received, but handler function is not provided", __FUNCTION__, err.c_str());
     _statusRequest.reset();
     sendStatus(MessageTypeCodes::INVALID_REQUEST);
   }
@@ -471,7 +465,7 @@ void AgentsConfiguratorManager::callHandler(RequestType type) {
 void AgentsConfiguratorManager::stopBLEAgent() {
   std::for_each(_agentsList.begin(), _agentsList.end(), [](ConfiguratorAgent *agent) {
     if (agent->getAgentType() == ConfiguratorAgent::AgentTypes::BLE) {
-      Serial.println("end ble agent for connection");
+      DEBUG_VERBOSE("AgentsConfiguratorManager::%s End ble agent for wifi", __FUNCTION__);
       agent->end();
     }
   });
@@ -480,7 +474,7 @@ void AgentsConfiguratorManager::stopBLEAgent() {
 void AgentsConfiguratorManager::startBLEAgent() {
   std::for_each(_agentsList.begin(), _agentsList.end(), [](ConfiguratorAgent *agent) {
     if (agent->getAgentType() == ConfiguratorAgent::AgentTypes::BLE) {
-      Serial.println("start ble agent");
+      DEBUG_VERBOSE("AgentsConfiguratorManager::%s Restart ble agent after wifi use", __FUNCTION__);
       agent->begin();
     }
   });

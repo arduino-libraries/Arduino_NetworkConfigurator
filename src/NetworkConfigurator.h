@@ -60,7 +60,7 @@ private:
   bool updateNetworkOptions();
   void printNetworkSettings();
 #ifdef BOARD_HAS_WIFI
-  bool scanWiFiNetworks(WiFiOption &wifiOptObj, String *err);
+  bool scanWiFiNetworks(WiFiOption &wifiOptObj);
 #endif
   static void scanReqHandler();
   static void connectReqHandler();

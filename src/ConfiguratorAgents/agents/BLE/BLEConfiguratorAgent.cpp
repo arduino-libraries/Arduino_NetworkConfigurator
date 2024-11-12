@@ -5,6 +5,8 @@
   License, v. 2.0. If a copy of the MPL was not distributed with this
   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
+
+#include <Arduino_DebugUtils.h>
 #include <algorithm>
 #include "utility/HCI.h"
 #include "BLEStringCharacteristic.h"
@@ -16,8 +18,7 @@
 #if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT)
 #define VID USB_VID
 #define PID USB_PID
-#elif defined(ARDUINO_NANO_RP2040_CONNECT) || defined(ARDUINO_PORTENTA_H7_M7) || \
-defined(ARDUINO_NICLA_VISION) || defined(ARDUINO_OPTA) || defined(ARDUINO_GIGA)
+#elif defined(ARDUINO_NANO_RP2040_CONNECT) || defined(ARDUINO_PORTENTA_H7_M7) || defined(ARDUINO_NICLA_VISION) || defined(ARDUINO_OPTA) || defined(ARDUINO_GIGA)
 #include "pins_arduino.h"
 #define VID BOARD_VENDORID
 #define PID BOARD_PRODUCTID
@@ -34,6 +35,21 @@ defined(ARDUINO_NICLA_VISION) || defined(ARDUINO_OPTA) || defined(ARDUINO_GIGA)
 
 #define MAX_VALIDITY_TIME 30000
 
+void PrintPacket(const char *label, const uint8_t *data, size_t len) {
+  if (Debug.getDebugLevel() == DBG_VERBOSE) {
+    DEBUG_VERBOSE("BLEConfiguratorAgent Print %s data:", label);
+    Debug.newlineOff();
+    for (size_t i = 0; i < len; i++) {
+      DEBUG_VERBOSE("%02x ", data[i]);
+      if ((i + 1) % 10 == 0) {
+        DEBUG_VERBOSE("\n");
+      }
+    }
+    DEBUG_VERBOSE("\n");
+  }
+  Debug.newlineOn();
+}
+
 BLEConfiguratorAgent::BLEConfiguratorAgent()
   : _confService{ "5e5be887-c816-4d4f-b431-9eb34b02f4d9" },
     _inputStreamCharacteristic{ "0000ffe1-0000-1000-8000-00805f9b34fc", BLEWrite, 256 },
@@ -44,19 +60,19 @@ ConfiguratorAgent::AgentConfiguratorStates BLEConfiguratorAgent::begin() {
   if (_state != AgentConfiguratorStates::END) {
     return _state;
   }
-  //BLE.debug(Serial);
+
   if (!BLE.begin()) {
-    Serial.println("starting Bluetooth® Low Energy module failed!");
+    DEBUG_ERROR("BLEConfiguratorAgent::%s Starting  Bluetooth® Low Energy module failed!", __FUNCTION__);
 
     return AgentConfiguratorStates::ERROR;
   }
 
   if (!setLocalName()) {
-    Serial.println("fail to set local name");
+    DEBUG_WARNING("BLEConfiguratorAgent::%s fail to set local name", __FUNCTION__);
   }
   // set manufacturer data
   if (!setManufacturerData()) {
-    Serial.println("fail to set manufacturer data");
+    DEBUG_WARNING("BLEConfiguratorAgent::%s fail to set manufacturer data", __FUNCTION__);
   }
 
   BLE.setAdvertisedService(_confService);
@@ -70,12 +86,11 @@ ConfiguratorAgent::AgentConfiguratorStates BLEConfiguratorAgent::begin() {
 
   // add service
   BLE.addService(_confService);
-  Serial.println("BLEConfiguratorAgent::begin starting adv");
 
   // start advertising
   BLE.advertise();
   _state = AgentConfiguratorStates::INIT;
-  Serial.println("BLEConfiguratorAgent::begin started adv");
+  DEBUG_DEBUG("BLEConfiguratorAgent begin completed");
   return _state;
 }
 
@@ -120,22 +135,15 @@ ConfiguratorAgent::AgentConfiguratorStates BLEConfiguratorAgent::poll() {
 
   if (_deviceConnected) {
     if (_inputStreamCharacteristic.written()) {
-      Serial.println("inputStreamCharacteristic written");
       int receivedDataLen = _inputStreamCharacteristic.valueLength();
       const uint8_t *val = _inputStreamCharacteristic.value();
       PacketManager::ReceivingState res;
       PacketManager::ReceivedData receivedData;
-#ifdef DEBUG_PACKET
-      Serial.print("Received byte: ");
-#endif
+      PrintPacket("received", val, receivedDataLen);
       for (int i = 0; i < receivedDataLen; i++) {
-#ifdef DEBUG_PACKET
-        Serial.print(val[i], HEX);
-        Serial.print(" ");
-#endif
         res = Packet.handleReceivedByte(receivedData, val[i]);
         if (res == PacketManager::ReceivingState::ERROR) {
-          Serial.println("Error receiving packet");
+          DEBUG_DEBUG("BLEConfiguratorAgent::%s Error receiving packet", __FUNCTION__);
           sendNak();
           transmitStream();
           _inputStreamCharacteristic.writeValue("");
@@ -144,19 +152,8 @@ ConfiguratorAgent::AgentConfiguratorStates BLEConfiguratorAgent::poll() {
           switch (receivedData.type) {
             case PacketManager::MessageType::DATA:
               {
-                Serial.println("Received data packet");
-#ifdef DEBUG_PACKET
-                Serial.println("************************************");
-                for (uint16_t i = 0; i < receivedData.payload.len(); i++) {
-                  Serial.print(receivedData.payload[i], HEX);
-                  Serial.print(" ");
-                  if ((i + 1) % 10 == 0) {
-                    Serial.println();
-                  }
-                }
-                Serial.println();
-                Serial.println("************************************");
-#endif
+                DEBUG_DEBUG("BLEConfiguratorAgent::%s Received data packet", __FUNCTION__);
+                PrintPacket("payload", &receivedData.payload[0], receivedData.payload.len());
                 _inputMessages.addMessage(receivedData.payload);
                 //Consider all sent data as received
                 _outputMessagesList.clear();
@@ -165,7 +162,7 @@ ConfiguratorAgent::AgentConfiguratorStates BLEConfiguratorAgent::poll() {
               break;
             case PacketManager::MessageType::RESPONSE:
               {
-                Serial.println("Received response packet");
+                DEBUG_DEBUG("BLEConfiguratorAgent::%s Received response packet", __FUNCTION__);
                 for (std::list<OutputPacketBuffer>::iterator packet = _outputMessagesList.begin(); packet != _outputMessagesList.end(); ++packet) {
                   packet->startProgress();
                 }
@@ -176,9 +173,6 @@ ConfiguratorAgent::AgentConfiguratorStates BLEConfiguratorAgent::poll() {
           }
         }
       }
-#ifdef DEBUG_PACKET
-      Serial.println();
-#endif
     }
 
     if (_outputStreamCharacteristic.subscribed() && _outputMessagesList.size() > 0) {
@@ -235,16 +229,14 @@ void BLEConfiguratorAgent::blePeripheralConnectHandler(BLEDevice central) {
   _bleEvent.type = BLEEventType::CONNECTED;
   _bleEvent.newEvent = true;
 
-  Serial.print("Connected event, central: ");
-  Serial.println(central.address());
+  DEBUG_INFO("BLEConfiguratorAgent Connected event, central: %s", central.address().c_str());
 }
 
 void BLEConfiguratorAgent::blePeripheralDisconnectHandler(BLEDevice central) {
   // central disconnected event handler
   _bleEvent.type = BLEEventType::DISCONNECTED;
   _bleEvent.newEvent = true;
-  Serial.print("Disconnected event, central: ");
-  Serial.println(central.address());
+  DEBUG_INFO("BLEConfiguratorAgent Disconnected event, central: %s", central.address().c_str());
 }
 
 //The local name is sent after a BLE scan Request
@@ -279,11 +271,9 @@ bool BLEConfiguratorAgent::setManufacturerData() {
 BLEConfiguratorAgent::TransmissionResult BLEConfiguratorAgent::transmitStream() {
 
   if (!_outputStreamCharacteristic.subscribed()) {
-    Serial.println("outputCharacteristic not subscribed");
     return TransmissionResult::PEER_NOT_AVAILABLE;
   }
   if (_outputMessagesList.size() == 0) {
-    Serial.println("outputMessages empty");
     return TransmissionResult::COMPLETED;
   }
 
@@ -293,14 +283,8 @@ BLEConfiguratorAgent::TransmissionResult BLEConfiguratorAgent::transmitStream() 
     if (packet->hasBytesToSend()) {
       res = TransmissionResult::NOT_COMPLETED;
       packet->incrementBytesSent(_outputStreamCharacteristic.write(&(*packet)[packet->bytesSent()], packet->bytesToSend()));
-      Serial.print("outputCharacteristic transferred: ");
-      Serial.print(packet->bytesSent());
-      Serial.print(" of ");
-      Serial.println(packet->len());
-      if (!packet->hasBytesToSend()) {
-        Serial.println("outputCharacteristictransfer completed");
-      }
-      delay(500);
+      DEBUG_DEBUG("BLEConfiguratorAgent::%s outputCharacteristic transferred: %d of %d", __FUNCTION__, packet->bytesSent(), packet->len());
+      delay(500);  //TODO test if remove
       break;
     }
   }
@@ -316,7 +300,6 @@ bool BLEConfiguratorAgent::sendNak() {
 void BLEConfiguratorAgent::checkOutputPacketValidity() {
   _outputMessagesList.remove_if([](OutputPacketBuffer &packet) {
     if (packet.getValidityTs() != 0 && packet.getValidityTs() < millis()) {
-      Serial.println("expired output message");
       return true;
     }
     return false;
@@ -328,23 +311,11 @@ bool BLEConfiguratorAgent::sendData(PacketManager::MessageType type, const uint8
   outputMsg.setValidityTs(millis() + MAX_VALIDITY_TIME);
 
   if (!Packet.createPacket(outputMsg, type, data, len)) {
-    Serial.println("Failed to create packet");
+    DEBUG_WARNING("BLEConfiguratorAgent::%s Failed to create packet", __FUNCTION__);
     return false;
   }
 
-#ifdef DEBUG_PACKET
-  Serial.println("************************************");
-  Serial.println("Output message");
-  for (int i = 0; i < outputMsg.len(); i++) {
-    Serial.print(outputMsg[i], HEX);
-    Serial.print(" ");
-    if ((i + 1) % 10 == 0) {
-      Serial.println();
-    }
-  }
-  Serial.println();
-  Serial.println("************************************");
-#endif
+  PrintPacket("output message", &outputMsg[0], outputMsg.len());
 
   _outputMessagesList.push_back(outputMsg);
 

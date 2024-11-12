@@ -6,6 +6,7 @@
   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
 
+#include <Arduino_DebugUtils.h>
 #include "PacketManager.h"
 #include "uCRC16Lib.h"
 uint8_t PACKET_START[] = { 0x55, 0xaa };
@@ -54,18 +55,17 @@ PacketManager::ReceivingState PacketManager::handleReceivedByte(ReceivedData &re
   }
 
   switch (_state) {
-    case ReceivingState::WAITING_HEADER: _state = handle_WaitingHeader(byte); break;
+    case ReceivingState::WAITING_HEADER:  _state = handle_WaitingHeader (byte); break;
     case ReceivingState::WAITING_PAYLOAD: _state = handle_WaitingPayload(byte); break;
-    case ReceivingState::WAITING_END: _state = handle_WaitingEnd(byte); break;
-    default: break;
+    case ReceivingState::WAITING_END:     _state = handle_WaitingEnd    (byte); break;
+    default:                                                                    break;
   }
 
   if (_state == ReceivingState::RECEIVED) {
     receivedData.type = (MessageType)getPacketType();
     if (receivedData.type != MessageType::RESPONSE && receivedData.type != MessageType::DATA) {
       //Packet type not recognized
-      Serial.print("Packet type not recognized: ");
-      Serial.println((int)receivedData.type);
+      DEBUG_DEBUG("PacketManager::%s Packet type not recognized: %d", __FUNCTION__, (int)receivedData.type);
       _state = ReceivingState::WAITING_HEADER;
       return _state;
     }
@@ -143,9 +143,8 @@ PacketManager::ReceivingState PacketManager::handle_WaitingHeader(uint8_t byte) 
   }
 
   if (_tempInputMessageHeader.receivedAll()) {
-    Serial.println("Received header");
     if (!checkBeginPacket()) {
-      Serial.println("Begin packet not recognized");
+      DEBUG_DEBUG("PacketManager::%s Begin packet not recognized", __FUNCTION__);
       clearInputBuffers();
       return ReceivingState::ERROR;
     }
@@ -168,7 +167,6 @@ PacketManager::ReceivingState PacketManager::handle_WaitingPayload(uint8_t byte)
   }
 
   if (_tempInputMessagePayload.receivedAll()) {
-    Serial.println("Received payload");
     nextState = ReceivingState::WAITING_END;
   }
 
@@ -183,11 +181,10 @@ PacketManager::ReceivingState PacketManager::handle_WaitingEnd(uint8_t byte) {
   }
 
   if (_tempInputMessageEnd.receivedAll()) {
-    Serial.println("Received packet end");
     if (checkCRC() && checkEndPacket()) {
       nextState = ReceivingState::RECEIVED;
     } else {
-      Serial.println("CRC or end packet not recognized");
+      DEBUG_DEBUG("PacketManager::%s CRC or end packet not recognized", __FUNCTION__);
       //Error
       clearInputBuffers();
       nextState = ReceivingState::ERROR;

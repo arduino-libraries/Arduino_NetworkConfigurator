@@ -6,6 +6,7 @@
   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
 
+#include <Arduino_DebugUtils.h>
 #include "ConnectionHandlerDefinitions.h"
 #include "ConfiguratorAgents/MessagesDefinitions.h"
 #include "Arduino_ConnectionHandler.h"
@@ -32,10 +33,10 @@ bool NetworkConfigurator::begin(bool initConfiguratorIfConnectionFails, String c
 #ifdef ARDUINO_UNOR4_WIFI
   while (1) {
     if (!_preferences.begin("my-app", false)) {
-      Serial.println("Cannot initialize preferences");
+      DEBUG_VERBOSE("Cannot initialize preferences");
       _preferences.end();
     } else {
-      Serial.println("preferences initialized");
+      DEBUG_DEBUG("preferences initialized");
       break;
     }
   }
@@ -48,21 +49,21 @@ bool NetworkConfigurator::begin(bool initConfiguratorIfConnectionFails, String c
 #ifndef ARDUINO_ARCH_ESP32
   String fv = WiFi.firmwareVersion();
   if (fv < WIFI_FIRMWARE_LATEST_VERSION) {
-    Serial.println("Please upgrade the firmware");
+    DEBUG_ERROR(F("The current WiFi firmare version is not the latest and it may cause compatibility issues. Please upgrade the WiFi firmware"));
   }
 #endif
   _networkSetting.type = NetworkAdapter::WIFI;
   if (!_agentManager->addRequestHandler(RequestType::SCAN, scanReqHandler)) {
-    Serial.println("error adding scan request handler");
+    DEBUG_ERROR("NetworkConfigurator::%s Error registering \"scan request\" callback to AgentManager", __FUNCTION__);
   }
 #endif
 
   if (!_agentManager->addRequestHandler(RequestType::CONNECT, connectReqHandler)) {
-    Serial.println("error adding connect request handler");
+    DEBUG_ERROR("NetworkConfigurator::%s Error registering \"connect request\" callback to AgentManager", __FUNCTION__);
   }
 
   if (!_agentManager->addReturnNetworkSettingsCallback(setNetworkSettingsHandler)) {
-    Serial.println("error adding network settings handler");
+    DEBUG_ERROR("NetworkConfigurator::%s Error registering \"network settings\" callback to AgentManager", __FUNCTION__);
   }
 
   updateNetworkOptions();
@@ -123,7 +124,7 @@ bool NetworkConfigurator::end() {
 
 NetworkConfiguratorStates NetworkConfigurator::connectToNetwork() {
   NetworkConfiguratorStates nextState = _state;
-  Serial.println("Connecting to network");
+  DEBUG_DEBUG("Connecting to network");
   printNetworkSettings();
   if (_startConnectionAttempt == 0) {
     _startConnectionAttempt = millis();
@@ -134,7 +135,7 @@ NetworkConfiguratorStates NetworkConfigurator::connectToNetwork() {
   delay(250);  //TODO remove
   if (connectionRes == NetworkConnectionState::CONNECTED) {
     _startConnectionAttempt = 0;
-    Serial.println("Connected");
+    DEBUG_INFO("Connected to network");
     _agentManager->setStatusMessage(MessageTypeCodes::CONNECTED);
     _enableAutoReconnect = false;
     delay(3000);  //TODO remove
@@ -147,11 +148,10 @@ NetworkConfiguratorStates NetworkConfigurator::connectToNetwork() {
     _startConnectionAttempt = 0;
     int errorCode;
     String errorMsg = decodeConnectionErrorMessage(connectionRes, &errorCode);
-    Serial.print("connection fail: ");
-    Serial.println(errorMsg);
+    DEBUG_INFO("Connection fail: %s", errorMsg.c_str());
+
     if (_initReason != "") {
-      Serial.print("init reason: ");
-      Serial.println(_initReason);
+      DEBUG_VERBOSE("init reason: %s", _initReason.c_str());
       _agentManager->setStatusMessage(MessageTypeCodes::CONNECTION_LOST);
     } else {
       _agentManager->setStatusMessage((MessageTypeCodes)errorCode);
@@ -166,21 +166,20 @@ NetworkConfiguratorStates NetworkConfigurator::connectToNetwork() {
 
 bool NetworkConfigurator::updateNetworkOptions() {
 #ifdef BOARD_HAS_WIFI
-  Serial.println("Scanning");
+  DEBUG_DEBUG("Scanning");
   _agentManager->setStatusMessage(MessageTypeCodes::SCANNING);  //Notify before scan
 
   WiFiOption wifiOptObj;
 
-  String errMsg;
-  if (!scanWiFiNetworks(wifiOptObj, &errMsg)) {
-    Serial.println("error scanning for wifi networks");
-    Serial.println(errMsg);
+  if (!scanWiFiNetworks(wifiOptObj)) {
+    DEBUG_WARNING("NetworkConfigurator::%s Error during scan for wifi networks", __FUNCTION__);
 
     _agentManager->setStatusMessage(MessageTypeCodes::HW_ERROR_CONN_MODULE);
 
     return false;
   }
 
+  DEBUG_DEBUG("Scan completed");
   NetworkOptions netOption = { NetworkOptionsClass::WIFI, wifiOptObj };
 #endif
 
@@ -192,33 +191,26 @@ bool NetworkConfigurator::updateNetworkOptions() {
 }
 
 #ifdef BOARD_HAS_WIFI
-bool NetworkConfigurator::scanWiFiNetworks(WiFiOption &wifiOptObj, String *err) {
-  Serial.println("Scanning");
+bool NetworkConfigurator::scanWiFiNetworks(WiFiOption &wifiOptObj) {
   wifiOptObj.numDiscoveredWiFiNetworks = 0;
   // check for the WiFi module:
   if (WiFi.status() == WL_NO_MODULE) {
-    *err = "Communication with WiFi module failed!";
+    DEBUG_WARNING("NetworkConfigurator::%s Communication with WiFi module failed!", __FUNCTION__);
     return false;
   }
 
   int numSsid = WiFi.scanNetworks();
   if (numSsid == -1) {
-    *err = "Couldn't get any WiFi connection";
+    DEBUG_WARNING("NetworkConfigurator::%s Couldn't get any WiFi connection", __FUNCTION__);
     return false;
   }
 
   // print the list of networks seen:
-  Serial.print("number of available networks:");
-  Serial.println(numSsid);
+  DEBUG_VERBOSE("NetworkConfigurator::%s number of available networks: %d", __FUNCTION__, numSsid);
 
   // print the network number and name for each network found:
   for (int thisNet = 0; thisNet < numSsid && thisNet < MAX_WIFI_NETWORKS; thisNet++) {
-    Serial.print(thisNet);
-    Serial.print(") ");
-    Serial.print(WiFi.SSID(thisNet));
-    Serial.print("\tSignal: ");
-    Serial.print(WiFi.RSSI(thisNet));
-    Serial.println(" dBm");
+    DEBUG_VERBOSE("NetworkConfigurator::%s found network %d) %s \tSignal %d dbm", __FUNCTION__, thisNet, WiFi.SSID(thisNet), WiFi.RSSI(thisNet));
 
     wifiOptObj.discoveredWifiNetworks[thisNet].SSID = const_cast<char *>(WiFi.SSID(thisNet));
 
@@ -281,10 +273,7 @@ NetworkConfiguratorStates NetworkConfigurator::handleInit() {
     String Password = _preferences.getString(PSWKEY, "");
     //preferences.end();
     if (SSID != "" && Password != "") {
-      Serial.print("found credential WiFi: ");
-      Serial.print(SSID);
-      Serial.print(" PSW: ");
-      Serial.println(Password);
+      DEBUG_INFO("Found WiFi configuration on storage.\n SSID: %s PSW: %s", SSID.c_str(), Password.c_str());
 
       memcpy(_networkSetting.wifi.ssid, SSID.c_str(), SSID.length());
       memcpy(_networkSetting.wifi.pwd, Password.c_str(), Password.length());
@@ -296,7 +285,7 @@ NetworkConfiguratorStates NetworkConfigurator::handleInit() {
   if (_networkSettingReceived) {
     if (!_connectionHandlerIstantiated) {
       if (!_connectionHandler->updateSetting(_networkSetting)) {
-        Serial.println("Network parameters not supported");
+        DEBUG_WARNING("NetworkConfigurator::%s Network parameters found on storage are not supported.", __FUNCTION__);
         _agentManager->begin(SERVICE_ID_FOR_AGENTMANAGER);
         return NetworkConfiguratorStates::WAITING_FOR_CONFIG;
       }
@@ -315,7 +304,7 @@ NetworkConfiguratorStates NetworkConfigurator::handleInit() {
         _enableAutoReconnect = true;
 
         if (!_agentManager->begin(SERVICE_ID_FOR_AGENTMANAGER)) {
-          Serial.println("failed to init agent");
+          DEBUG_ERROR("NetworkConfigurator::%s Failed to initialize the AgentsConfiguratorManager", __FUNCTION__);
         }
         if (_initReason != "") {
           _agentManager->setStatusMessage(MessageTypeCodes::CONNECTION_LOST);
@@ -343,7 +332,7 @@ NetworkConfiguratorStates NetworkConfigurator::handleWaitingForConf() {
     }
 
     if (!_connectionHandler->updateSetting(_networkSetting)) {
-      Serial.println("Network parameters not supported");
+      DEBUG_WARNING("NetworkConfigurator::%s The received network parameters are not supported", __FUNCTION__);
       _agentManager->setStatusMessage(MessageTypeCodes::INVALID_PARAMS);
       return NetworkConfiguratorStates::WAITING_FOR_CONFIG;
     }
@@ -367,7 +356,7 @@ NetworkConfiguratorStates NetworkConfigurator::handleWaitingForConf() {
   } else if (_connectReqReceived) {
     _connectReqReceived = false;
     if (!_networkSettingReceived) {
-      Serial.println("Parameters not provided");
+      DEBUG_DEBUG("NetworkConfigurator::%s Connect request received but network settings not received yet", __FUNCTION__);
       _agentManager->setStatusMessage(MessageTypeCodes::PARAMS_NOT_FOUND);
     } else {
       _agentManager->setStatusMessage(MessageTypeCodes::CONNECTING);
@@ -407,117 +396,88 @@ void PrintIP(models::ip_addr *ip) {
   }
 
   for (int i = 0; i < len; i++) {
-    Serial.print(ip->bytes[i]);
-    Serial.print(" ");
+    DEBUG_INFO("%d ", ip->bytes[i]);
   }
-  Serial.println();
+  DEBUG_INFO("\n");
 }
 #endif
 
 void NetworkConfigurator::printNetworkSettings() {
-  Serial.print("Network settings received: ");
+  DEBUG_INFO("Network settings received:");
   switch (_networkSetting.type) {
 #if defined(BOARD_HAS_WIFI)
     case NetworkAdapter::WIFI:
-      Serial.println("WIFI");
-      Serial.print("SSID: ");
-      Serial.print(_networkSetting.wifi.ssid);
-      Serial.print(" PSW: ");
-      Serial.println(_networkSetting.wifi.pwd);
+      DEBUG_INFO("WIFI");
+      DEBUG_INFO("SSID: %s PSW: %s", _networkSetting.wifi.ssid, _networkSetting.wifi.pwd);
       break;
 #endif
 
 #if defined(BOARD_HAS_ETHERNET)
     case NetworkAdapter::ETHERNET:
-      Serial.println("ETHERNET");
-      Serial.print("IP: ");
+      DEBUG_INFO("ETHERNET");
+      DEBUG_INFO("IP: ");
       PrintIP(&_networkSetting.eth.ip);
-      Serial.print(" DNS: ");
+      DEBUG_INFO(" DNS: ");
       PrintIP(&_networkSetting.eth.dns);
-      Serial.print(" Gateway: ");
+      DEBUG_INFO(" Gateway: ");
       PrintIP(&_networkSetting.eth.gateway);
-      Serial.print(" Netmask: ");
+      DEBUG_INFO(" Netmask: ");
       PrintIP(&_networkSetting.eth.netmask);
-      Serial.print(" Timeout: ");
-      Serial.println(_networkSetting.eth.timeout);
-      Serial.print(" Response timeout: ");
-      Serial.println(_networkSetting.eth.response_timeout);
+      DEBUG_INFO(" Timeout: %d , Response timeout: %d", _networkSetting.eth.timeout, _networkSetting.eth.response_timeout);
       break;
 #endif
 
 #if defined(BOARD_HAS_NB)
     case NetworkAdapter::NB:
-      Serial.println("NB");
-      Serial.print("PIN: ");
-      Serial.println(_networkSetting.nb.pin);
-      Serial.print(" APN: ");
-      Serial.println(_networkSetting.nb.apn);
-      Serial.print(" Login: ");
-      Serial.println(_networkSetting.nb.login);
-      Serial.print(" Pass: ");
-      Serial.println(_networkSetting.nb.pass);
+      DEBUG_INFO("NB-IoT");
+      DEBUG_INFO("PIN: %s", _networkSetting.nb.pin);
+      DEBUG_INFO("APN: %s", _networkSetting.nb.apn);
+      DEBUG_INFO("Login: %s", _networkSetting.nb.login);
+      DEBUG_INFO("Pass: %s", _networkSetting.nb.pass);
       break;
 #endif
 
 #if defined(BOARD_HAS_GSM)
     case NetworkAdapter::GSM:
-      Serial.println("GSM");
-      Serial.print("PIN: ");
-      Serial.println(_networkSetting.gsm.pin);
-      Serial.print(" APN: ");
-      Serial.println(_networkSetting.gsm.apn);
-      Serial.print(" Login: ");
-      Serial.println(_networkSetting.gsm.login);
-      Serial.print(" Pass: ");
-      Serial.println(_networkSetting.gsm.pass);
+      DEBUG_INFO("GSM");
+      DEBUG_INFO("PIN: %s", _networkSetting.gsm.pin);
+      DEBUG_INFO("APN: %s", _networkSetting.gsm.apn);
+      DEBUG_INFO("Login: %s", _networkSetting.gsm.login);
+      DEBUG_INFO("Pass: %s", _networkSetting.gsm.pass);
       break;
 #endif
 
 #if defined(BOARD_HAS_CATM1_NBIOT)
     case NetworkAdapter::CATM1:
-      Serial.println("CATM1");
-      Serial.print("PIN: ");
-      Serial.println(_networkSetting.catm1.pin);
-      Serial.print(" APN: ");
-      Serial.println(_networkSetting.catm1.apn);
-      Serial.print(" Login: ");
-      Serial.println(_networkSetting.catm1.login);
-      Serial.print(" Pass: ");
-      Serial.println(_networkSetting.catm1.pass);
-      Serial.print(" Band:");
-      Serial.println(_networkSetting.catm1.band);
+      DEBUG_INFO("CATM1");
+      DEBUG_INFO("PIN: %s", _networkSetting.catm1.pin);
+      DEBUG_INFO("APN: %s", _networkSetting.catm1.apn);
+      DEBUG_INFO("Login: %s", _networkSetting.catm1.login);
+      DEBUG_INFO("Pass: %s", _networkSetting.catm1.pass);
+      DEBUG_INFO("Band: %d", _networkSetting.catm1.band);
       break;
 #endif
 
 #if defined(BOARD_HAS_CELLULAR)
     case NetworkAdapter::CELL:
-      Serial.println("CELL");
-      Serial.print("PIN: ");
-      Serial.println(_networkSetting.cell.pin);
-      Serial.print(" APN: ");
-      Serial.println(_networkSetting.cell.apn);
-      Serial.print(" Login: ");
-      Serial.println(_networkSetting.cell.login);
-      Serial.print(" Pass: ");
-      Serial.println(_networkSetting.cell.pass);
+      DEBUG_INFO("CELLULAR");
+      DEBUG_INFO("PIN: %s", _networkSetting.cell.pin);
+      DEBUG_INFO("APN: %s", _networkSetting.cell.apn);
+      DEBUG_INFO("Login: %s", _networkSetting.cell.login);
+      DEBUG_INFO("Pass: %s", _networkSetting.cell.pass);
       break;
 #endif
 
 #if defined(BOARD_HAS_LORA)
     case NetworkAdapter::LORA:
-      Serial.println("LORA");
-      Serial.print("AppEUI: ");
-      Serial.println(_networkSetting.lora.appeui);
-      Serial.print(" AppKey: ");
-      Serial.println(_networkSetting.lora.appkey);
-      Serial.print(" Band: ");
-      Serial.println(_networkSetting.lora.band);
-      Serial.print(" Channel mask: ");
-      Serial.println(_networkSetting.lora.channelMask);
-      Serial.print(" Device class: ");
-      Serial.println(_networkSetting.lora.deviceClass);
+      DEBUG_INFO("LORA");
+      DEBUG_INFO("AppEUI: %s", _networkSetting.lora.appeui);
+      DEBUG_INFO("AppKey: %s", _networkSetting.lora.appkey);
+      DEBUG_INFO("Band: %d", _networkSetting.lora.band);
+      DEBUG_INFO("Channel mask: %s", _networkSetting.lora.channelMask);
+      DEBUG_INFO("Device class: %c", _networkSetting.lora.deviceClass);
 #endif
     default:
-      Serial.println("Network type not supported");
+      break;
   }
 }
