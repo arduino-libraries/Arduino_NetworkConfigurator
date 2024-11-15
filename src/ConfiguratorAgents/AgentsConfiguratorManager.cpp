@@ -138,7 +138,7 @@ bool AgentsConfiguratorManager::setNetworkOptions(NetworkOptions netOptions) {
 #endif
 
   if (_selectedAgent) {
-    //Send immediatly if agent is connected with a peer
+    //Send immediately if agent is connected with a peer
     sendNetworkOptions();
   }
 

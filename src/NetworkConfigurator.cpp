@@ -47,7 +47,7 @@ bool NetworkConfigurator::begin() {
 #ifndef ARDUINO_ARCH_ESP32
   String fv = WiFi.firmwareVersion();
   if (fv < WIFI_FIRMWARE_LATEST_VERSION) {
-    DEBUG_ERROR(F("The current WiFi firmare version is not the latest and it may cause compatibility issues. Please upgrade the WiFi firmware"));
+    DEBUG_ERROR(F("The current WiFi firmware version is not the latest and it may cause compatibility issues. Please upgrade the WiFi firmware"));
   }
 #endif
   _networkSetting.type = NetworkAdapter::WIFI;
@@ -87,7 +87,7 @@ NetworkConfiguratorStates NetworkConfigurator::poll() {
 
   //Check if update the network options
   if (_enableNetworkOptionsAutoUpdate && (millis() - _lastOptionUpdate > 120000)) {
-    //if board doesn't support wifi and ble connectivty at the same time and the configuration is in progress skip updateAvailableOptions
+    //if board doesn't support wifi and ble connectivity at the same time and the configuration is in progress skip updateAvailableOptions
 #ifdef BOARD_HAS_WIFI
 #if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT) || defined(ARDUINO_AVR_UNO_WIFI_REV2) || defined(ARDUINO_NANO_RP2040_CONNECT)
     if (_agentManager->isConfigInProgress() == true) {
@@ -275,7 +275,7 @@ String NetworkConfigurator::decodeConnectionErrorMessage(NetworkConnectionState 
     case NetworkConnectionState::DISCONNECTED:
       *errorCode = (int)MessageTypeCodes::DISCONNECTED;
       return "Disconnected";
-      //the connection handler doesn't have a state of "Fail to connect", in case of invalid credetials or
+      //the connection handler doesn't have a state of "Fail to connect", in case of invalid credentials or
       //missing wifi network the FSM stays on Connecting state so use the connecting state to detect the fail to connect
     case NetworkConnectionState::CONNECTING:
       *errorCode = (int)MessageTypeCodes::FAILED_TO_CONNECT;
