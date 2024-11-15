@@ -1,0 +1,301 @@
+name: Compile Examples
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/compile-examples.yml"
+      - "library.properties"
+      - "examples/**"
+      - "src/**"
+  push:
+    paths:
+      - ".github/workflows/compile-examples.yml"
+      - "library.properties"
+      - "examples/**"
+      - "src/**"
+  schedule:
+    # Run every Tuesday at 8 AM UTC to catch breakage caused by changes to external resources (libraries, platforms).
+    - cron: "0 8 * * TUE"
+  workflow_dispatch:
+  repository_dispatch:
+
+jobs:
+  build:
+    name: ${{ matrix.board.fqbn }}
+    runs-on: ubuntu-latest
+
+    env:
+      LIBRARIES: |
+        # Install the NetworkConfigurator library from the repository
+        - source-path: ./
+        - name: Arduino_DebugUtils
+        - name: Arduino_ConnectionHandler
+        - name: ArduinoBLE
+        - name: ArduinoIoTCloud
+        - name: Arduino_SecureElement
+      SKETCH_PATHS: |
+        - examples/auto-retry
+      SKETCHES_REPORTS_PATH: sketches-reports
+    strategy:
+      fail-fast: false
+
+      matrix:
+        board:
+          - fqbn: arduino:samd:mkr1000
+            type: mkr1000
+            artifact-name-suffix: arduino-samd-mkr1000
+          - fqbn: arduino:samd:mkrwifi1010
+            type: nina
+            artifact-name-suffix: arduino-samd-mkrwifi1010
+          - fqbn: arduino:samd:nano_33_iot
+            type: nina
+            artifact-name-suffix: arduino-samd-nano_33_iot
+          - fqbn: arduino:samd:mkrwan1300
+            type: wan
+            artifact-name-suffix: arduino-samd-mkrwan1300
+          - fqbn: arduino:samd:mkrgsm1400
+            type: gsm
+            artifact-name-suffix: arduino-samd-mkrgsm1400
+          - fqbn: arduino:samd:mkrnb1500
+            type: nb
+            artifact-name-suffix: arduino-samd-mkrnb1500
+          - fqbn: arduino:mbed_portenta:envie_m7
+            type: mbed_portenta
+            artifact-name-suffix: arduino-mbed_portenta-envie_m7
+          - fqbn: esp8266:esp8266:huzzah
+            type: esp8266
+            artifact-name-suffix: esp8266-esp8266-huzzah
+          - fqbn: esp32:esp32:esp32
+            type: esp32
+            artifact-name-suffix: esp32-esp32-esp32
+          - fqbn: arduino:mbed_nano:nanorp2040connect
+            type: nina
+            artifact-name-suffix: arduino-mbed_nano-nanorp2040connect
+          - fqbn: arduino:mbed_nicla:nicla_vision
+            type: mbed_nicla
+            artifact-name-suffix: arduino-mbed_nicla-nicla_vision
+          - fqbn: arduino:mbed_opta:opta
+            type: mbed_opta
+            artifact-name-suffix: arduino-mbed_opta-opta
+          - fqbn: arduino:mbed_giga:giga
+            type: mbed_giga
+            artifact-name-suffix: arduino-mbed_giga-giga
+          - fqbn: arduino:renesas_portenta:portenta_c33
+            type: renesas_portenta
+            artifact-name-suffix: arduino-renesas_portenta-portenta_c33
+          - fqbn: arduino:renesas_uno:unor4wifi
+            type: renesas_uno
+            artifact-name-suffix: arduino-renesas_uno-unor4wifi
+          - fqbn: arduino:esp32:nano_nora
+            type: arduino_esp32
+            artifact-name-suffix: arduino-esp32-nano_nora
+          - fqbn: arduino:mbed_edge:edge_control
+            type: mbed_edge
+            artifact-name-suffix: arduino-mbed_edge-edge_control
+
+
+        # make board type-specific customizations to the matrix jobs
+        include:
+          # MKR 1000
+          - board:
+              type: mkr1000
+            platforms: |
+              # Install samd platform via Boards Manager
+              - name: arduino:samd
+            libraries: |
+              - name: ArduinoECCX08
+              - name: Blues Wireless Notecard
+              - name: RTCZero
+              - name: WiFi101
+              - name: ArduinoHttpClient
+              - name: ArduinoMqttClient
+              - source-url: https://github.com/adafruit/Adafruit_SleepyDog.git
+          # MKR WiFi 1010, Nano 33 IoT, Nano RP2040 Connect
+          - board:
+              type: nina
+            platforms: |
+              # Install samd and mbed_nano platform via Boards Manager
+              - name: arduino:samd
+              - name: arduino:mbed_nano
+            libraries: |
+              - name: ArduinoECCX08
+              - name: Blues Wireless Notecard
+              - name: RTCZero
+              - name: WiFiNINA
+              - name: Arduino_JSON
+              - name: ArduinoHttpClient
+              - name: ArduinoMqttClient
+              - source-url: https://github.com/adafruit/Adafruit_SleepyDog.git
+          - board:
+              type: wan
+            platforms: |
+              # Install samd platform via Boards Manager
+              - name: arduino:samd
+            libraries: |
+              - name: ArduinoECCX08
+              - name: Blues Wireless Notecard
+              - name: RTCZero
+              - name: MKRWAN
+              - source-url: https://github.com/adafruit/Adafruit_SleepyDog.git
+          # GSM boards
+          - board:
+              type: gsm
+            platforms: |
+              # Install samd platform via Boards Manager
+              - name: arduino:samd
+            libraries: |
+              - name: ArduinoECCX08
+              - name: Blues Wireless Notecard
+              - name: RTCZero
+              - name: MKRGSM
+              - name: ArduinoHttpClient
+              - name: ArduinoMqttClient
+              - source-url: https://github.com/adafruit/Adafruit_SleepyDog.git
+          # NB boards
+          - board:
+              type: nb
+            platforms: |
+              # Install samd platform via Boards Manager
+              - name: arduino:samd
+            libraries: |
+              - name: ArduinoECCX08
+              - name: Blues Wireless Notecard
+              - name: RTCZero
+              - name: MKRNB
+              - name: ArduinoHttpClient
+              - name: ArduinoMqttClient
+              - source-url: https://github.com/adafruit/Adafruit_SleepyDog.git
+          # Portenta
+          - board:
+              type: mbed_portenta
+            platforms: |
+              # Install mbed_portenta platform via Boards Manager
+              - name: arduino:mbed_portenta
+            libraries: |
+              - name: ArduinoECCX08
+              - name: Arduino_Cellular
+              - name: Blues Wireless Notecard
+              - name: ArduinoHttpClient
+              - name: ArduinoMqttClient
+          # Nicla Vision
+          - board:
+              type: mbed_nicla
+            platforms: |
+              # Install mbed_nicla platform via Boards Manager
+              - name: arduino:mbed_nicla
+            libraries: |
+              - name: Blues Wireless Notecard
+              - name: ArduinoHttpClient
+              - name: ArduinoMqttClient
+          # Opta
+          - board:
+              type: mbed_opta
+            platforms: |
+              # Install mbed_opta platform via Boards Manager
+              - name: arduino:mbed_opta
+            libraries: |
+              - name: ArduinoECCX08
+              - name: Blues Wireless Notecard
+              - name: ArduinoHttpClient
+              - name: ArduinoMqttClient
+          # GIGA
+          - board:
+              type: mbed_giga
+            platforms: |
+              # Install mbed_giga platform via Boards Manager
+              - name: arduino:mbed_giga
+            libraries: |
+              - name: ArduinoECCX08
+              - name: Blues Wireless Notecard
+              - name: ArduinoHttpClient
+              - name: ArduinoMqttClient
+          # Portenta C33
+          - board:
+              type: renesas_portenta
+            platforms: |
+              # Install renesas_portenta platform via Boards Manager
+              - name: arduino:renesas_portenta
+            libraries: |
+              - name: Arduino_Cellular
+              - name: Blues Wireless Notecard
+              - name: ArduinoHttpClient
+              - name: ArduinoMqttClient
+          # UNO R4 WiFi
+          - board:
+              type: renesas_uno
+            platforms: |
+              # Install renesas_uno platform via Boards Manager
+              - name: arduino:renesas_uno
+            libraries: |
+              - name: Blues Wireless Notecard
+              - name: ArduinoHttpClient
+              - name: ArduinoMqttClient
+          # Nano ESP32
+          - board:
+              type: arduino_esp32
+            platforms: |
+              # Install arduino_esp32 platform via Boards Manager
+              - name: arduino:esp32
+            libraries: |
+              - name: Blues Wireless Notecard
+              - name: ArduinoHttpClient
+              - name: ArduinoMqttClient
+          # Edge Control
+          - board:
+              type: mbed_edge
+            platforms: |
+              # Install mbed_edge platform via Boards Manager
+              - name: arduino:mbed_edge
+            libraries: |
+              - name: Blues Wireless Notecard
+              - name: ArduinoHttpClient
+              - name: ArduinoMqttClient
+          # ESP8266 boards
+          - board:
+              type: esp8266
+            platforms: |
+              # Install ESP8266 platform via Boards Manager
+              - name: esp8266:esp8266
+                source-url: https://arduino.esp8266.com/stable/package_esp8266com_index.json
+                # Use the version currently installed in Arduino Cloud
+                version: 2.5.0
+            libraries:
+          # ESP32 boards
+          - board:
+              type: esp32
+            platforms: |
+              # Install ESP32 platform via Boards Manager
+              - name: esp32:esp32
+                source-url: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+            libraries: |
+              - name: Blues Wireless Notecard
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install ESP32 platform dependencies
+        if: matrix.board.type == 'esp32'
+        run: pip3 install pyserial
+
+      - name: Compile examples
+        uses: arduino/compile-sketches@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          platforms: ${{ matrix.platforms }}
+          fqbn: ${{ matrix.board.fqbn }}
+          libraries: |
+            ${{ env.LIBRARIES }}
+            ${{ matrix.libraries }}
+          sketch-paths: |
+            ${{ env.SKETCH_PATHS }}
+          enable-deltas-report: 'true'
+          sketches-report-path: ${{ env.SKETCHES_REPORTS_PATH }}
+
+      - name: Save memory usage change report as artifact
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: error
+          name: sketches-report-${{ matrix.board.artifact-name-suffix }}
+          path: ${{ env.SKETCHES_REPORTS_PATH }}
