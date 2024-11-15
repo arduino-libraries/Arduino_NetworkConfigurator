@@ -33,6 +33,7 @@ jobs:
         - name: ArduinoBLE
         - name: ArduinoIoTCloud
         - name: Arduino_SecureElement
+        - name: Arduino_CloudUtils
       SKETCH_PATHS: |
         - examples/auto-retry
       SKETCHES_REPORTS_PATH: sketches-reports

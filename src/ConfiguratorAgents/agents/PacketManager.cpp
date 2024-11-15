@@ -8,7 +8,8 @@
 
 #include <Arduino_DebugUtils.h>
 #include "PacketManager.h"
-#include "uCRC16Lib.h"
+#include "Arduino_CRC16.h"
+
 uint8_t PACKET_START[] = { 0x55, 0xaa };
 uint8_t PACKET_END[] = { 0xaa, 0x55 };
 #define PACKET_START_SIZE 2
@@ -19,12 +20,18 @@ uint8_t PACKET_END[] = { 0xaa, 0x55 };
 #define PACKET_HEADERS_OVERHEAD PACKET_START_SIZE + PACKET_TYPE_SIZE + PACKET_LENGTH_SIZE + PACKET_CRC_SIZE + PACKET_END_SIZE
 #define PACKET_MINIMUM_SIZE PACKET_START_SIZE + PACKET_TYPE_SIZE + PACKET_LENGTH_SIZE
 
+#define CRC16_POLYNOMIAL 0x1021
+#define CRC16_INITIAL_VALUE 0xffff
+#define CRC16_FINAL_XOR_VALUE 0xffff
+#define CRC16_REFLECT_DATA true
+#define CRC16_REFLECT_RESULT true
+
 bool PacketManager::createPacket(OutputPacketBuffer &outputMsg, MessageType type, const uint8_t *data, size_t len) {
   uint16_t packetLen = len + PACKET_HEADERS_OVERHEAD;
   uint16_t payloadLen = len + PACKET_CRC_SIZE;
   uint8_t payloadLenHigh = payloadLen >> 8;
   uint8_t payloadLenLow = payloadLen & 0xff;
-  uint16_t payloadCRC = uCRC16Lib::calculate((char *)data, len);
+  uint16_t payloadCRC = arduino::crc16::calculate((char *)data, len, CRC16_POLYNOMIAL, CRC16_INITIAL_VALUE, CRC16_FINAL_XOR_VALUE, CRC16_REFLECT_DATA, CRC16_REFLECT_RESULT);
   uint8_t crcHigh = payloadCRC >> 8;
   uint8_t crcLow = payloadCRC & 0xff;
 
@@ -114,7 +121,7 @@ bool PacketManager::checkCRC() {
     return false;
   }
   uint16_t receivedCRC = ((uint16_t)_tempInputMessageEnd[0] << 8 | _tempInputMessageEnd[1]);
-  uint16_t computedCRC = uCRC16Lib::calculate((char *)&_tempInputMessagePayload[0], _tempInputMessagePayload.len());
+  uint16_t computedCRC = arduino::crc16::calculate((char *)&_tempInputMessagePayload[0], _tempInputMessagePayload.len(), CRC16_POLYNOMIAL, CRC16_INITIAL_VALUE, CRC16_FINAL_XOR_VALUE, CRC16_REFLECT_DATA, CRC16_REFLECT_RESULT);
 
   if (receivedCRC == computedCRC) {
     return true;
