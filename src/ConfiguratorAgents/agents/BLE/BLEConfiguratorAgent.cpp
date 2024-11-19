@@ -18,10 +18,14 @@
 #if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT)
 #define VID USB_VID
 #define PID USB_PID
-#elif defined(ARDUINO_NANO_RP2040_CONNECT) || defined(ARDUINO_PORTENTA_H7_M7) || defined(ARDUINO_NICLA_VISION) || defined(ARDUINO_OPTA) || defined(ARDUINO_GIGA)
+#elif defined(ARDUINO_NANO_RP2040_CONNECT) || defined(ARDUINO_PORTENTA_H7_M7) || defined(ARDUINO_NICLA_VISION) || defined(ARDUINO_GIGA)
 #include "pins_arduino.h"
 #define VID BOARD_VENDORID
 #define PID BOARD_PRODUCTID
+#elif defined(ARDUINO_OPTA)
+#include "pins_arduino.h"
+#define VID _BOARD_VENDORID
+#define PID _BOARD_PRODUCTID
 #elif defined(ARDUINO_PORTENTA_C33)
 #include "pins_arduino.h"
 #define VID USB_VID
