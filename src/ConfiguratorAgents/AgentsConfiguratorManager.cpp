@@ -274,6 +274,11 @@ AgentsConfiguratorManagerStates AgentsConfiguratorManager::handleSendNetworkOpti
 AgentsConfiguratorManagerStates AgentsConfiguratorManager::handleConfInProgress() {
   AgentsConfiguratorManagerStates nextState = _state;
 
+  if (_selectedAgent == nullptr) {
+    DEBUG_WARNING("AgentsConfiguratorManager::%s selected agent is null", __FUNCTION__);
+    return AgentsConfiguratorManagerStates::INIT;
+  }
+
   ConfiguratorAgent::AgentConfiguratorStates agentConfState = _selectedAgent->poll();
   switch (agentConfState) {
     case ConfiguratorAgent::AgentConfiguratorStates::RECEIVED_DATA:
@@ -463,12 +468,15 @@ void AgentsConfiguratorManager::callHandler(RequestType type) {
 
 #if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT) || defined(ARDUINO_AVR_UNO_WIFI_REV2) || defined(ARDUINO_NANO_RP2040_CONNECT)
 void AgentsConfiguratorManager::stopBLEAgent() {
-  std::for_each(_agentsList.begin(), _agentsList.end(), [](ConfiguratorAgent *agent) {
-    if (agent->getAgentType() == ConfiguratorAgent::AgentTypes::BLE) {
+  for (std::list<ConfiguratorAgent *>::iterator agent = _agentsList.begin(); agent != _agentsList.end(); ++agent) {
+    if ((*agent)->getAgentType() == ConfiguratorAgent::AgentTypes::BLE) {
       DEBUG_VERBOSE("AgentsConfiguratorManager::%s End ble agent for wifi", __FUNCTION__);
-      agent->end();
+      (*agent)->end();
+      if (*agent == _selectedAgent) {
+        _selectedAgent = nullptr;
+      }
     }
-  });
+  }
 }
 
 void AgentsConfiguratorManager::startBLEAgent() {
