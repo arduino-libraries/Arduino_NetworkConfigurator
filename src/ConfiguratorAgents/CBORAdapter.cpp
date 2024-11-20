@@ -67,6 +67,9 @@ bool CBORAdapter::networkOptionsToCBOR(NetworkOptions &netOptions, uint8_t *data
       result = adaptWiFiOptions(&netOptions.option.wifi, data, len);
       break;
     default:
+      WiFiOption wifiOptions;
+      wifiOptions.numDiscoveredWiFiNetworks = 0;
+      result = adaptWiFiOptions(&wifiOptions, data, len);//In case of WiFi scan is not available send an empty list of wifi options
       break;
   }
   return result;

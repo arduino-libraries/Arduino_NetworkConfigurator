@@ -203,6 +203,8 @@ bool NetworkConfigurator::updateNetworkOptions() {
 
   DEBUG_DEBUG("Scan completed");
   NetworkOptions netOption = { NetworkOptionsClass::WIFI, wifiOptObj };
+#else
+  NetworkOptions netOption = { NetworkOptionsClass::NONE };
 #endif
 
   _agentManager->setNetworkOptions(netOption);
