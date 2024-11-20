@@ -14,11 +14,12 @@
 #include "cbor/CBOR.h"
 
 #define CBOR_DATA_HEADER_LEN 6
-#define CBOR_DATA_UID_LEN 34 + CBOR_DATA_HEADER_LEN
-#define CBOR_DATA_SIGNATURE_LEN 34 + CBOR_DATA_HEADER_LEN
-#define CBOR_DATA_STATUS_LEN 4 + CBOR_DATA_HEADER_LEN
 #define MAX_UID_SIZE 32
-#define MAX_SIGNATURE_SIZE 32
+#define MAX_SIGNATURE_SIZE 247 // 246 bytes for signature chars + 1 for null terminator
+#define CBOR_DATA_UID_LEN MAX_UID_SIZE + 2 + CBOR_DATA_HEADER_LEN //UID size + 2 bytes for CBOR array of bytes identifier + CBOR header size
+#define CBOR_DATA_SIGNATURE_LEN MAX_SIGNATURE_SIZE + 2 + CBOR_DATA_HEADER_LEN //Signature size + 2 bytes for CBOR array of bytes identifier + CBOR header size
+#define CBOR_DATA_STATUS_LEN 4 + CBOR_DATA_HEADER_LEN
+
 
 class CBORAdapter {
 public:
