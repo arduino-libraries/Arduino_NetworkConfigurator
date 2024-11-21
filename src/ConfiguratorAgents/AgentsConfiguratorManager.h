@@ -36,7 +36,7 @@ public:
   AgentsConfiguratorManagerStates poll();
   bool setStatusMessage(StatusMessage msg);
   bool setNetworkOptions(NetworkOptions netOptions);
-  bool setUID(String uid, String signature);
+  bool setID(String uhwid, String jwt);
   bool addAgent(ConfiguratorAgent &agent);
   bool addRequestHandler(RequestType type, ConfiguratorRequestHandler callback);
   void removeRequestHandler(RequestType type) {
@@ -84,7 +84,7 @@ private:
   void handleReceivedData();
   void handleConnectCommand();
   void handleUpdateOptCommand();
-  void handleGetUIDCommand();
+  void handleGetIDCommand();
   size_t computeOptionsToSendLength();
   bool sendNetworkOptions();
   bool sendStatus(StatusMessage msg);

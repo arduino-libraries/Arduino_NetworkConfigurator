@@ -10,36 +10,36 @@
 #include "cbor/MessageEncoder.h"
 #include "cbor/MessageDecoder.h"
 
-bool CBORAdapter::uidToCBOR(String uid, uint8_t *data, size_t *len) {
+bool CBORAdapter::uhwidToCBOR(String uhwid, uint8_t *data, size_t *len) {
   CBORMessageEncoder encoder;
 
-  if (*len < CBOR_DATA_UID_LEN || uid.length() > MAX_UID_SIZE) {
+  if (*len < CBOR_DATA_UHWID_LEN || uhwid.length() > MAX_UHWID_SIZE) {
     return false;
   }
 
   memset(data, 0x00, *len);
 
-  ProvisioningUniqueIdMessage uidMsg;
-  uidMsg.c.id = CommandId::ProvisioningUniqueId;
-  memcpy(uidMsg.params.uniqueId, uid.c_str(), uid.length());
+  ProvisioningUniqueHardwareIdMessage uhwidMsg;
+  uhwidMsg.c.id = CommandId::ProvisioningUniqueHardwareId;
+  memcpy(uhwidMsg.params.uniqueHardwareId, uhwid.c_str(), uhwid.length());
 
-  Encoder::Status status = encoder.encode((Message *)&uidMsg, data, *len);
+  Encoder::Status status = encoder.encode((Message *)&uhwidMsg, data, *len);
 
   return status == Encoder::Status::Complete ? true : false;
 }
 
-bool CBORAdapter::signatureToCBOR(String signature, uint8_t *data, size_t *len) {
+bool CBORAdapter::jwtToCBOR(String jwt, uint8_t *data, size_t *len) {
   CBORMessageEncoder encoder;
 
-  if (*len < CBOR_DATA_SIGNATURE_LEN || signature.length() > MAX_SIGNATURE_SIZE) {
+  if (*len < CBOR_DATA_JWT_LEN || jwt.length() > MAX_JWT_SIZE) {
     return false;
   }
 
   memset(data, 0x00, *len);
 
-  ProvisioningSignatureMessage provisioningMsg;
-  provisioningMsg.c.id = CommandId::ProvisioningSignature;
-  memcpy(provisioningMsg.params.signature, signature.c_str(), signature.length());
+  ProvisioningJWTMessage provisioningMsg;
+  provisioningMsg.c.id = CommandId::ProvisioningJWT;
+  memcpy(provisioningMsg.params.jwt, jwt.c_str(), jwt.length());
 
   Encoder::Status status = encoder.encode((Message *)&provisioningMsg, data, *len);
 
@@ -69,7 +69,7 @@ bool CBORAdapter::networkOptionsToCBOR(NetworkOptions &netOptions, uint8_t *data
     default:
       WiFiOption wifiOptions;
       wifiOptions.numDiscoveredWiFiNetworks = 0;
-      result = adaptWiFiOptions(&wifiOptions, data, len);//In case of WiFi scan is not available send an empty list of wifi options
+      result = adaptWiFiOptions(&wifiOptions, data, len);  //In case of WiFi scan is not available send an empty list of wifi options
       break;
   }
   return result;

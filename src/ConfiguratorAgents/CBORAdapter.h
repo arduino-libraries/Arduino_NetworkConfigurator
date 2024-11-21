@@ -14,17 +14,17 @@
 #include "cbor/CBOR.h"
 
 #define CBOR_DATA_HEADER_LEN 6
-#define MAX_UID_SIZE 32
-#define MAX_SIGNATURE_SIZE 247 // 246 bytes for signature chars + 1 for null terminator
-#define CBOR_DATA_UID_LEN MAX_UID_SIZE + 2 + CBOR_DATA_HEADER_LEN //UID size + 2 bytes for CBOR array of bytes identifier + CBOR header size
-#define CBOR_DATA_SIGNATURE_LEN MAX_SIGNATURE_SIZE + 2 + CBOR_DATA_HEADER_LEN //Signature size + 2 bytes for CBOR array of bytes identifier + CBOR header size
+#define MAX_UHWID_SIZE 32
+#define MAX_JWT_SIZE 247                                               // 246 bytes for signature chars + 1 for null terminator
+#define CBOR_DATA_UHWID_LEN MAX_UHWID_SIZE + 2 + CBOR_DATA_HEADER_LEN  //UHWID size + 2 bytes for CBOR array of bytes identifier + CBOR header size
+#define CBOR_DATA_JWT_LEN MAX_JWT_SIZE + 2 + CBOR_DATA_HEADER_LEN      //Signature size + 2 bytes for CBOR array of bytes identifier + CBOR header size
 #define CBOR_DATA_STATUS_LEN 4 + CBOR_DATA_HEADER_LEN
 
 
 class CBORAdapter {
 public:
-  static bool uidToCBOR(String uid, uint8_t *data, size_t *len);
-  static bool signatureToCBOR(String signature, uint8_t *data, size_t *len);
+  static bool uhwidToCBOR(String uhwid, uint8_t *data, size_t *len);
+  static bool jwtToCBOR(String jwt, uint8_t *data, size_t *len);
   static bool statusToCBOR(StatusMessage msg, uint8_t *data, size_t *len);
   static bool networkOptionsToCBOR(NetworkOptions &netOptions, uint8_t *data, size_t *len);
   static bool getMsgFromCBOR(uint8_t *data, size_t len, ProvisioningCommandDown *msg);

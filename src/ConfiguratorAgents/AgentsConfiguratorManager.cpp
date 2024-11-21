@@ -145,48 +145,48 @@ bool AgentsConfiguratorManager::setNetworkOptions(NetworkOptions netOptions) {
   return true;
 }
 
-bool AgentsConfiguratorManager::setUID(String uid, String signature) {
+bool AgentsConfiguratorManager::setID(String uhwid, String jwt) {
   bool res = false;
   if (_statusRequest.pending && _statusRequest.key == RequestType::GET_ID) {
     if (_selectedAgent) {
-      if (uid.length() > MAX_UID_SIZE) {
-        DEBUG_ERROR("AgentsConfiguratorManager::%s UID too long", __FUNCTION__);
+      if (uhwid.length() > MAX_UHWID_SIZE) {
+        DEBUG_ERROR("AgentsConfiguratorManager::%s UHWID too long", __FUNCTION__);
         return res;
       }
-      if (signature.length() > MAX_SIGNATURE_SIZE) {
-        DEBUG_ERROR("AgentsConfiguratorManager::%s Signature too long", __FUNCTION__);
+      if (jwt.length() > MAX_JWT_SIZE) {
+        DEBUG_ERROR("AgentsConfiguratorManager::%s JWT too long", __FUNCTION__);
         return res;
       }
 
-      size_t len = CBOR_DATA_UID_LEN;
+      size_t len = CBOR_DATA_UHWID_LEN;
       uint8_t data[len];
 
-      res = CBORAdapter::uidToCBOR(uid, data, &len);
+      res = CBORAdapter::uhwidToCBOR(uhwid, data, &len);
 
       if (!res) {
-        DEBUG_ERROR("AgentsConfiguratorManager::%s failed to convert uid to CBOR", __FUNCTION__);
+        DEBUG_ERROR("AgentsConfiguratorManager::%s failed to convert uhwid to CBOR", __FUNCTION__);
         return res;
       }
 
       res = _selectedAgent->sendData(data, len);
       if (!res) {
-        DEBUG_ERROR("AgentsConfiguratorManager::%s failed to send uid", __FUNCTION__);
+        DEBUG_ERROR("AgentsConfiguratorManager::%s failed to send uhwid", __FUNCTION__);
         return res;
       }
 
-      len = CBOR_DATA_SIGNATURE_LEN;
-      uint8_t signatureData[len];
+      len = CBOR_DATA_JWT_LEN;
+      uint8_t jwtData[len];
 
-      res = CBORAdapter::signatureToCBOR(signature, signatureData, &len);
+      res = CBORAdapter::jwtToCBOR(jwt, jwtData, &len);
       if (!res) {
-        DEBUG_ERROR("AgentsConfiguratorManager::%s failed to convert signature to CBOR", __FUNCTION__);
+        DEBUG_ERROR("AgentsConfiguratorManager::%s failed to convert JWT to CBOR", __FUNCTION__);
         return res;
       }
 
-      res = _selectedAgent->sendData(signatureData, len);
+      res = _selectedAgent->sendData(jwtData, len);
 
       if (!res) {
-        DEBUG_ERROR("AgentsConfiguratorManager::%s failed to send signature", __FUNCTION__);
+        DEBUG_ERROR("AgentsConfiguratorManager::%s failed to send JWT", __FUNCTION__);
         return res;
       }
       res = true;
@@ -297,7 +297,7 @@ void AgentsConfiguratorManager::handleReceivedCommands(RemoteCommands cmd) {
   switch (cmd) {
     case RemoteCommands::CONNECT: handleConnectCommand(); break;
     case RemoteCommands::SCAN: handleUpdateOptCommand(); break;
-    case RemoteCommands::GET_ID: handleGetUIDCommand(); break;
+    case RemoteCommands::GET_ID: handleGetIDCommand(); break;
   }
 }
 
@@ -374,7 +374,7 @@ void AgentsConfiguratorManager::handleUpdateOptCommand() {
   callHandler(RequestType::SCAN);
 }
 
-void AgentsConfiguratorManager::handleGetUIDCommand() {
+void AgentsConfiguratorManager::handleGetIDCommand() {
   if (_statusRequest.pending) {
     DEBUG_DEBUG("AgentsConfiguratorManager::%s received a GetUnique request while executing another request", __FUNCTION__);
     sendStatus(MessageTypeCodes::OTHER_REQUEST_IN_EXECUTION);
@@ -455,7 +455,7 @@ void AgentsConfiguratorManager::callHandler(RequestType type) {
     if (type == RequestType::SCAN) {
       err = "Scan ";
     } else if (type == RequestType::GET_ID) {
-      err = "Get UID ";
+      err = "Get ID ";
     } else if (type == RequestType::CONNECT) {
       err = "Connect ";
     }

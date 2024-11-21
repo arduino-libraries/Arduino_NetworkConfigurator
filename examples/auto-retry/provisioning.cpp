@@ -31,7 +31,7 @@ bool Provisioning::poll() {
 
     if (_ts != 0) {
 
-      _agentManager->setUID("identifier1212123210111213141516", "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIxMjM0NTY3ODEyMzQ1Njc4MTIzNDU2NzgxMjM0NTY3ODEyMzQ1Njc4MTIzNDU2NzgxMjM0NTY3ODEyMzQ1Njc4IiwiaWF0IjoxNTE2MjM5MDIyfQ.ZrJ_zIb_4DYbV9b1rTeMbNnVPHnx7UBLZ4pPSnh8ggWm5QQzGXK6BuyL_zfJHbNWNHhLp4C3QjTCu0kx0CcVeg");
+      _agentManager->setID("identifier1212123210111213141516", "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIxMjM0NTY3ODEyMzQ1Njc4MTIzNDU2NzgxMjM0NTY3ODEyMzQ1Njc4MTIzNDU2NzgxMjM0NTY3ODEyMzQ1Njc4IiwiaWF0IjoxNTE2MjM5MDIyfQ.ZrJ_zIb_4DYbV9b1rTeMbNnVPHnx7UBLZ4pPSnh8ggWm5QQzGXK6BuyL_zfJHbNWNHhLp4C3QjTCu0kx0CcVeg");
       _reqCompleted = true;
     } else {
       Serial.println("Error: timestamp not provided");
