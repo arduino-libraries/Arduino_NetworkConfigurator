@@ -480,6 +480,9 @@ void AgentsConfiguratorManager::stopBLEAgent() {
 }
 
 void AgentsConfiguratorManager::startBLEAgent() {
+  if (_state == AgentsConfiguratorManagerStates::END){
+    return;
+  }
   std::for_each(_agentsList.begin(), _agentsList.end(), [](ConfiguratorAgent *agent) {
     if (agent->getAgentType() == ConfiguratorAgent::AgentTypes::BLE) {
       DEBUG_VERBOSE("AgentsConfiguratorManager::%s Restart ble agent after wifi use", __FUNCTION__);
