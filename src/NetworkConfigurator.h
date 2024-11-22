@@ -27,7 +27,7 @@ public:
   NetworkConfigurator(AgentsConfiguratorManager &agentManager, GenericConnectionHandler &connectionHandler, bool startConfigurationIfConnectionFails = true);
   bool begin();
   NetworkConfiguratorStates poll();
-  void startConfigurationIfConnectionFails(bool enable){
+  void startConfigurationIfConnectionFails(bool enable) {
     _startConfigurationIfConnectionFails = enable;
   };
   bool resetStoredConfiguration();
@@ -65,6 +65,7 @@ private:
   void printNetworkSettings();
 #ifdef BOARD_HAS_WIFI
   bool scanWiFiNetworks(WiFiOption &wifiOptObj);
+  bool insertWiFiAP(WiFiOption &wifiOptObj, char *ssid, int rssi);
 #endif
   static void scanReqHandler();
   static void connectReqHandler();

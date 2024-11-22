@@ -118,10 +118,10 @@ bool NetworkConfigurator::resetStoredConfiguration() {
       break;
     }
   }
-  if(!initialized){
+  if (!initialized) {
     return false;
   }
-  
+
   bool res = _preferences.clear();
 
   _preferences.end();
@@ -215,6 +215,33 @@ bool NetworkConfigurator::updateNetworkOptions() {
 }
 
 #ifdef BOARD_HAS_WIFI
+// insert a new WiFi network in the list of discovered networks
+bool NetworkConfigurator::insertWiFiAP(WiFiOption &wifiOptObj, char *ssid, int rssi) {
+  if (wifiOptObj.numDiscoveredWiFiNetworks >= MAX_WIFI_NETWORKS) {
+    return false;
+  }
+
+  // check if the network is already in the list and update the RSSI
+  for (uint8_t i = 0; i < wifiOptObj.numDiscoveredWiFiNetworks; i++) {
+    if (wifiOptObj.discoveredWifiNetworks[i].SSID == nullptr) {
+      break;
+    }
+    if (strcmp(wifiOptObj.discoveredWifiNetworks[i].SSID, ssid) == 0) {
+      if (wifiOptObj.discoveredWifiNetworks[i].RSSI < rssi) {
+        wifiOptObj.discoveredWifiNetworks[i].RSSI = rssi;
+      }
+      return true;
+    }
+  }
+  // add the network to the list
+  wifiOptObj.discoveredWifiNetworks[wifiOptObj.numDiscoveredWiFiNetworks].SSID = ssid;
+  wifiOptObj.discoveredWifiNetworks[wifiOptObj.numDiscoveredWiFiNetworks].SSIDsize = strlen(ssid);
+  wifiOptObj.discoveredWifiNetworks[wifiOptObj.numDiscoveredWiFiNetworks].RSSI = rssi;
+  wifiOptObj.numDiscoveredWiFiNetworks++;
+
+  return true;
+}
+
 bool NetworkConfigurator::scanWiFiNetworks(WiFiOption &wifiOptObj) {
   wifiOptObj.numDiscoveredWiFiNetworks = 0;
   // check for the WiFi module:
@@ -232,17 +259,14 @@ bool NetworkConfigurator::scanWiFiNetworks(WiFiOption &wifiOptObj) {
   // print the list of networks seen:
   DEBUG_VERBOSE("NetworkConfigurator::%s number of available networks: %d", __FUNCTION__, numSsid);
 
-  // print the network number and name for each network found:
+  // insert the networks in the list
   for (int thisNet = 0; thisNet < numSsid && thisNet < MAX_WIFI_NETWORKS; thisNet++) {
     DEBUG_VERBOSE("NetworkConfigurator::%s found network %d) %s \tSignal %d dbm", __FUNCTION__, thisNet, WiFi.SSID(thisNet), WiFi.RSSI(thisNet));
 
-    wifiOptObj.discoveredWifiNetworks[thisNet].SSID = const_cast<char *>(WiFi.SSID(thisNet));
-
-
-    wifiOptObj.discoveredWifiNetworks[thisNet].SSIDsize = strlen(WiFi.SSID(thisNet));
-    wifiOptObj.discoveredWifiNetworks[thisNet].RSSI = WiFi.RSSI(thisNet);
-
-    wifiOptObj.numDiscoveredWiFiNetworks++;
+    if (!insertWiFiAP(wifiOptObj, const_cast<char *>(WiFi.SSID(thisNet)), WiFi.RSSI(thisNet))) {
+      DEBUG_WARNING("NetworkConfigurator::%s The maximum number of WiFi networks has been reached", __FUNCTION__);
+      break;
+    }
   }
 
   WiFi.end();
