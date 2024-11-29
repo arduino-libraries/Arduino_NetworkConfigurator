@@ -285,8 +285,7 @@ AgentsConfiguratorManagerStates AgentsConfiguratorManager::handleConfInProgress(
       handleReceivedData();
       break;
     case ConfiguratorAgent::AgentConfiguratorStates::INIT:
-      handlePeerDisconnected();
-      nextState = AgentsConfiguratorManagerStates::INIT;
+      nextState = handlePeerDisconnected();
       break;
   }
 
@@ -431,7 +430,7 @@ bool AgentsConfiguratorManager::sendStatus(StatusMessage msg) {
   return res;
 }
 
-void AgentsConfiguratorManager::handlePeerDisconnected() {
+AgentsConfiguratorManagerStates AgentsConfiguratorManager::handlePeerDisconnected() {
   //Peer disconnected, restore all stopped agents
   for (std::list<ConfiguratorAgent *>::iterator agent = _agentsList.begin(); agent != _agentsList.end(); ++agent) {
     if (*agent != _selectedAgent) {
@@ -444,6 +443,7 @@ void AgentsConfiguratorManager::handlePeerDisconnected() {
   digitalWrite(LED_BUILTIN, LOW);
 #endif
   _selectedAgent = nullptr;
+  return AgentsConfiguratorManagerStates::INIT;
 }
 
 void AgentsConfiguratorManager::callHandler(RequestType type) {
@@ -473,7 +473,7 @@ void AgentsConfiguratorManager::stopBLEAgent() {
       DEBUG_VERBOSE("AgentsConfiguratorManager::%s End ble agent for wifi", __FUNCTION__);
       (*agent)->end();
       if (*agent == _selectedAgent) {
-        _selectedAgent = nullptr;
+        _state = handlePeerDisconnected();
       }
     }
   }
