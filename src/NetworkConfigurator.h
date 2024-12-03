@@ -20,15 +20,16 @@ enum class NetworkConfiguratorStates { INIT,
                                        CONNECTING,
                                        WAITING_FOR_CONFIG,
                                        CONFIGURED,
+                                       UPDATING_CONFIG,
                                        END };
 
 class NetworkConfigurator {
 public:
-  NetworkConfigurator(AgentsConfiguratorManager &agentManager, GenericConnectionHandler &connectionHandler, bool startConfigurationIfConnectionFails = true);
+  NetworkConfigurator(AgentsConfiguratorManager &agentManager, GenericConnectionHandler &connectionHandler, bool startBLEIfConnectionFails = true);
   bool begin();
   NetworkConfiguratorStates poll();
-  void startConfigurationIfConnectionFails(bool enable) {
-    _startConfigurationIfConnectionFails = enable;
+  void startBLEIfConnectionFails(bool enable) {
+    _startBLEIfConnectionFails = enable;
   };
   bool resetStoredConfiguration();
   bool end();
@@ -38,19 +39,17 @@ private:
   AgentsConfiguratorManager *_agentManager;
   GenericConnectionHandler *_connectionHandler;
   static inline models::NetworkSetting _networkSetting;
-  bool _networkSettingReceived;
-  bool _enableAutoReconnect;
-  bool _startConfigurationIfConnectionFails;
+  bool _startBLEIfConnectionFails;
   bool _connectionHandlerIstantiated = false;
   uint32_t _lastConnectionAttempt = 0;
   uint32_t _startConnectionAttempt;
   bool _connectionLostStatus = false;
   uint32_t _lastOptionUpdate = 0;
-  bool _enableNetworkOptionsAutoUpdate = true;
-  bool _connectionInProgress = false;
-  static inline bool _scanReqReceived = false;
-  static inline bool _connectReqReceived = false;
-  static inline bool _networkSettingsToHandleReceived = false;
+  enum class NetworkConfiguratorEvents { NONE,
+                                         SCAN_REQ,
+                                         CONNECT_REQ,
+                                         NEW_NETWORK_SETTINGS };
+  static inline NetworkConfiguratorEvents _receivedEvent = NetworkConfiguratorEvents::NONE;
 #ifdef ARDUINO_UNOR4_WIFI
   Preferences _preferences;
 #endif
@@ -58,6 +57,11 @@ private:
   NetworkConfiguratorStates handleInit();
   NetworkConfiguratorStates handleConnecting();
   NetworkConfiguratorStates handleWaitingForConf();
+  NetworkConfiguratorStates handleConfigured();
+  NetworkConfiguratorStates handleUpdatingConfig();
+
+  NetworkConfiguratorStates handleConnectRequest();
+  void handleNewNetworkSettings();
 
   String decodeConnectionErrorMessage(NetworkConnectionState err, int *errorCode);
   NetworkConfiguratorStates connectToNetwork();

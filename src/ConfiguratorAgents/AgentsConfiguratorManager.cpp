@@ -52,6 +52,19 @@ AgentsConfiguratorManagerStates AgentsConfiguratorManager::poll() {
   return _state;
 }
 
+void AgentsConfiguratorManager::enableBLEAgent(bool enable) {
+  if (_bleAgentEnabled == enable) {
+    return;
+  }
+  _bleAgentEnabled = enable;
+
+  if (enable) {
+    startBLEAgent();
+  } else {
+    stopBLEAgent();
+  }
+}
+
 bool AgentsConfiguratorManager::end(uint8_t id) {
   std::list<uint8_t>::iterator it = std::find(_servicesList.begin(), _servicesList.end(), id);
   if (it != _servicesList.end()) {
@@ -79,6 +92,8 @@ bool AgentsConfiguratorManager::end(uint8_t id) {
 
   return true;
 }
+
+
 
 bool AgentsConfiguratorManager::setStatusMessage(StatusMessage msg) {
   if ((int)msg < 0) {
@@ -108,7 +123,7 @@ bool AgentsConfiguratorManager::setStatusMessage(StatusMessage msg) {
     }
   }
 
-  if (msg == MessageTypeCodes::SCANNING && !_selectedAgent) {
+  if (msg == MessageTypeCodes::SCANNING && _state != AgentsConfiguratorManagerStates::CONFIG_IN_PROGRESS) {
     return true;
   }
 
@@ -137,8 +152,8 @@ bool AgentsConfiguratorManager::setNetworkOptions(NetworkOptions netOptions) {
 #endif
 #endif
 
-  if (_selectedAgent) {
-    //Send immediately if agent is connected with a peer
+  if (_state == AgentsConfiguratorManagerStates::CONFIG_IN_PROGRESS) {
+    //Send immediately if agent is connected with a peer and configuration is in progress
     sendNetworkOptions();
   }
 
@@ -466,11 +481,10 @@ void AgentsConfiguratorManager::callHandler(RequestType type) {
   }
 }
 
-#if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT) || defined(ARDUINO_AVR_UNO_WIFI_REV2) || defined(ARDUINO_NANO_RP2040_CONNECT)
 void AgentsConfiguratorManager::stopBLEAgent() {
   for (std::list<ConfiguratorAgent *>::iterator agent = _agentsList.begin(); agent != _agentsList.end(); ++agent) {
     if ((*agent)->getAgentType() == ConfiguratorAgent::AgentTypes::BLE) {
-      DEBUG_VERBOSE("AgentsConfiguratorManager::%s End ble agent for wifi", __FUNCTION__);
+      DEBUG_VERBOSE("AgentsConfiguratorManager::%s End ble agent", __FUNCTION__);
       (*agent)->end();
       if (*agent == _selectedAgent) {
         _state = handlePeerDisconnected();
@@ -480,16 +494,16 @@ void AgentsConfiguratorManager::stopBLEAgent() {
 }
 
 void AgentsConfiguratorManager::startBLEAgent() {
-  if (_state == AgentsConfiguratorManagerStates::END){
+  if (_state == AgentsConfiguratorManagerStates::END || !_bleAgentEnabled) {
     return;
   }
   std::for_each(_agentsList.begin(), _agentsList.end(), [](ConfiguratorAgent *agent) {
     if (agent->getAgentType() == ConfiguratorAgent::AgentTypes::BLE) {
-      DEBUG_VERBOSE("AgentsConfiguratorManager::%s Restart ble agent after wifi use", __FUNCTION__);
+      DEBUG_VERBOSE("AgentsConfiguratorManager::%s Restart ble agent", __FUNCTION__);
       agent->begin();
     }
   });
 }
-#endif
+
 
 AgentsConfiguratorManager ConfiguratorManager;

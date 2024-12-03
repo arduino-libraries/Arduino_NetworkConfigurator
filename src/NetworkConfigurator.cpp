@@ -21,12 +21,10 @@ constexpr char *PSWKEY{ "PASSWORD" };
 NetworkConfigurator::NetworkConfigurator(AgentsConfiguratorManager &agentManager, GenericConnectionHandler &connectionHandler, bool startConfigurationIfConnectionFails)
   : _agentManager{ &agentManager },
     _connectionHandler{ &connectionHandler },
-    _startConfigurationIfConnectionFails{ startConfigurationIfConnectionFails } {
+    _startBLEIfConnectionFails{ startConfigurationIfConnectionFails } {
 }
 
 bool NetworkConfigurator::begin() {
-  _networkSettingReceived = false;
-  _enableAutoReconnect = true;
   _connectionLostStatus = false;
   _state = NetworkConfiguratorStates::INIT;
   _startConnectionAttempt = 0;
@@ -65,6 +63,9 @@ bool NetworkConfigurator::begin() {
   }
 
   updateNetworkOptions();
+  if (!_agentManager->begin(SERVICE_ID_FOR_AGENTMANAGER)) {
+    DEBUG_ERROR("NetworkConfigurator::%s Failed to initialize the AgentsConfiguratorManager", __FUNCTION__);
+  }
 
   return true;
 }
@@ -75,31 +76,9 @@ NetworkConfiguratorStates NetworkConfigurator::poll() {
     case NetworkConfiguratorStates::INIT:               _state = handleInit          (); break;
     case NetworkConfiguratorStates::WAITING_FOR_CONFIG: _state = handleWaitingForConf(); break;
     case NetworkConfiguratorStates::CONNECTING:         _state = handleConnecting    (); break;
-    case NetworkConfiguratorStates::CONFIGURED:                                          break;
-    case NetworkConfiguratorStates::END:                                                 return _state;
-  }
-
-  //Handle if the scan request command is received
-  if (_scanReqReceived) {
-    _scanReqReceived = false;
-    updateNetworkOptions();
-  }
-
-  //Check if update the network options
-  if (_enableNetworkOptionsAutoUpdate && (millis() - _lastOptionUpdate > 120000)) {
-    //if board doesn't support wifi and ble connectivity at the same time and the configuration is in progress skip updateAvailableOptions
-#ifdef BOARD_HAS_WIFI
-#if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT) || defined(ARDUINO_AVR_UNO_WIFI_REV2) || defined(ARDUINO_NANO_RP2040_CONNECT)
-    if (_agentManager->isConfigInProgress() == true) {
-      return _state;
-    }
-#endif
-#endif
-    updateNetworkOptions();
-  }
-
-  if (_networkSettingReceived && _agentManager->isConfigInProgress() != true && (millis() - _lastConnectionAttempt > 120000 && _enableAutoReconnect)) {
-    _state = NetworkConfiguratorStates::CONNECTING;
+    case NetworkConfiguratorStates::CONFIGURED:         _state = handleConfigured    (); break;
+    case NetworkConfiguratorStates::UPDATING_CONFIG:    _state = handleUpdatingConfig(); break;
+    case NetworkConfiguratorStates::END:                                                 break;
   }
 
   return _state;
@@ -134,7 +113,6 @@ bool NetworkConfigurator::resetStoredConfiguration() {
 bool NetworkConfigurator::end() {
   _lastConnectionAttempt = 0;
   _lastOptionUpdate = 0;
-  _scanReqReceived = false;
   _agentManager->removeReturnNetworkSettingsCallback();
   _agentManager->removeRequestHandler(RequestType::SCAN);
   _agentManager->removeRequestHandler(RequestType::CONNECT);
@@ -161,7 +139,6 @@ NetworkConfiguratorStates NetworkConfigurator::connectToNetwork() {
     _startConnectionAttempt = 0;
     DEBUG_INFO("Connected to network");
     _agentManager->setStatusMessage(MessageTypeCodes::CONNECTED);
-    _enableAutoReconnect = false;
     delay(3000);  //TODO remove
     nextState = NetworkConfiguratorStates::CONFIGURED;
   } else if (connectionRes != NetworkConnectionState::CONNECTED && millis() - _startConnectionAttempt > NC_CONNECTION_TIMEOUT)  //connection attempt failed
@@ -275,16 +252,51 @@ bool NetworkConfigurator::scanWiFiNetworks(WiFiOption &wifiOptObj) {
 #endif
 
 void NetworkConfigurator::scanReqHandler() {
-  _scanReqReceived = true;
+  _receivedEvent = NetworkConfiguratorEvents::SCAN_REQ;
 }
 
 void NetworkConfigurator::connectReqHandler() {
-  _connectReqReceived = true;
+  _receivedEvent = NetworkConfiguratorEvents::CONNECT_REQ;
 }
 
 void NetworkConfigurator::setNetworkSettingsHandler(models::NetworkSetting *netSetting) {
   memcpy(&_networkSetting, netSetting, sizeof(models::NetworkSetting));
-  _networkSettingsToHandleReceived = true;
+  _receivedEvent = NetworkConfiguratorEvents::NEW_NETWORK_SETTINGS;
+}
+
+NetworkConfiguratorStates NetworkConfigurator::handleConnectRequest() {
+  NetworkConfiguratorStates nextState = _state;
+  if (!_connectionHandlerIstantiated) {
+    DEBUG_DEBUG("NetworkConfigurator::%s Connect request received but network settings not received yet", __FUNCTION__);
+    _agentManager->setStatusMessage(MessageTypeCodes::PARAMS_NOT_FOUND);
+  } else {
+    _agentManager->setStatusMessage(MessageTypeCodes::CONNECTING);
+    nextState = NetworkConfiguratorStates::CONNECTING;
+  }
+  return nextState;
+}
+
+void NetworkConfigurator::handleNewNetworkSettings() {
+  printNetworkSettings();
+  _connectionLostStatus = false;  //reset for updating the failure reason
+
+  if (!_connectionHandler->updateSetting(_networkSetting)) {
+    DEBUG_WARNING("NetworkConfigurator::%s The received network parameters are not supported", __FUNCTION__);
+    _agentManager->setStatusMessage(MessageTypeCodes::INVALID_PARAMS);
+    return;
+  }
+
+  _connectionHandlerIstantiated = true;
+
+#ifdef BOARD_HAS_WIFI
+#ifdef ARDUINO_UNOR4_WIFI
+  _preferences.remove(SSIDKEY);
+  _preferences.putString(SSIDKEY, _networkSetting.wifi.ssid);
+  _preferences.remove(PSWKEY);
+  _preferences.putString(PSWKEY, _networkSetting.wifi.pwd);
+
+#endif
+#endif
 }
 
 String NetworkConfigurator::decodeConnectionErrorMessage(NetworkConnectionState err, int *errorCode) {
@@ -314,7 +326,8 @@ String NetworkConfigurator::decodeConnectionErrorMessage(NetworkConnectionState 
 
 NetworkConfiguratorStates NetworkConfigurator::handleInit() {
   NetworkConfiguratorStates nextState = _state;
-  if (!_networkSettingReceived) {
+
+  if (!_connectionHandlerIstantiated) {
 #ifdef BOARD_HAS_WIFI
 #ifdef ARDUINO_UNOR4_WIFI
     String SSID = _preferences.getString(SSIDKEY, "");
@@ -325,45 +338,36 @@ NetworkConfiguratorStates NetworkConfigurator::handleInit() {
 
       memcpy(_networkSetting.wifi.ssid, SSID.c_str(), SSID.length());
       memcpy(_networkSetting.wifi.pwd, Password.c_str(), Password.length());
-      _networkSettingReceived = true;
-    }
-#endif
-#endif
-  }
-  if (_networkSettingReceived) {
-    if (!_connectionHandlerIstantiated) {
       if (!_connectionHandler->updateSetting(_networkSetting)) {
         DEBUG_WARNING("NetworkConfigurator::%s Network parameters found on storage are not supported.", __FUNCTION__);
-        _agentManager->begin(SERVICE_ID_FOR_AGENTMANAGER);
-        return NetworkConfiguratorStates::WAITING_FOR_CONFIG;
+        nextState = NetworkConfiguratorStates::WAITING_FOR_CONFIG;
+      } else {
+        _connectionHandlerIstantiated = true;
       }
-      _connectionHandlerIstantiated = true;
-    }
 
+    } else {
+      nextState = NetworkConfiguratorStates::WAITING_FOR_CONFIG;
+    }
+#endif
+#endif
+  } else {
     // Test connection
-    _enableAutoReconnect = false;
     nextState = connectToNetwork();
 
     if (nextState == _state) {
       return _state;
     }
 
-    if (nextState != NetworkConfiguratorStates::CONFIGURED && _startConfigurationIfConnectionFails) {
-      _enableAutoReconnect = true;
-
-      if (!_agentManager->begin(SERVICE_ID_FOR_AGENTMANAGER)) {
-        DEBUG_ERROR("NetworkConfigurator::%s Failed to initialize the AgentsConfiguratorManager", __FUNCTION__);
-      }
+    if (nextState != NetworkConfiguratorStates::CONFIGURED) {
       _connectionLostStatus = true;
       _agentManager->setStatusMessage(MessageTypeCodes::CONNECTION_LOST);
+      if (_startBLEIfConnectionFails) {
+        _agentManager->enableBLEAgent(true);
+      }
 
     } else {
       nextState = NetworkConfiguratorStates::CONFIGURED;
     }
-  } else {
-
-    _agentManager->begin(SERVICE_ID_FOR_AGENTMANAGER);
-    nextState = NetworkConfiguratorStates::WAITING_FOR_CONFIG;
   }
 
   return nextState;
@@ -371,42 +375,30 @@ NetworkConfiguratorStates NetworkConfigurator::handleInit() {
 
 NetworkConfiguratorStates NetworkConfigurator::handleWaitingForConf() {
   NetworkConfiguratorStates nextState = _state;
+
   _agentManager->poll();
-  if (_networkSettingsToHandleReceived) {
-    _networkSettingsToHandleReceived = false;
 
-    _connectionLostStatus = false;  //reset for updating the failure reason
-
-
-    if (!_connectionHandler->updateSetting(_networkSetting)) {
-      DEBUG_WARNING("NetworkConfigurator::%s The received network parameters are not supported", __FUNCTION__);
-      _agentManager->setStatusMessage(MessageTypeCodes::INVALID_PARAMS);
-      return NetworkConfiguratorStates::WAITING_FOR_CONFIG;
+  switch (_receivedEvent) {
+    case NetworkConfiguratorEvents::SCAN_REQ:                updateNetworkOptions    (); break;
+    case NetworkConfiguratorEvents::CONNECT_REQ: nextState = handleConnectRequest    (); break;
+    case NetworkConfiguratorEvents::NEW_NETWORK_SETTINGS:    handleNewNetworkSettings(); break;
+  }
+  _receivedEvent = NetworkConfiguratorEvents::NONE;
+  if (nextState == _state) {
+    //Check if update the network options
+    if (millis() - _lastOptionUpdate > 120000) {
+      //if board doesn't support wifi and ble connectivity at the same time and the configuration is in progress skip updateAvailableOptions
+#ifdef BOARD_HAS_WIFI
+#if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT) || defined(ARDUINO_AVR_UNO_WIFI_REV2) || defined(ARDUINO_NANO_RP2040_CONNECT)
+      if (_agentManager->isConfigInProgress() == true) {
+        return nextState;
+      }
+#endif
+#endif
+      updateNetworkOptions();
     }
 
-    _connectionHandlerIstantiated = true;
-
-    printNetworkSettings();
-
-#ifdef BOARD_HAS_WIFI
-#ifdef ARDUINO_UNOR4_WIFI
-    _preferences.remove(SSIDKEY);
-    _preferences.putString(SSIDKEY, _networkSetting.wifi.ssid);
-    _preferences.remove(PSWKEY);
-    _preferences.putString(PSWKEY, _networkSetting.wifi.pwd);
-
-#endif
-    //Disable the auto update of wifi network for avoiding to perform a wifi scan while trying to connect to a wifi network
-    _enableNetworkOptionsAutoUpdate = false;
-#endif
-    _networkSettingReceived = true;
-  } else if (_connectReqReceived) {
-    _connectReqReceived = false;
-    if (!_networkSettingReceived) {
-      DEBUG_DEBUG("NetworkConfigurator::%s Connect request received but network settings not received yet", __FUNCTION__);
-      _agentManager->setStatusMessage(MessageTypeCodes::PARAMS_NOT_FOUND);
-    } else {
-      _agentManager->setStatusMessage(MessageTypeCodes::CONNECTING);
+    if (_connectionHandlerIstantiated && _agentManager->isConfigInProgress() != true && (millis() - _lastConnectionAttempt > 120000)) {
       nextState = NetworkConfiguratorStates::CONNECTING;
     }
   }
@@ -415,19 +407,45 @@ NetworkConfiguratorStates NetworkConfigurator::handleWaitingForConf() {
 }
 
 NetworkConfiguratorStates NetworkConfigurator::handleConnecting() {
-#ifdef BOARD_HAS_WIFI
-  //Disable the auto update of wifi network for avoiding to perform a wifi scan while trying to connect to a wifi network
-  _enableNetworkOptionsAutoUpdate = false;
-#endif
   _agentManager->poll();  //To keep alive the connection with the configurator
   NetworkConfiguratorStates nextState = connectToNetwork();
 
+  return nextState;
+}
 
-  // Exiting from connecting state
-  if (nextState != _state && nextState != NetworkConfiguratorStates::CONFIGURED) {
+NetworkConfiguratorStates NetworkConfigurator::handleConfigured() {
+  NetworkConfiguratorStates nextState = _state;
+  bool peerConnected = false;
+  if (_agentManager->isConfigInProgress()) {
+    peerConnected = true;
+  } else {
+    AgentsConfiguratorManagerStates agManagerState = _agentManager->poll();
+    // If the agent manager changes state, it means that user is trying to configure the network, so the network configurator should change state
+    if (agManagerState != AgentsConfiguratorManagerStates::INIT && agManagerState != AgentsConfiguratorManagerStates::END) {
+      peerConnected = true;
+    }
+  }
+
+  if (peerConnected) {
+    nextState = NetworkConfiguratorStates::UPDATING_CONFIG;
 #ifdef BOARD_HAS_WIFI
-    _enableNetworkOptionsAutoUpdate = true;
+    WiFi.end();
 #endif
+#if !defined(ARDUINO_SAMD_MKRWIFI1010) && !defined(ARDUINO_SAMD_NANO_33_IOT) && !defined(ARDUINO_AVR_UNO_WIFI_REV2) && !defined(ARDUINO_NANO_RP2040_CONNECT)
+    updateNetworkOptions();
+#endif
+  }
+
+  return nextState;
+}
+
+NetworkConfiguratorStates NetworkConfigurator::handleUpdatingConfig() {
+  NetworkConfiguratorStates nextState = _state;
+  if (_agentManager->isConfigInProgress() == false) {
+    //If peer disconnects without updating the network settings, go to connecting state for check the connection
+    nextState = NetworkConfiguratorStates::CONNECTING;
+  } else {
+    nextState = handleWaitingForConf();
   }
 
   return nextState;

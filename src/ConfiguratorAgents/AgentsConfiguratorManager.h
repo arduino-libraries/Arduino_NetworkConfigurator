@@ -34,6 +34,10 @@ public:
   bool begin(uint8_t id);
   bool end(uint8_t id);
   AgentsConfiguratorManagerStates poll();
+  void enableBLEAgent(bool enable);
+  bool isBLEAgentEnabled() {
+    return _bleAgentEnabled;
+  };
   bool setStatusMessage(StatusMessage msg);
   bool setNetworkOptions(NetworkOptions netOptions);
   bool setID(String uhwid, String jwt);
@@ -51,7 +55,7 @@ public:
     _returnNetworkSettingsCb = nullptr;
   };
   inline bool isConfigInProgress() {
-    return _state == AgentsConfiguratorManagerStates::CONFIG_IN_PROGRESS;
+    return _state != AgentsConfiguratorManagerStates::INIT && _state != AgentsConfiguratorManagerStates::END;
   };
 private:
   AgentsConfiguratorManagerStates _state = AgentsConfiguratorManagerStates::END;
@@ -62,7 +66,7 @@ private:
   ReturnNetworkSettings _returnNetworkSettingsCb = nullptr;
   ConfiguratorAgent *_selectedAgent = nullptr;
   uint8_t _instances = 0;
-
+  bool _bleAgentEnabled = true;
   StatusMessage _initStatusMsg = MessageTypeCodes::NONE;
   NetworkOptions _netOptions;
   typedef struct {
@@ -91,10 +95,8 @@ private:
 
   AgentsConfiguratorManagerStates handlePeerDisconnected();
   void callHandler(RequestType key);
-#if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT) || defined(ARDUINO_AVR_UNO_WIFI_REV2) || defined(ARDUINO_NANO_RP2040_CONNECT)
   void stopBLEAgent();
   void startBLEAgent();
-#endif
 };
 
 extern AgentsConfiguratorManager ConfiguratorManager;

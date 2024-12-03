@@ -24,18 +24,11 @@ enum class DeviceMode { CONFIG,
                         RUN };
 DeviceMode deviceMode = DeviceMode::CONFIG;
 
-void handleCloudDisconnected() {
-  Serial.println("cloud disconnected");
-  changeMode(DeviceMode::CONFIG);  //Move this inside ArduinoIoTCloud for have this event only when network is disconnected
-}
 
 void changeMode(DeviceMode nextMode) {
   if (nextMode == DeviceMode::RUN) {
     deviceMode = DeviceMode::RUN;
   } else if (nextMode == DeviceMode::CONFIG) {
-    networkConfigured = false;
-    WiFi.end();
-    NetworkConf.begin();
     deviceMode = DeviceMode::CONFIG;
   }
 }
@@ -53,7 +46,6 @@ void setup() {
      Maximum is 4
  */
   setDebugMessageLevel(4);
-  ArduinoCloud.addCallback(ArduinoIoTCloudEvent::DISCONNECT, handleCloudDisconnected);
   // Defined in thingProperties.h
   initProperties();
 
@@ -65,9 +57,10 @@ void setup() {
   pinMode(RESETCRED_BUTTON, INPUT);
 
   if (digitalRead(RESETCRED_BUTTON) == HIGH) {
+    Serial.println("Resetting cred");
     NetworkConf.resetStoredConfiguration();
   }
-  NetworkConf.startConfigurationIfConnectionFails(true);
+  NetworkConf.startBLEIfConnectionFails(true);
   NetworkConf.begin();
   ProvisioningSystem.begin();
 
@@ -75,6 +68,9 @@ void setup() {
 }
 
 void loop() {
+  if(provisioningCompleted && networkConfigured && ConfiguratorManager.isBLEAgentEnabled()){
+    ConfiguratorManager.enableBLEAgent(false);
+  }
   if (provisioningCompleted == false && ProvisioningSystem.poll()) {
     ProvisioningSystem.end();
     provisioningCompleted = true;
@@ -86,17 +82,27 @@ void loop() {
 #endif
     NetworkConfiguratorStates s = NetworkConf.poll();
     if (s == NetworkConfiguratorStates::CONFIGURED) {
-      NetworkConf.end();
       networkConfigured = true;
-    }
-
-
-    if (networkConfigured) {
       changeMode(DeviceMode::RUN);
     }
 
   } else if (deviceMode == DeviceMode::RUN) {
     ArduinoCloud.update();
+    if (digitalRead(RESETCRED_BUTTON) == HIGH) {
+      Serial.println("Update config");
+      #ifdef BOARD_HAS_WIFI
+      WiFi.end();
+      #endif
+      if(!ConfiguratorManager.isBLEAgentEnabled()){
+        ConfiguratorManager.enableBLEAgent(true);
+      }
+      networkConfigured = false;
+    }
+
+    if(NetworkConf.poll() == NetworkConfiguratorStates::UPDATING_CONFIG){
+      changeMode(DeviceMode::CONFIG);
+    }
+    
     // Your code here
     if (millis() - lastUpdate > 10000) {
       Serial.println("alive");
