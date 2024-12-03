@@ -70,7 +70,7 @@ PacketManager::ReceivingState PacketManager::handleReceivedByte(ReceivedData &re
 
   if (_state == ReceivingState::RECEIVED) {
     receivedData.type = (MessageType)getPacketType();
-    if (receivedData.type != MessageType::RESPONSE && receivedData.type != MessageType::DATA) {
+    if (receivedData.type != MessageType::TRANSMISSION_CONTROL && receivedData.type != MessageType::DATA) {
       //Packet type not recognized
       DEBUG_DEBUG("PacketManager::%s Packet type not recognized: %d", __FUNCTION__, (int)receivedData.type);
       _state = ReceivingState::WAITING_HEADER;

@@ -8,6 +8,11 @@
 
 #pragma once
 #include "Arduino.h"
+#include "NetworkOptionsDefinitions.h"
+#include <settings/settings.h>
+
+#define MAX_UHWID_SIZE 32
+#define MAX_JWT_SIZE   247   // 246 bytes for signature chars + 1 for null terminator
 
 enum class MessageTypeCodes {
   NONE                       = 0,
@@ -31,5 +36,36 @@ enum class MessageTypeCodes {
 typedef MessageTypeCodes StatusMessage;
 
 enum class RemoteCommands { CONNECT = 1,
-                            GET_ID  = 2,
-                            SCAN    = 100 };
+                            GET_ID = 2,
+                            SCAN = 100 };
+
+enum class MessageOutputType { STATUS,
+                               NETWORK_OPTIONS,
+                               UHWID,
+                               JWT
+};
+
+enum class MessageInputType {
+  COMMANDS,
+  NETWORK_SETTINGS,
+  TIMESTAMP
+};
+
+struct ProvisioningOutputMessage {
+  MessageOutputType type;
+  union {
+    StatusMessage status;
+    const NetworkOptions *netOptions;
+    const char *uhwid;
+    const char *jwt;
+  } m;
+};
+
+struct ProvisioningInputMessage {
+  MessageInputType type;
+  union {
+    RemoteCommands cmd;
+    models::NetworkSetting netSetting;
+    uint64_t timestamp;
+  } m;
+};

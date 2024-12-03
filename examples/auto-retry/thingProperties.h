@@ -5,6 +5,7 @@
 #include "NetworkConfigurator.h"
 #include "ConfiguratorAgents/AgentsConfiguratorManager.h"
 #include "ConfiguratorAgents/agents/BLE/BLEConfiguratorAgent.h"
+#include "ConfiguratorAgents/agents/Serial/SerialAgent.h"
 #include "provisioning.h"
 
 const char SSID[] = SECRET_SSID;           // Network SSID (name)
@@ -18,6 +19,7 @@ void initProperties() {
 
   ArduinoCloud.addProperty(counter, READWRITE, ON_CHANGE, onCounterChange);
   ConfiguratorManager.addAgent(BLEAgent);
+  ConfiguratorManager.addAgent(SerialAgent);
 }
 
 GenericConnectionHandler ArduinoIoTPreferredConnection;

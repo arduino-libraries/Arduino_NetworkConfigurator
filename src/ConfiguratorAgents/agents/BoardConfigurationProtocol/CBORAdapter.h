@@ -8,14 +8,11 @@
 
 #pragma once
 #include "Arduino.h"
-#include "MessagesDefinitions.h"
-#include "NetworkOptionsDefinitions.h"
+#include "ConfiguratorAgents/MessagesDefinitions.h"
 #include "settings/settings.h"
 #include "cbor/CBOR.h"
 
 #define CBOR_DATA_HEADER_LEN 6
-#define MAX_UHWID_SIZE 32
-#define MAX_JWT_SIZE 247                                               // 246 bytes for signature chars + 1 for null terminator
 #define CBOR_DATA_UHWID_LEN MAX_UHWID_SIZE + 2 + CBOR_DATA_HEADER_LEN  //UHWID size + 2 bytes for CBOR array of bytes identifier + CBOR header size
 #define CBOR_DATA_JWT_LEN MAX_JWT_SIZE + 2 + CBOR_DATA_HEADER_LEN      //Signature size + 2 bytes for CBOR array of bytes identifier + CBOR header size
 #define CBOR_DATA_STATUS_LEN 4 + CBOR_DATA_HEADER_LEN
@@ -23,10 +20,10 @@
 
 class CBORAdapter {
 public:
-  static bool uhwidToCBOR(String uhwid, uint8_t *data, size_t *len);
-  static bool jwtToCBOR(String jwt, uint8_t *data, size_t *len);
+  static bool uhwidToCBOR(const char *uhwid, uint8_t *data, size_t *len);
+  static bool jwtToCBOR(const char *jwt, uint8_t *data, size_t *len);
   static bool statusToCBOR(StatusMessage msg, uint8_t *data, size_t *len);
-  static bool networkOptionsToCBOR(NetworkOptions &netOptions, uint8_t *data, size_t *len);
+  static bool networkOptionsToCBOR(const NetworkOptions *netOptions, uint8_t *data, size_t *len);
   static bool getMsgFromCBOR(uint8_t *data, size_t len, ProvisioningCommandDown *msg);
   static bool extractTimestamp(ProvisioningCommandDown *msg, uint64_t *ts);
   static bool extractNetworkSetting(ProvisioningCommandDown *msg, models::NetworkSetting *netSetting);
@@ -35,7 +32,7 @@ public:
 private:
   CBORAdapter();
   static bool adaptStatus(StatusMessage msg, uint8_t *data, size_t *len);
-  static bool adaptWiFiOptions(WiFiOption *wifiOptions, uint8_t *data, size_t *len);
+  static bool adaptWiFiOptions(const WiFiOption *wifiOptions, uint8_t *data, size_t *len);
 #if defined(BOARD_HAS_WIFI)
   static bool extractWiFiSettings(ProvisioningCommandDown *msg, models::NetworkSetting *netSetting);
 #endif

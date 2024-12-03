@@ -18,7 +18,7 @@ public:
                               RECEIVED,
                               ERROR };
   enum class MessageType { DATA     = 2,
-                           RESPONSE = 3 };
+                           TRANSMISSION_CONTROL = 3 };
   typedef struct {
     MessageType type;
     InputPacketBuffer payload;

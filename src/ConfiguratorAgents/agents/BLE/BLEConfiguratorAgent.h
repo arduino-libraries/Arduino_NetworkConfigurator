@@ -10,19 +10,16 @@
 #include <list>
 #include "Arduino.h"
 #include <ArduinoBLE.h>
-#include "ConfiguratorAgents/agents/ConfiguratorAgent.h"
-#include "ConfiguratorAgents/agents/PacketManager.h"
+#include "ConfiguratorAgents/agents/BoardConfigurationProtocol/BoardConfigurationProtocol.h"
 
-class BLEConfiguratorAgent : public ConfiguratorAgent {
+class BLEConfiguratorAgent : public BoardConfigurationProtocol {
 public:
   BLEConfiguratorAgent();
   AgentConfiguratorStates begin();
   AgentConfiguratorStates end();
   AgentConfiguratorStates poll();
-  bool receivedDataAvailable();
-  bool getReceivedData(uint8_t *data, size_t *len);
-  size_t getReceivedDataLength();
-  bool sendData(const uint8_t *data, size_t len);
+  void disconnectPeer();
+  bool getReceivedMsg(ProvisioningInputMessage &msg) override;
   bool isPeerConnected();
   inline AgentTypes getAgentType() {
     return AgentTypes::BLE;
@@ -32,9 +29,6 @@ private:
                             CONNECTED,
                             DISCONNECTED,
                             SUBSCRIBED };
-  enum class TransmissionResult { PEER_NOT_AVAILABLE = -1,
-                                  NOT_COMPLETED      = 0,
-                                  COMPLETED          = 1 };
   typedef struct {
     BLEEventType type;
     bool newEvent;
@@ -44,22 +38,20 @@ private:
   BLEService _confService;  // Bluetooth® Low Energy LED Service
   BLECharacteristic _inputStreamCharacteristic;
   BLECharacteristic _outputStreamCharacteristic;
-  std::list<OutputPacketBuffer> _outputMessagesList;
-  std::list<InputPacketBuffer> _inputMessagesList;
   String _localName;
   uint8_t _manufacturerData[6];
-
+  size_t _readByte = 0;
   AgentConfiguratorStates handlePeerConnected();
   bool setLocalName();
   bool setManufacturerData();
   static void blePeripheralConnectHandler(BLEDevice central);
   static void blePeripheralDisconnectHandler(BLEDevice central);
   static void bleOutputStreamSubscribed(BLEDevice central, BLECharacteristic characteristic);
-  bool sendData(PacketManager::MessageType type, const uint8_t *data, size_t len);
-  TransmissionResult transmitStream();
-  bool sendNak();
-  void checkOutputPacketValidity();
-  void disconnectPeer();
+  virtual bool hasReceivedBytes();
+  virtual size_t receivedBytes();
+  virtual uint8_t readByte();
+  virtual int writeBytes(const uint8_t *data, size_t len);
+  virtual void handleDisconnectRequest();
 };
 
 extern BLEConfiguratorAgent BLEAgent;

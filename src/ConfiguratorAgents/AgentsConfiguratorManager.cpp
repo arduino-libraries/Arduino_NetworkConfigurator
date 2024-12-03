@@ -11,8 +11,6 @@
 #include <settings/settings.h>
 #include "AgentsConfiguratorManager.h"
 #include "NetworkOptionsDefinitions.h"
-#include "CBORAdapter.h"
-#include "cbor/CBOR.h"
 
 bool AgentsConfiguratorManager::addAgent(ConfiguratorAgent &agent) {
   _agentsList.push_back(&agent);
@@ -93,6 +91,13 @@ bool AgentsConfiguratorManager::end(uint8_t id) {
   return true;
 }
 
+void AgentsConfiguratorManager::disconnect() {
+  if (_selectedAgent) {
+    _selectedAgent->disconnectPeer();
+    _state = handlePeerDisconnected();
+  }
+}
+
 
 
 bool AgentsConfiguratorManager::setStatusMessage(StatusMessage msg) {
@@ -164,47 +169,20 @@ bool AgentsConfiguratorManager::setID(String uhwid, String jwt) {
   bool res = false;
   if (_statusRequest.pending && _statusRequest.key == RequestType::GET_ID) {
     if (_selectedAgent) {
-      if (uhwid.length() > MAX_UHWID_SIZE) {
-        DEBUG_ERROR("AgentsConfiguratorManager::%s UHWID too long", __FUNCTION__);
-        return res;
-      }
-      if (jwt.length() > MAX_JWT_SIZE) {
-        DEBUG_ERROR("AgentsConfiguratorManager::%s JWT too long", __FUNCTION__);
-        return res;
-      }
-
-      size_t len = CBOR_DATA_UHWID_LEN;
-      uint8_t data[len];
-
-      res = CBORAdapter::uhwidToCBOR(uhwid, data, &len);
-
+      ProvisioningOutputMessage msg;
+      msg.type = MessageOutputType::UHWID;
+      msg.m.uhwid = uhwid.c_str();
+      res = _selectedAgent->sendMsg(msg);
       if (!res) {
-        DEBUG_ERROR("AgentsConfiguratorManager::%s failed to convert uhwid to CBOR", __FUNCTION__);
         return res;
       }
 
-      res = _selectedAgent->sendData(data, len);
+      msg.type = MessageOutputType::JWT;
+      msg.m.jwt = jwt.c_str();
+      res = _selectedAgent->sendMsg(msg);
       if (!res) {
-        DEBUG_ERROR("AgentsConfiguratorManager::%s failed to send uhwid", __FUNCTION__);
         return res;
       }
-
-      len = CBOR_DATA_JWT_LEN;
-      uint8_t jwtData[len];
-
-      res = CBORAdapter::jwtToCBOR(jwt, jwtData, &len);
-      if (!res) {
-        DEBUG_ERROR("AgentsConfiguratorManager::%s failed to convert JWT to CBOR", __FUNCTION__);
-        return res;
-      }
-
-      res = _selectedAgent->sendData(jwtData, len);
-
-      if (!res) {
-        DEBUG_ERROR("AgentsConfiguratorManager::%s failed to send JWT", __FUNCTION__);
-        return res;
-      }
-      res = true;
       _statusRequest.reset();
     }
   }
@@ -316,51 +294,31 @@ void AgentsConfiguratorManager::handleReceivedCommands(RemoteCommands cmd) {
 }
 
 void AgentsConfiguratorManager::handleReceivedData() {
-  if (!_selectedAgent->receivedDataAvailable()) {
+  if (!_selectedAgent->receivedMsgAvailable()) {
     return;
   }
-
-  size_t len = _selectedAgent->getReceivedDataLength();
-  uint8_t data[len];
-  if (!_selectedAgent->getReceivedData(data, &len)) {
+  ProvisioningInputMessage msg;
+  if (!_selectedAgent->getReceivedMsg(msg)) {
     DEBUG_WARNING("AgentsConfiguratorManager::%s failed to get received data", __FUNCTION__);
     return;
   }
 
-  ProvisioningCommandDown msg;
-  if (!CBORAdapter::getMsgFromCBOR(data, len, &msg)) {
-    DEBUG_DEBUG("AgentsConfiguratorManager::%s Invalid message", __FUNCTION__);
-    sendStatus(MessageTypeCodes::INVALID_PARAMS);
-    return;
-  }
-
-  if (msg.c.id == CommandId::ProvisioningTimestamp) {
-    uint64_t ts;
-    if (!CBORAdapter::extractTimestamp(&msg, &ts)) {
-      DEBUG_DEBUG("AgentsConfiguratorManager::%s Invalid timestamp", __FUNCTION__);
-      sendStatus(MessageTypeCodes::INVALID_PARAMS);
-      return;
-    }
-
-    if (_returnTimestampCb != nullptr) {
-      _returnTimestampCb(ts);
-    }
-
-  } else if (msg.c.id == CommandId::ProvisioningCommands) {
-    RemoteCommands cmd;
-    if (CBORAdapter::extractCommand(&msg, &cmd)) {
-      handleReceivedCommands(cmd);
-    }
-  } else {
-    models::NetworkSetting netSetting;
-    if (!CBORAdapter::extractNetworkSetting(&msg, &netSetting)) {
-      DEBUG_DEBUG("AgentsConfiguratorManager::%s Invalid network Setting", __FUNCTION__);
-      sendStatus(MessageTypeCodes::INVALID_PARAMS);
-      return;
-    }
-    if (_returnNetworkSettingsCb != nullptr) {
-      _returnNetworkSettingsCb(&netSetting);
-    }
+  switch (msg.type) {
+    case MessageInputType::TIMESTAMP:
+      if (_returnTimestampCb != nullptr) {
+        _returnTimestampCb(msg.m.timestamp);
+      }
+      break;
+    case MessageInputType::NETWORK_SETTINGS:
+      if (_returnNetworkSettingsCb != nullptr) {
+        _returnNetworkSettingsCb(&msg.m.netSetting);
+      }
+      break;
+    case MessageInputType::COMMANDS:
+      handleReceivedCommands(msg.m.cmd);
+      break;
+    default:
+      break;
   }
 }
 
@@ -400,55 +358,27 @@ void AgentsConfiguratorManager::handleGetIDCommand() {
   callHandler(RequestType::GET_ID);
 }
 
-size_t AgentsConfiguratorManager::computeOptionsToSendLength() {
-  size_t length = CBOR_DATA_HEADER_LEN;
-
-  if (_netOptions.type == NetworkOptionsClass::WIFI) {
-    for (uint8_t i = 0; i < _netOptions.option.wifi.numDiscoveredWiFiNetworks; i++) {
-      length += 4;  //for RSSI and text identifier
-      length += _netOptions.option.wifi.discoveredWifiNetworks[i].SSIDsize;
-    }
-  }
-
-  return length;
-}
-
 bool AgentsConfiguratorManager::sendNetworkOptions() {
-  size_t len = computeOptionsToSendLength();
-  uint8_t data[len];
-  if (!CBORAdapter::networkOptionsToCBOR(_netOptions, data, &len)) {
-    return false;
-  }
-
-  bool res = _selectedAgent->sendData(data, len);
-  if (!res) {
-    DEBUG_WARNING("AgentsConfiguratorManager::%s failed to send network options", __FUNCTION__);
-  }
-
-  return res;
+  ProvisioningOutputMessage outputMsg;
+  outputMsg.type = MessageOutputType::NETWORK_OPTIONS;
+  outputMsg.m.netOptions = &_netOptions;
+  return _selectedAgent->sendMsg(outputMsg);
 }
 
 bool AgentsConfiguratorManager::sendStatus(StatusMessage msg) {
-  bool res = false;
-  size_t len = CBOR_DATA_STATUS_LEN;
-  uint8_t data[len];
-  res = CBORAdapter::statusToCBOR(msg, data, &len);
-  if (!res) {
-    DEBUG_ERROR("AgentsConfiguratorManager::%s failed encode status: %d ", __FUNCTION__, (int)msg);
-    return res;
-  }
-
-  res = _selectedAgent->sendData(data, len);
-  if (!res) {
-    DEBUG_WARNING("AgentsConfiguratorManager::%s failed to send status: %d ", __FUNCTION__, (int)msg);
-  }
-  return res;
+  ProvisioningOutputMessage outputMsg;
+  outputMsg.type = MessageOutputType::STATUS;
+  outputMsg.m.status = msg;
+  return _selectedAgent->sendMsg(outputMsg);
 }
 
 AgentsConfiguratorManagerStates AgentsConfiguratorManager::handlePeerDisconnected() {
   //Peer disconnected, restore all stopped agents
   for (std::list<ConfiguratorAgent *>::iterator agent = _agentsList.begin(); agent != _agentsList.end(); ++agent) {
     if (*agent != _selectedAgent) {
+      if ((*agent)->getAgentType() == ConfiguratorAgent::AgentTypes::BLE && !_bleAgentEnabled) {
+        continue;
+      }
       (*agent)->begin();
     }
   }

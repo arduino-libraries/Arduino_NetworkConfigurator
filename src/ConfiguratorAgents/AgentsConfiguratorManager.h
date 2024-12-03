@@ -33,6 +33,7 @@ public:
     : _netOptions{ .type = NetworkOptionsClass::NONE } {};
   bool begin(uint8_t id);
   bool end(uint8_t id);
+  void disconnect();
   AgentsConfiguratorManagerStates poll();
   void enableBLEAgent(bool enable);
   bool isBLEAgentEnabled() {
@@ -89,7 +90,6 @@ private:
   void handleConnectCommand();
   void handleUpdateOptCommand();
   void handleGetIDCommand();
-  size_t computeOptionsToSendLength();
   bool sendNetworkOptions();
   bool sendStatus(StatusMessage msg);
 

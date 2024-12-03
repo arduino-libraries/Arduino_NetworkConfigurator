@@ -10,10 +10,10 @@
 #include "cbor/MessageEncoder.h"
 #include "cbor/MessageDecoder.h"
 
-bool CBORAdapter::uhwidToCBOR(String uhwid, uint8_t *data, size_t *len) {
+bool CBORAdapter::uhwidToCBOR(const char *uhwid, uint8_t *data, size_t *len) {
   CBORMessageEncoder encoder;
 
-  if (*len < CBOR_DATA_UHWID_LEN || uhwid.length() > MAX_UHWID_SIZE) {
+  if (*len < CBOR_DATA_UHWID_LEN || strlen(uhwid) > MAX_UHWID_SIZE) {
     return false;
   }
 
@@ -21,17 +21,17 @@ bool CBORAdapter::uhwidToCBOR(String uhwid, uint8_t *data, size_t *len) {
 
   ProvisioningUniqueHardwareIdMessage uhwidMsg;
   uhwidMsg.c.id = CommandId::ProvisioningUniqueHardwareId;
-  memcpy(uhwidMsg.params.uniqueHardwareId, uhwid.c_str(), uhwid.length());
+  memcpy(uhwidMsg.params.uniqueHardwareId, uhwid, strlen(uhwid));
 
   Encoder::Status status = encoder.encode((Message *)&uhwidMsg, data, *len);
 
   return status == Encoder::Status::Complete ? true : false;
 }
 
-bool CBORAdapter::jwtToCBOR(String jwt, uint8_t *data, size_t *len) {
+bool CBORAdapter::jwtToCBOR(const char *jwt, uint8_t *data, size_t *len) {
   CBORMessageEncoder encoder;
 
-  if (*len < CBOR_DATA_JWT_LEN || jwt.length() > MAX_JWT_SIZE) {
+  if (*len < CBOR_DATA_JWT_LEN || strlen(jwt) > MAX_JWT_SIZE) {
     return false;
   }
 
@@ -39,7 +39,7 @@ bool CBORAdapter::jwtToCBOR(String jwt, uint8_t *data, size_t *len) {
 
   ProvisioningJWTMessage provisioningMsg;
   provisioningMsg.c.id = CommandId::ProvisioningJWT;
-  memcpy(provisioningMsg.params.jwt, jwt.c_str(), jwt.length());
+  memcpy(provisioningMsg.params.jwt, jwt, strlen(jwt));
 
   Encoder::Status status = encoder.encode((Message *)&provisioningMsg, data, *len);
 
@@ -60,11 +60,11 @@ bool CBORAdapter::statusToCBOR(StatusMessage msg, uint8_t *data, size_t *len) {
   return result;
 }
 
-bool CBORAdapter::networkOptionsToCBOR(NetworkOptions &netOptions, uint8_t *data, size_t *len) {
+bool CBORAdapter::networkOptionsToCBOR(const NetworkOptions *netOptions, uint8_t *data, size_t *len) {
   bool result = false;
-  switch (netOptions.type) {
+  switch (netOptions->type) {
     case NetworkOptionsClass::WIFI:
-      result = adaptWiFiOptions(&netOptions.option.wifi, data, len);
+      result = adaptWiFiOptions(&(netOptions->option.wifi), data, len);
       break;
     default:
       WiFiOption wifiOptions;
@@ -165,7 +165,7 @@ bool CBORAdapter::adaptStatus(StatusMessage msg, uint8_t *data, size_t *len) {
   return status == Encoder::Status::Complete ? true : false;
 }
 
-bool CBORAdapter::adaptWiFiOptions(WiFiOption *wifiOptions, uint8_t *data, size_t *len) {
+bool CBORAdapter::adaptWiFiOptions(const WiFiOption *wifiOptions, uint8_t *data, size_t *len) {
   CBORMessageEncoder encoder;
 
   ProvisioningListWifiNetworksMessage wifiMsg;
@@ -173,7 +173,7 @@ bool CBORAdapter::adaptWiFiOptions(WiFiOption *wifiOptions, uint8_t *data, size_
   wifiMsg.params.numDiscoveredWiFiNetworks = wifiOptions->numDiscoveredWiFiNetworks;
   for (uint8_t i = 0; i < wifiOptions->numDiscoveredWiFiNetworks; i++) {
     wifiMsg.params.discoveredWifiNetworks[i].SSID = wifiOptions->discoveredWifiNetworks[i].SSID;
-    wifiMsg.params.discoveredWifiNetworks[i].RSSI = &wifiOptions->discoveredWifiNetworks[i].RSSI;
+    wifiMsg.params.discoveredWifiNetworks[i].RSSI = const_cast<int *>(&wifiOptions->discoveredWifiNetworks[i].RSSI);
   }
 
   Encoder::Status status = encoder.encode((Message *)&wifiMsg, data, *len);

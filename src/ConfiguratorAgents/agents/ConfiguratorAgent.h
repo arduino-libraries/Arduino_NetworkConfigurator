@@ -14,23 +14,22 @@
 
 class ConfiguratorAgent {
 public:
-  typedef void (*DataReceivedCallback)();
   enum class AgentConfiguratorStates { INIT,
                                        PEER_CONNECTED,
                                        RECEIVED_DATA,
                                        END,
                                        ERROR };
   enum class AgentTypes { BLE,
-                          AP,
-                          WIRED_USB };
+                          USB_SERIAL,
+  };
   virtual ~ConfiguratorAgent() {}
   virtual AgentConfiguratorStates begin() = 0;
   virtual AgentConfiguratorStates end() = 0;
   virtual AgentConfiguratorStates poll() = 0;
-  virtual bool receivedDataAvailable() = 0;
-  virtual bool getReceivedData(uint8_t *data, size_t *len) = 0;
-  virtual size_t getReceivedDataLength() = 0;
-  virtual bool sendData(const uint8_t *data, size_t len) = 0;
+  virtual void disconnectPeer() = 0;
+  virtual bool receivedMsgAvailable() = 0;
+  virtual bool getReceivedMsg(ProvisioningInputMessage &msg) = 0;
+  virtual bool sendMsg(ProvisioningOutputMessage &msg) = 0;
   virtual bool isPeerConnected() = 0;
   virtual AgentTypes getAgentType() = 0;
 };

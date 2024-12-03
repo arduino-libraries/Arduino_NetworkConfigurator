@@ -37,23 +37,6 @@
 #error "Board not supported for BLE configuration"
 #endif
 
-#define MAX_VALIDITY_TIME 30000
-
-void PrintPacket(const char *label, const uint8_t *data, size_t len) {
-  if (Debug.getDebugLevel() == DBG_VERBOSE) {
-    DEBUG_VERBOSE("BLEConfiguratorAgent Print %s data:", label);
-    Debug.newlineOff();
-    for (size_t i = 0; i < len; i++) {
-      DEBUG_VERBOSE("%02x ", data[i]);
-      if ((i + 1) % 10 == 0) {
-        DEBUG_VERBOSE("\n");
-      }
-    }
-    DEBUG_VERBOSE("\n");
-  }
-  Debug.newlineOn();
-}
-
 BLEConfiguratorAgent::BLEConfiguratorAgent()
   : _confService{ "5e5be887-c816-4d4f-b431-9eb34b02f4d9" },
     _inputStreamCharacteristic{ "0000ffe1-0000-1000-8000-00805f9b34fc", BLEWrite, 256 },
@@ -107,9 +90,7 @@ ConfiguratorAgent::AgentConfiguratorStates BLEConfiguratorAgent::end() {
     }
     BLE.stopAdvertise();
     BLE.end();
-    Packet.clear();
-    _outputMessagesList.clear();
-    _inputMessagesList.clear();
+    clear();
     _state = AgentConfiguratorStates::END;
   }
 
@@ -128,9 +109,7 @@ ConfiguratorAgent::AgentConfiguratorStates BLEConfiguratorAgent::poll() {
         break;
       case BLEEventType::DISCONNECTED:
         _inputStreamCharacteristic.writeValue("");
-        Packet.clear();
-        _outputMessagesList.clear();
-        _inputMessagesList.clear();
+        clear();
         _state = AgentConfiguratorStates::INIT;
         break;
       default:
@@ -138,7 +117,7 @@ ConfiguratorAgent::AgentConfiguratorStates BLEConfiguratorAgent::poll() {
     }
   }
 
-  switch (_state){
+  switch (_state) {
     case AgentConfiguratorStates::INIT:                                           break;
     case AgentConfiguratorStates::PEER_CONNECTED: _state = handlePeerConnected(); break;
     case AgentConfiguratorStates::RECEIVED_DATA:                                  break;
@@ -146,48 +125,21 @@ ConfiguratorAgent::AgentConfiguratorStates BLEConfiguratorAgent::poll() {
     case AgentConfiguratorStates::END:                                            break;
   }
 
-  if (_outputMessagesList.size() > 0) {
-    checkOutputPacketValidity();
-  }
+  checkOutputPacketValidity();
 
   return _state;
 }
 
-bool BLEConfiguratorAgent::receivedDataAvailable() {
-  return _inputMessagesList.size() > 0;
-}
-
-bool BLEConfiguratorAgent::getReceivedData(uint8_t *data, size_t *len) {
-  if (_inputMessagesList.size() > 0) {
-    InputPacketBuffer *msg = &_inputMessagesList.front();
-    if (msg->len() <= *len) {
-      *len = msg->len();
-      memset(data, 0x00, *len);
-      memcpy(data, &(*msg)[0], *len);
-      _inputMessagesList.pop_front();
-      if (_inputMessagesList.size() == 0) {
-        _state = AgentConfiguratorStates::PEER_CONNECTED;
-      }
-      return true;
-    }
+bool BLEConfiguratorAgent::getReceivedMsg(ProvisioningInputMessage &msg) {
+  bool res = BoardConfigurationProtocol::getReceivedMsg(msg);
+  if (receivedMsgAvailable() == false) {
+    _state = AgentConfiguratorStates::PEER_CONNECTED;
   }
-  return false;
-}
-
-size_t BLEConfiguratorAgent::getReceivedDataLength() {
-  if (_inputMessagesList.size() > 0) {
-    InputPacketBuffer *msg = &_inputMessagesList.front();
-    return msg->len();
-  }
-  return 0;
-}
-
-bool BLEConfiguratorAgent::sendData(const uint8_t *data, size_t len) {
-  return sendData(PacketManager::MessageType::DATA, data, len);
+  return res;
 }
 
 bool BLEConfiguratorAgent::isPeerConnected() {
-  return _state == AgentConfiguratorStates::PEER_CONNECTED || _state == AgentConfiguratorStates::RECEIVED_DATA;
+  return _outputStreamCharacteristic.subscribed() && (_state == AgentConfiguratorStates::PEER_CONNECTED || _state == AgentConfiguratorStates::RECEIVED_DATA);
 }
 
 void BLEConfiguratorAgent::blePeripheralConnectHandler(BLEDevice central) {
@@ -211,51 +163,51 @@ void BLEConfiguratorAgent::bleOutputStreamSubscribed(BLEDevice central, BLEChara
   _bleEvent.newEvent = true;
 }
 
+bool BLEConfiguratorAgent::hasReceivedBytes() {
+  bool res = _inputStreamCharacteristic.written();
+  if (res) {
+    _readByte = 0;
+  }
+  return res;
+}
+
+size_t BLEConfiguratorAgent::receivedBytes() {
+  return _inputStreamCharacteristic.valueLength();
+}
+
+uint8_t BLEConfiguratorAgent::readByte() {
+  const uint8_t *charValue = _inputStreamCharacteristic.value();
+  if (_readByte < _inputStreamCharacteristic.valueLength()) {
+    return charValue[_readByte++];
+  }
+  return 0;
+}
+
+int BLEConfiguratorAgent::writeBytes(const uint8_t *data, size_t len) {
+  return _outputStreamCharacteristic.write(data, len);
+}
+
+void BLEConfiguratorAgent::handleDisconnectRequest() {
+}
+
 ConfiguratorAgent::AgentConfiguratorStates BLEConfiguratorAgent::handlePeerConnected() {
   AgentConfiguratorStates nextState = _state;
-  if (_inputStreamCharacteristic.written()) {
-    int receivedDataLen = _inputStreamCharacteristic.valueLength();
-    const uint8_t *val = _inputStreamCharacteristic.value();
-    PacketManager::ReceivingState res;
-    PacketManager::ReceivedData receivedData;
-    PrintPacket("received", val, receivedDataLen);
-    for (int i = 0; i < receivedDataLen; i++) {
-      res = Packet.handleReceivedByte(receivedData, val[i]);
-      if (res == PacketManager::ReceivingState::ERROR) {
-        DEBUG_DEBUG("BLEConfiguratorAgent::%s Error receiving packet", __FUNCTION__);
-        sendNak();
-        transmitStream();
-        _inputStreamCharacteristic.writeValue("");
-        break;
-      } else if (res == PacketManager::ReceivingState::RECEIVED) {
-        switch (receivedData.type) {
-          case PacketManager::MessageType::DATA:
-            {
-              DEBUG_DEBUG("BLEConfiguratorAgent::%s Received data packet", __FUNCTION__);
-              PrintPacket("payload", &receivedData.payload[0], receivedData.payload.len());
-              _inputMessagesList.push_back(receivedData.payload);
-              //Consider all sent data as received
-              _outputMessagesList.clear();
-              nextState = AgentConfiguratorStates::RECEIVED_DATA;
-            }
-            break;
-          case PacketManager::MessageType::RESPONSE:
-            {
-              DEBUG_DEBUG("BLEConfiguratorAgent::%s Received response packet", __FUNCTION__);
-              for (std::list<OutputPacketBuffer>::iterator packet = _outputMessagesList.begin(); packet != _outputMessagesList.end(); ++packet) {
-                packet->startProgress();
-              }
-            }
-            break;
-          default:
-            break;
-        }
-      }
-    }
-  }
 
-  if (_outputStreamCharacteristic.subscribed() && _outputMessagesList.size() > 0) {
-    transmitStream();
+  TransmissionResult res = sendAndReceive();
+  switch (res) {
+    case TransmissionResult::INVALID_DATA:
+      // clear the input buffer
+      _inputStreamCharacteristic.writeValue("");
+      break;
+    case TransmissionResult::PEER_NOT_AVAILABLE:
+      disconnectPeer();
+      nextState = AgentConfiguratorStates::INIT;
+      break;
+    case TransmissionResult::DATA_RECEIVED:
+      nextState = AgentConfiguratorStates::RECEIVED_DATA;
+      break;
+    default:
+      break;
   }
 
   return nextState;
@@ -290,76 +242,16 @@ bool BLEConfiguratorAgent::setManufacturerData() {
   return BLE.setManufacturerData(_manufacturerData, sizeof(_manufacturerData));
 }
 
-BLEConfiguratorAgent::TransmissionResult BLEConfiguratorAgent::transmitStream() {
-
-  if (!_outputStreamCharacteristic.subscribed()) {
-    return TransmissionResult::PEER_NOT_AVAILABLE;
-  }
-  if (_outputMessagesList.size() == 0) {
-    return TransmissionResult::COMPLETED;
-  }
-
-  TransmissionResult res = TransmissionResult::COMPLETED;
-
-  for (std::list<OutputPacketBuffer>::iterator packet = _outputMessagesList.begin(); packet != _outputMessagesList.end(); ++packet) {
-    if (packet->hasBytesToSend()) {
-      res = TransmissionResult::NOT_COMPLETED;
-      packet->incrementBytesSent(_outputStreamCharacteristic.write(&(*packet)[packet->bytesSent()], packet->bytesToSend()));
-      DEBUG_DEBUG("BLEConfiguratorAgent::%s outputCharacteristic transferred: %d of %d", __FUNCTION__, packet->bytesSent(), packet->len());
-      //delay(500);  //TODO test if remove
-      break;
-    }
-  }
-
-  return res;
-}
-
-bool BLEConfiguratorAgent::sendNak() {
-  uint8_t data = 0x03;
-  return sendData(PacketManager::MessageType::RESPONSE, &data, sizeof(data));
-}
-
-void BLEConfiguratorAgent::checkOutputPacketValidity() {
-  _outputMessagesList.remove_if([](OutputPacketBuffer &packet) {
-    if (packet.getValidityTs() != 0 && packet.getValidityTs() < millis()) {
-      return true;
-    }
-    return false;
-  });
-}
 
 void BLEConfiguratorAgent::disconnectPeer() {
   uint32_t start = millis();
   BLE.disconnect();
-  do{
-    BLE.poll();
-  }while( millis() - start < 200);
-
-  return;
-}
-
-bool BLEConfiguratorAgent::sendData(PacketManager::MessageType type, const uint8_t *data, size_t len) {
-  OutputPacketBuffer outputMsg;
-  outputMsg.setValidityTs(millis() + MAX_VALIDITY_TIME);
-
-  if (!Packet.createPacket(outputMsg, type, data, len)) {
-    DEBUG_WARNING("BLEConfiguratorAgent::%s Failed to create packet", __FUNCTION__);
-    return false;
-  }
-
-  PrintPacket("output message", &outputMsg[0], outputMsg.len());
-
-  _outputMessagesList.push_back(outputMsg);
-
-  TransmissionResult res = TransmissionResult::NOT_COMPLETED;
   do {
-    res = transmitStream();
-    if (res == TransmissionResult::PEER_NOT_AVAILABLE) {
-      break;
-    }
-  } while (res == TransmissionResult::NOT_COMPLETED);
-
-  return true;
+    BLE.poll();
+  } while (millis() - start < 200);
+  clear();
+  _state = AgentConfiguratorStates::INIT;
+  return;
 }
 
 BLEConfiguratorAgent BLEAgent;

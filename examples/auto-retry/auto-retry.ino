@@ -68,8 +68,11 @@ void setup() {
 }
 
 void loop() {
-  if(provisioningCompleted && networkConfigured && ConfiguratorManager.isBLEAgentEnabled()){
-    ConfiguratorManager.enableBLEAgent(false);
+  if(provisioningCompleted && networkConfigured){  
+    ConfiguratorManager.disconnect();
+    if(ConfiguratorManager.isBLEAgentEnabled()){
+      ConfiguratorManager.enableBLEAgent(false);
+    }
   }
   if (provisioningCompleted == false && ProvisioningSystem.poll()) {
     ProvisioningSystem.end();
@@ -100,6 +103,7 @@ void loop() {
     }
 
     if(NetworkConf.poll() == NetworkConfiguratorStates::UPDATING_CONFIG){
+      networkConfigured = false;
       changeMode(DeviceMode::CONFIG);
     }
     
