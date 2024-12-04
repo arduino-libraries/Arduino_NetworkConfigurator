@@ -226,7 +226,7 @@ bool BLEConfiguratorAgent::setLocalName() {
   _localName.concat(vid);
   _localName.concat("-");
   _localName.concat(pid);
-
+  BLE.setDeviceName(_localName.c_str());
   return BLE.setLocalName(_localName.c_str());
 }
 
