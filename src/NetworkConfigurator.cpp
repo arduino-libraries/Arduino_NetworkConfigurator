@@ -26,7 +26,7 @@ NetworkConfigurator::NetworkConfigurator(AgentsConfiguratorManager &agentManager
 
 bool NetworkConfigurator::begin() {
   _connectionLostStatus = false;
-  _state = NetworkConfiguratorStates::INIT;
+  _state = NetworkConfiguratorStates::READ_STORED_CONFIG;
   _startConnectionAttempt = 0;
 
 #ifdef ARDUINO_UNOR4_WIFI
@@ -67,18 +67,31 @@ bool NetworkConfigurator::begin() {
     DEBUG_ERROR("NetworkConfigurator::%s Failed to initialize the AgentsConfiguratorManager", __FUNCTION__);
   }
 
+#ifdef BOARD_HAS_ETHERNET
+  _networkSetting.type = NetworkAdapter::ETHERNET;
+  if (!_connectionHandler->updateSetting(_networkSetting)) {
+    DEBUG_WARNING("NetworkConfigurator::%s Is not possible check the eth connectivity", __FUNCTION__);
+    return true;
+  }
+  _connectionHandlerIstantiated = true;
+  _state = NetworkConfiguratorStates::CHECK_ETH;
+#endif
   return true;
 }
 
 NetworkConfiguratorStates NetworkConfigurator::poll() {
 
   switch (_state) {
-    case NetworkConfiguratorStates::INIT:               _state = handleInit          (); break;
-    case NetworkConfiguratorStates::WAITING_FOR_CONFIG: _state = handleWaitingForConf(); break;
-    case NetworkConfiguratorStates::CONNECTING:         _state = handleConnecting    (); break;
-    case NetworkConfiguratorStates::CONFIGURED:         _state = handleConfigured    (); break;
-    case NetworkConfiguratorStates::UPDATING_CONFIG:    _state = handleUpdatingConfig(); break;
-    case NetworkConfiguratorStates::END:                                                 break;
+#ifdef BOARD_HAS_ETHERNET
+    case NetworkConfiguratorStates::CHECK_ETH:           _state = handleCheckEth       (); break;
+#endif
+    case NetworkConfiguratorStates::READ_STORED_CONFIG: _state = handleReadStorage     (); break;
+    case NetworkConfiguratorStates::TEST_STORED_CONFIG: _state = handleTestStoredConfig(); break;
+    case NetworkConfiguratorStates::WAITING_FOR_CONFIG: _state = handleWaitingForConf  (); break;
+    case NetworkConfiguratorStates::CONNECTING:         _state = handleConnecting      (); break;
+    case NetworkConfiguratorStates::CONFIGURED:         _state = handleConfigured      (); break;
+    case NetworkConfiguratorStates::UPDATING_CONFIG:    _state = handleUpdatingConfig  (); break;
+    case NetworkConfiguratorStates::END:                                                   break;
   }
 
   return _state;
@@ -124,8 +137,8 @@ bool NetworkConfigurator::end() {
 }
 
 
-NetworkConfiguratorStates NetworkConfigurator::connectToNetwork() {
-  NetworkConfiguratorStates nextState = _state;
+NetworkConfigurator::ConnectionResult NetworkConfigurator::connectToNetwork(MessageTypeCodes *err) {
+  ConnectionResult res = ConnectionResult::IN_PROGRESS;
   DEBUG_DEBUG("Connecting to network");
   printNetworkSettings();
   if (_startConnectionAttempt == 0) {
@@ -134,13 +147,13 @@ NetworkConfiguratorStates NetworkConfigurator::connectToNetwork() {
   NetworkConnectionState connectionRes = NetworkConnectionState::DISCONNECTED;
 
   connectionRes = _connectionHandler->check();
-  delay(250);  //TODO remove
+
   if (connectionRes == NetworkConnectionState::CONNECTED) {
     _startConnectionAttempt = 0;
     DEBUG_INFO("Connected to network");
     _agentManager->setStatusMessage(MessageTypeCodes::CONNECTED);
     delay(3000);  //TODO remove
-    nextState = NetworkConfiguratorStates::CONFIGURED;
+    res = ConnectionResult::SUCCESS;
   } else if (connectionRes != NetworkConnectionState::CONNECTED && millis() - _startConnectionAttempt > NC_CONNECTION_TIMEOUT)  //connection attempt failed
   {
 #ifdef BOARD_HAS_WIFI
@@ -150,17 +163,13 @@ NetworkConfiguratorStates NetworkConfigurator::connectToNetwork() {
     int errorCode;
     String errorMsg = decodeConnectionErrorMessage(connectionRes, &errorCode);
     DEBUG_INFO("Connection fail: %s", errorMsg.c_str());
-    if (_connectionLostStatus) {
-      _agentManager->setStatusMessage(MessageTypeCodes::CONNECTION_LOST);
-    } else {
-      _agentManager->setStatusMessage((MessageTypeCodes)errorCode);
-    }
+    *err = (MessageTypeCodes)errorCode;
 
     _lastConnectionAttempt = millis();
-    nextState = NetworkConfiguratorStates::WAITING_FOR_CONFIG;
+    res = ConnectionResult::FAILED;
   }
 
-  return nextState;
+  return res;
 }
 
 bool NetworkConfigurator::updateNetworkOptions() {
@@ -324,52 +333,66 @@ String NetworkConfigurator::decodeConnectionErrorMessage(NetworkConnectionState 
   }
 }
 
-NetworkConfiguratorStates NetworkConfigurator::handleInit() {
+#ifdef BOARD_HAS_ETHERNET
+NetworkConfiguratorStates NetworkConfigurator::handleCheckEth() {
   NetworkConfiguratorStates nextState = _state;
+  MessageTypeCodes err;
+  ConnectionResult connectionRes = connectToNetwork(&err);
+  if (connectionRes == ConnectionResult::SUCCESS) {
+    nextState = NetworkConfiguratorStates::CONFIGURED;
+  } else if (connectionRes == ConnectionResult::FAILED) {
+    DEBUG_VERBOSE("NetworkConfigurator::%s Connection eth fail", __FUNCTION__);
+    _connectionHandlerIstantiated = false;
+    nextState = NetworkConfiguratorStates::READ_STORED_CONFIG;
+  }
+  return nextState;
+}
+#endif
 
-  if (!_connectionHandlerIstantiated) {
+NetworkConfiguratorStates NetworkConfigurator::handleReadStorage() {
+  NetworkConfiguratorStates nextState = _state;
 #ifdef BOARD_HAS_WIFI
 #ifdef ARDUINO_UNOR4_WIFI
-    String SSID = _preferences.getString(SSIDKEY, "");
-    String Password = _preferences.getString(PSWKEY, "");
-    //preferences.end();
-    if (SSID != "" && Password != "") {
-      DEBUG_INFO("Found WiFi configuration on storage.\n SSID: %s PSW: %s", SSID.c_str(), Password.c_str());
+  String SSID = _preferences.getString(SSIDKEY, "");
+  String Password = _preferences.getString(PSWKEY, "");
+  //preferences.end();
+  if (SSID != "" && Password != "") {
+    DEBUG_INFO("Found WiFi configuration on storage.\n SSID: %s PSW: %s", SSID.c_str(), Password.c_str());
 
-      memcpy(_networkSetting.wifi.ssid, SSID.c_str(), SSID.length());
-      memcpy(_networkSetting.wifi.pwd, Password.c_str(), Password.length());
-      if (!_connectionHandler->updateSetting(_networkSetting)) {
-        DEBUG_WARNING("NetworkConfigurator::%s Network parameters found on storage are not supported.", __FUNCTION__);
-        nextState = NetworkConfiguratorStates::WAITING_FOR_CONFIG;
-      } else {
-        _connectionHandlerIstantiated = true;
-      }
-
-    } else {
+    memcpy(_networkSetting.wifi.ssid, SSID.c_str(), SSID.length());
+    memcpy(_networkSetting.wifi.pwd, Password.c_str(), Password.length());
+    if (!_connectionHandler->updateSetting(_networkSetting)) {
+      DEBUG_WARNING("NetworkConfigurator::%s Network parameters found on storage are not supported.", __FUNCTION__);
       nextState = NetworkConfiguratorStates::WAITING_FOR_CONFIG;
-    }
-#endif
-#endif
-  } else {
-    // Test connection
-    nextState = connectToNetwork();
-
-    if (nextState == _state) {
-      return _state;
-    }
-
-    if (nextState != NetworkConfiguratorStates::CONFIGURED) {
-      _connectionLostStatus = true;
-      _agentManager->setStatusMessage(MessageTypeCodes::CONNECTION_LOST);
-      if (_startBLEIfConnectionFails) {
-        _agentManager->enableBLEAgent(true);
-      }
-
     } else {
-      nextState = NetworkConfiguratorStates::CONFIGURED;
+      _connectionHandlerIstantiated = true;
+      nextState = NetworkConfiguratorStates::TEST_STORED_CONFIG;
     }
-  }
 
+  } else {
+    nextState = NetworkConfiguratorStates::WAITING_FOR_CONFIG;
+  }
+#else
+  nextState = NetworkConfiguratorStates::WAITING_FOR_CONFIG;
+#endif
+#endif
+  return nextState;
+}
+
+NetworkConfiguratorStates NetworkConfigurator::handleTestStoredConfig() {
+  NetworkConfiguratorStates nextState = _state;
+  MessageTypeCodes err;
+  ConnectionResult res = connectToNetwork(&err);
+  if (res == ConnectionResult::SUCCESS) {
+    nextState = NetworkConfiguratorStates::CONFIGURED;
+  } else if (res == ConnectionResult::FAILED) {
+    _agentManager->setStatusMessage(MessageTypeCodes::CONNECTION_LOST);
+    _connectionLostStatus = true;
+    if (_startBLEIfConnectionFails) {
+      _agentManager->enableBLEAgent(true);
+    }
+    nextState = NetworkConfiguratorStates::WAITING_FOR_CONFIG;
+  }
   return nextState;
 }
 
@@ -407,8 +430,19 @@ NetworkConfiguratorStates NetworkConfigurator::handleWaitingForConf() {
 }
 
 NetworkConfiguratorStates NetworkConfigurator::handleConnecting() {
+  NetworkConfiguratorStates nextState = _state;
   _agentManager->poll();  //To keep alive the connection with the configurator
-  NetworkConfiguratorStates nextState = connectToNetwork();
+  MessageTypeCodes err;
+  ConnectionResult res = connectToNetwork(&err);
+
+  if (res == ConnectionResult::SUCCESS) {
+    nextState = NetworkConfiguratorStates::CONFIGURED;
+  } else if (res == ConnectionResult::FAILED) {
+    if (!_connectionLostStatus) {
+      _agentManager->setStatusMessage(err);
+    }
+    nextState = NetworkConfiguratorStates::WAITING_FOR_CONFIG;
+  }
 
   return nextState;
 }

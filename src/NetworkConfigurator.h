@@ -16,9 +16,11 @@
 #include <settings/settings.h>
 #define NC_CONNECTION_TIMEOUT 15000
 
-enum class NetworkConfiguratorStates { INIT,
-                                       CONNECTING,
+enum class NetworkConfiguratorStates { CHECK_ETH,
+                                       READ_STORED_CONFIG,
+                                       TEST_STORED_CONFIG,
                                        WAITING_FOR_CONFIG,
+                                       CONNECTING,
                                        CONFIGURED,
                                        UPDATING_CONFIG,
                                        END };
@@ -50,13 +52,21 @@ private:
                                          CONNECT_REQ,
                                          NEW_NETWORK_SETTINGS };
   static inline NetworkConfiguratorEvents _receivedEvent = NetworkConfiguratorEvents::NONE;
+
+  enum class ConnectionResult { SUCCESS,
+                                FAILED,
+                                IN_PROGRESS };
+
 #ifdef ARDUINO_UNOR4_WIFI
   Preferences _preferences;
 #endif
-
-  NetworkConfiguratorStates handleInit();
-  NetworkConfiguratorStates handleConnecting();
+#ifdef BOARD_HAS_ETHERNET
+  NetworkConfiguratorStates handleCheckEth();
+#endif
+  NetworkConfiguratorStates handleReadStorage();
+  NetworkConfiguratorStates handleTestStoredConfig();
   NetworkConfiguratorStates handleWaitingForConf();
+  NetworkConfiguratorStates handleConnecting();
   NetworkConfiguratorStates handleConfigured();
   NetworkConfiguratorStates handleUpdatingConfig();
 
@@ -64,7 +74,7 @@ private:
   void handleNewNetworkSettings();
 
   String decodeConnectionErrorMessage(NetworkConnectionState err, int *errorCode);
-  NetworkConfiguratorStates connectToNetwork();
+  ConnectionResult connectToNetwork(MessageTypeCodes *err);
   bool updateNetworkOptions();
   void printNetworkSettings();
 #ifdef BOARD_HAS_WIFI

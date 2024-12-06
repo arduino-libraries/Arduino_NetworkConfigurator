@@ -13,10 +13,13 @@
   which are called when their values are changed from the Dashboard.
   These functions are generated with the Thing and added at the end of this sketch.
 */
-
 #include "thingProperties.h"
 #include "utility/watchdog/Watchdog.h"
+#if defined(ARDUINO_OPTA)
+#define RESETCRED_BUTTON BTN_USER
+#else
 #define RESETCRED_BUTTON 13
+#endif
 uint32_t lastUpdate = 0;
 bool networkConfigured = false;
 bool provisioningCompleted = false;
@@ -38,7 +41,7 @@ void setup() {
   Serial.begin(9600);
   // This delay gives the chance to wait for a Serial Monitor without blocking if none is found
   delay(1500);
-    /*
+  /*
      The following function allows you to obtain more information
      related to the state of network and IoT Cloud connection and errors
      the higher number the more granular information you’ll get.
@@ -68,9 +71,9 @@ void setup() {
 }
 
 void loop() {
-  if(provisioningCompleted && networkConfigured){  
+  if (provisioningCompleted && networkConfigured) {
     ConfiguratorManager.disconnect();
-    if(ConfiguratorManager.isBLEAgentEnabled()){
+    if (ConfiguratorManager.isBLEAgentEnabled()) {
       ConfiguratorManager.enableBLEAgent(false);
     }
   }
@@ -91,22 +94,26 @@ void loop() {
 
   } else if (deviceMode == DeviceMode::RUN) {
     ArduinoCloud.update();
+#if defined(ARDUINO_OPTA)
+    if (digitalRead(RESETCRED_BUTTON) == LOW) {
+#else
     if (digitalRead(RESETCRED_BUTTON) == HIGH) {
+#endif
       Serial.println("Update config");
-      #ifdef BOARD_HAS_WIFI
+#ifdef BOARD_HAS_WIFI
       WiFi.end();
-      #endif
-      if(!ConfiguratorManager.isBLEAgentEnabled()){
+#endif
+      if (!ConfiguratorManager.isBLEAgentEnabled()) {
         ConfiguratorManager.enableBLEAgent(true);
       }
       networkConfigured = false;
     }
 
-    if(NetworkConf.poll() == NetworkConfiguratorStates::UPDATING_CONFIG){
+    if (NetworkConf.poll() == NetworkConfiguratorStates::UPDATING_CONFIG) {
       networkConfigured = false;
       changeMode(DeviceMode::CONFIG);
     }
-    
+
     // Your code here
     if (millis() - lastUpdate > 10000) {
       Serial.println("alive");
