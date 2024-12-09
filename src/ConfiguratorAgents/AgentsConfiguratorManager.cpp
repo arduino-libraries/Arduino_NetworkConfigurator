@@ -98,37 +98,22 @@ void AgentsConfiguratorManager::disconnect() {
   }
 }
 
-
-
 bool AgentsConfiguratorManager::setStatusMessage(StatusMessage msg) {
   if ((int)msg < 0) {
-    if (_statusRequest.pending) {
 #if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT) || defined(ARDUINO_AVR_UNO_WIFI_REV2) || defined(ARDUINO_NANO_RP2040_CONNECT)
       startBLEAgent();
 #endif
+    if (_statusRequest.pending) {
       _statusRequest.reset();
     }
-  } else if (msg == MessageTypeCodes::CONNECTING) {
-#if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT) || defined(ARDUINO_AVR_UNO_WIFI_REV2) || defined(ARDUINO_NANO_RP2040_CONNECT)
-    stopBLEAgent();
-#endif
-    if (!_statusRequest.pending && _statusRequest.key != RequestType::CONNECT) {
-      _statusRequest.pending = true;
-      _statusRequest.key = RequestType::CONNECT;
-    }
-  } else if (msg == MessageTypeCodes::SCANNING) {
-#ifdef BOARD_HAS_WIFI
-#if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT) || defined(ARDUINO_AVR_UNO_WIFI_REV2) || defined(ARDUINO_NANO_RP2040_CONNECT)
-    stopBLEAgent();
-#endif
-#endif
   } else if (msg == MessageTypeCodes::CONNECTED) {
     if (_statusRequest.pending && _statusRequest.key == RequestType::CONNECT) {
       _statusRequest.reset();
     }
-  }
-
-  if (msg == MessageTypeCodes::SCANNING && _state != AgentsConfiguratorManagerStates::CONFIG_IN_PROGRESS) {
+  } else if ((msg == MessageTypeCodes::SCANNING || msg == MessageTypeCodes::CONNECTING) && _state != AgentsConfiguratorManagerStates::CONFIG_IN_PROGRESS) {
+    #if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT) || defined(ARDUINO_AVR_UNO_WIFI_REV2) || defined(ARDUINO_NANO_RP2040_CONNECT)
+    stopBLEAgent();
+    #endif
     return true;
   }
 
@@ -140,6 +125,11 @@ bool AgentsConfiguratorManager::setStatusMessage(StatusMessage msg) {
     _initStatusMsg = msg;
   }
 
+#if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT) || defined(ARDUINO_AVR_UNO_WIFI_REV2) || defined(ARDUINO_NANO_RP2040_CONNECT)
+  if(msg == MessageTypeCodes::CONNECTING || msg == MessageTypeCodes::SCANNING) {
+    stopBLEAgent();
+  }
+#endif
   return true;
 }
 

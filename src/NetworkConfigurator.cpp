@@ -422,6 +422,7 @@ NetworkConfiguratorStates NetworkConfigurator::handleWaitingForConf() {
     }
 
     if (_connectionHandlerIstantiated && _agentManager->isConfigInProgress() != true && (millis() - _lastConnectionAttempt > 120000)) {
+      _agentManager->setStatusMessage(MessageTypeCodes::CONNECTING);
       nextState = NetworkConfiguratorStates::CONNECTING;
     }
   }
@@ -477,6 +478,7 @@ NetworkConfiguratorStates NetworkConfigurator::handleUpdatingConfig() {
   NetworkConfiguratorStates nextState = _state;
   if (_agentManager->isConfigInProgress() == false) {
     //If peer disconnects without updating the network settings, go to connecting state for check the connection
+    _agentManager->setStatusMessage(MessageTypeCodes::CONNECTING);
     nextState = NetworkConfiguratorStates::CONNECTING;
   } else {
     nextState = handleWaitingForConf();
