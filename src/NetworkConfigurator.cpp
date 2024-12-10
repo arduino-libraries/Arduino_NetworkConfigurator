@@ -289,6 +289,22 @@ void NetworkConfigurator::handleNewNetworkSettings() {
   printNetworkSettings();
   _connectionLostStatus = false;  //reset for updating the failure reason
 
+  if (_connectionHandlerIstantiated){
+    _connectionHandler->disconnect();
+    uint32_t startDisconnection = millis();
+    NetworkConnectionState s;
+    do{
+       s = _connectionHandler->check();
+    }while(s != NetworkConnectionState::CLOSED && millis() - startDisconnection < 5000);
+
+    if(s != NetworkConnectionState::CLOSED){
+      DEBUG_ERROR("NetworkConfigurator::%s Impossible to disconnect the network", __FUNCTION__);
+      _agentManager->setStatusMessage(MessageTypeCodes::ERROR);
+      return;
+    }
+    // Reset the connection handler to INIT state
+    _connectionHandler->connect();
+  }
   if (!_connectionHandler->updateSetting(_networkSetting)) {
     DEBUG_WARNING("NetworkConfigurator::%s The received network parameters are not supported", __FUNCTION__);
     _agentManager->setStatusMessage(MessageTypeCodes::INVALID_PARAMS);
