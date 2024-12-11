@@ -12,7 +12,7 @@
 #include <settings/settings.h>
 
 #define MAX_UHWID_SIZE 32
-#define MAX_JWT_SIZE   247   // 246 bytes for signature chars + 1 for null terminator
+#define MAX_JWT_SIZE  268
 
 enum class MessageTypeCodes {
   NONE                       = 0,

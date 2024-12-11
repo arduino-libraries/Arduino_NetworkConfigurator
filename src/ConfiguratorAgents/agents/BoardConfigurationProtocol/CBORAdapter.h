@@ -14,7 +14,7 @@
 
 #define CBOR_DATA_HEADER_LEN 6
 #define CBOR_DATA_UHWID_LEN MAX_UHWID_SIZE + 2 + CBOR_DATA_HEADER_LEN  //UHWID size + 2 bytes for CBOR array of bytes identifier + CBOR header size
-#define CBOR_DATA_JWT_LEN MAX_JWT_SIZE + 2 + CBOR_DATA_HEADER_LEN      //Signature size + 2 bytes for CBOR array of bytes identifier + CBOR header size
+#define CBOR_DATA_JWT_LEN MAX_JWT_SIZE + 3 + CBOR_DATA_HEADER_LEN      //Signature size + 2 bytes for CBOR array of bytes identifier + CBOR header size
 #define CBOR_DATA_STATUS_LEN 4 + CBOR_DATA_HEADER_LEN
 
 
