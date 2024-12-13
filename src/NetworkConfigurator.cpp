@@ -28,7 +28,7 @@ bool NetworkConfigurator::begin() {
   _connectionLostStatus = false;
   _state = NetworkConfiguratorStates::READ_STORED_CONFIG;
   _startConnectionAttempt = 0;
-
+  memset(&_networkSetting, 0x00, sizeof(models::NetworkSetting));
 #ifdef ARDUINO_UNOR4_WIFI
   while (1) {
     if (!_preferences.begin("my-app", false)) {
@@ -48,7 +48,6 @@ bool NetworkConfigurator::begin() {
     DEBUG_ERROR(F("The current WiFi firmware version is not the latest and it may cause compatibility issues. Please upgrade the WiFi firmware"));
   }
 #endif
-  _networkSetting.type = NetworkAdapter::WIFI;
   if (!_agentManager->addRequestHandler(RequestType::SCAN, scanReqHandler)) {
     DEBUG_ERROR("NetworkConfigurator::%s Error registering \"scan request\" callback to AgentManager", __FUNCTION__);
   }
@@ -275,21 +274,15 @@ void NetworkConfigurator::setNetworkSettingsHandler(models::NetworkSetting *netS
 
 NetworkConfiguratorStates NetworkConfigurator::handleConnectRequest() {
   NetworkConfiguratorStates nextState = _state;
-  if (!_connectionHandlerIstantiated) {
+  if (_networkSetting.type == NetworkAdapter::NONE) {
     DEBUG_DEBUG("NetworkConfigurator::%s Connect request received but network settings not received yet", __FUNCTION__);
     _agentManager->setStatusMessage(MessageTypeCodes::PARAMS_NOT_FOUND);
-  } else {
-    _agentManager->setStatusMessage(MessageTypeCodes::CONNECTING);
-    nextState = NetworkConfiguratorStates::CONNECTING;
+    return nextState;
   }
-  return nextState;
-}
 
-void NetworkConfigurator::handleNewNetworkSettings() {
-  printNetworkSettings();
-  _connectionLostStatus = false;  //reset for updating the failure reason
-
-  if (_connectionHandlerIstantiated){
+  _agentManager->setStatusMessage(MessageTypeCodes::CONNECTING);
+  
+  if(_connectionHandlerIstantiated) {
     _connectionHandler->disconnect();
     uint32_t startDisconnection = millis();
     NetworkConnectionState s;
@@ -300,19 +293,26 @@ void NetworkConfigurator::handleNewNetworkSettings() {
     if(s != NetworkConnectionState::CLOSED){
       DEBUG_ERROR("NetworkConfigurator::%s Impossible to disconnect the network", __FUNCTION__);
       _agentManager->setStatusMessage(MessageTypeCodes::ERROR);
-      return;
+      return nextState;
     }
     // Reset the connection handler to INIT state
     _connectionHandler->connect();
   }
+  
   if (!_connectionHandler->updateSetting(_networkSetting)) {
     DEBUG_WARNING("NetworkConfigurator::%s The received network parameters are not supported", __FUNCTION__);
     _agentManager->setStatusMessage(MessageTypeCodes::INVALID_PARAMS);
-    return;
+    return nextState;
   }
 
   _connectionHandlerIstantiated = true;
+  nextState = NetworkConfiguratorStates::CONNECTING;
+  return nextState;
+}
 
+void NetworkConfigurator::handleNewNetworkSettings() {
+  printNetworkSettings();
+  _connectionLostStatus = false;  //reset for updating the failure reason
 #ifdef BOARD_HAS_WIFI
 #ifdef ARDUINO_UNOR4_WIFI
   _preferences.remove(SSIDKEY);
@@ -374,7 +374,7 @@ NetworkConfiguratorStates NetworkConfigurator::handleReadStorage() {
   //preferences.end();
   if (SSID != "" && Password != "") {
     DEBUG_INFO("Found WiFi configuration on storage.\n SSID: %s PSW: %s", SSID.c_str(), Password.c_str());
-
+    _networkSetting.type = NetworkAdapter::WIFI;
     memcpy(_networkSetting.wifi.ssid, SSID.c_str(), SSID.length());
     memcpy(_networkSetting.wifi.pwd, Password.c_str(), Password.length());
     if (!_connectionHandler->updateSetting(_networkSetting)) {
