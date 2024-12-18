@@ -39,7 +39,7 @@ private:
   BLECharacteristic _inputStreamCharacteristic;
   BLECharacteristic _outputStreamCharacteristic;
   String _localName;
-  uint8_t _manufacturerData[6];
+  uint8_t _manufacturerData[8];
   size_t _readByte = 0;
   AgentConfiguratorStates handlePeerConnected();
   bool setLocalName();

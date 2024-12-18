@@ -14,6 +14,7 @@
 #include "BLEConfiguratorAgent.h"
 #define DEBUG_PACKET
 #define BASE_LOCAL_NAME "Arduino"
+#define ARDUINO_COMPANY_ID 0x09A3
 
 #if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT)
 #define VID USB_VID
@@ -215,7 +216,7 @@ ConfiguratorAgent::AgentConfiguratorStates BLEConfiguratorAgent::handlePeerConne
 
 //The local name is sent after a BLE scan Request
 bool BLEConfiguratorAgent::setLocalName() {
-  _Static_assert(sizeof(BASE_LOCAL_NAME) < 21, "Error BLE device Local Name too long. Reduce BASE_LOCAL_NAME length");  //Check at compile time if the local name length is valid
+  _Static_assert(sizeof(BASE_LOCAL_NAME) < 19, "Error BLE device Local Name too long. Reduce BASE_LOCAL_NAME length");  //Check at compile time if the local name length is valid
   char vid[5];
   char pid[5];
   sprintf(vid, "%04x", VID);
@@ -234,9 +235,11 @@ bool BLEConfiguratorAgent::setLocalName() {
 bool BLEConfiguratorAgent::setManufacturerData() {
   uint8_t addr[6] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
   HCI.readBdAddr(addr);
-
-  for (int i = 0; i < 6; i++) {
-    _manufacturerData[i] = addr[5 - i];
+  uint16_t companyID = ARDUINO_COMPANY_ID;
+  _manufacturerData[0] = (uint8_t)companyID & 0xFF;
+  _manufacturerData[1] = (uint8_t)(companyID >> 8);
+  for (int i = 2, j = 0; j < 6; j++, i++) {
+    _manufacturerData[i] = addr[5 - j];
   }
 
   return BLE.setManufacturerData(_manufacturerData, sizeof(_manufacturerData));
