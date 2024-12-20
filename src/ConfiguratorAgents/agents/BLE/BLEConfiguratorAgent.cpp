@@ -5,7 +5,7 @@
   License, v. 2.0. If a copy of the MPL was not distributed with this
   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
-
+#if !defined(ARDUINO_SAMD_MKRGSM1400) && !defined(ARDUINO_SAMD_MKRNB1500) && !defined(ARDUINO_SAMD_MKRWAN1300) && !defined(ARDUINO_SAMD_MKRWAN1310)
 #include <Arduino_DebugUtils.h>
 #include <algorithm>
 #include "utility/HCI.h"
@@ -258,3 +258,5 @@ void BLEConfiguratorAgent::disconnectPeer() {
 }
 
 BLEConfiguratorAgent BLEAgent;
+
+#endif

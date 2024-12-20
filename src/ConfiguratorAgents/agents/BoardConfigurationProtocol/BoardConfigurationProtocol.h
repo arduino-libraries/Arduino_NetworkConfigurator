@@ -42,6 +42,7 @@ private:
   bool sendNetworkOptions(const NetworkOptions *netOptions);
   bool sendUhwid(const char *uhwid, size_t len);
   bool sendJwt(const char *jwt, size_t len);
+  bool sendBleMacAddress(const uint8_t *mac, size_t len);
   TransmissionResult transmitStream();
   void printPacket(const char *label, const uint8_t *data, size_t len);
   std::list<OutputPacketBuffer> _outputMessagesList;

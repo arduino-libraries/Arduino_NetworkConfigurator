@@ -144,6 +144,8 @@ bool BoardConfigurationProtocol::sendMsg(ProvisioningOutputMessage &msg) {
     case MessageOutputType::JWT:
       res = sendJwt(msg.m.jwt, strlen(msg.m.jwt));
       break;
+    case MessageOutputType::BLE_MAC_ADDRESS:
+      res = sendBleMacAddress(msg.m.BLEMacAddress, BLE_MAC_ADDRESS_SIZE);
     default:
       break;
   }
@@ -276,6 +278,30 @@ bool BoardConfigurationProtocol::sendJwt(const char *jwt, size_t len) {
     return res;
   }
 
+  return res;
+}
+
+bool BoardConfigurationProtocol::sendBleMacAddress(const uint8_t *mac, size_t len) {
+  bool res = false;
+  if (len != BLE_MAC_ADDRESS_SIZE) {
+    DEBUG_ERROR("BoardConfigurationProtocol::%s Invalid BLE MAC address", __FUNCTION__);
+    return res;
+  }
+
+  size_t cborDataLen = CBOR_DATA_BLE_MAC_LEN;
+  uint8_t data[cborDataLen];
+
+  res = CBORAdapter::BLEMacAddressToCBOR(mac, data, &cborDataLen);
+  if (!res) {
+    DEBUG_ERROR("BoardConfigurationProtocol::%s failed to convert BLE MAC address to CBOR", __FUNCTION__);
+    return res;
+  }
+
+  res = sendData(PacketManager::MessageType::DATA, data, cborDataLen);
+  if (!res) {
+    DEBUG_ERROR("BoardConfigurationProtocol::%s failed to send BLE MAC address", __FUNCTION__);
+    return res;
+  }
   return res;
 }
 

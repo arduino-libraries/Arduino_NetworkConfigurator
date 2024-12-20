@@ -37,12 +37,14 @@ typedef MessageTypeCodes StatusMessage;
 
 enum class RemoteCommands { CONNECT = 1,
                             GET_ID = 2,
+                            GET_BLE_MAC_ADDRESS = 3,
                             SCAN = 100 };
 
 enum class MessageOutputType { STATUS,
                                NETWORK_OPTIONS,
                                UHWID,
-                               JWT
+                               JWT,
+                               BLE_MAC_ADDRESS
 };
 
 enum class MessageInputType {
@@ -58,6 +60,7 @@ struct ProvisioningOutputMessage {
     const NetworkOptions *netOptions;
     const char *uhwid;
     const char *jwt;
+    const uint8_t *BLEMacAddress;
   } m;
 };
 

@@ -90,6 +90,7 @@ private:
   void handleConnectCommand();
   void handleUpdateOptCommand();
   void handleGetIDCommand();
+  void handleGetBleMacAddressCommand();
   bool sendNetworkOptions();
   bool sendStatus(StatusMessage msg);
 

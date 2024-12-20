@@ -11,6 +11,14 @@
 #include <settings/settings.h>
 #include "AgentsConfiguratorManager.h"
 #include "NetworkOptionsDefinitions.h"
+#if !defined(ARDUINO_SAMD_MKRGSM1400) && !defined(ARDUINO_SAMD_MKRNB1500) && !defined(ARDUINO_SAMD_MKRWAN1300) && !defined(ARDUINO_SAMD_MKRWAN1310)
+#define BOARD_HAS_BLE
+#endif
+
+#ifdef BOARD_HAS_BLE
+#include <ArduinoBLE.h>
+#include "utility/HCI.h"
+#endif
 
 bool AgentsConfiguratorManager::addAgent(ConfiguratorAgent &agent) {
   _agentsList.push_back(&agent);
@@ -279,7 +287,8 @@ void AgentsConfiguratorManager::handleReceivedCommands(RemoteCommands cmd) {
   switch (cmd) {
     case RemoteCommands::CONNECT: handleConnectCommand(); break;
     case RemoteCommands::SCAN: handleUpdateOptCommand(); break;
-    case RemoteCommands::GET_ID: handleGetIDCommand(); break;
+    case RemoteCommands::GET_ID:              handleGetIDCommand           (); break;
+    case RemoteCommands::GET_BLE_MAC_ADDRESS: handleGetBleMacAddressCommand(); break;
   }
 }
 
@@ -346,6 +355,36 @@ void AgentsConfiguratorManager::handleGetIDCommand() {
   _statusRequest.pending = true;
   _statusRequest.key = RequestType::GET_ID;
   callHandler(RequestType::GET_ID);
+}
+
+void AgentsConfiguratorManager::handleGetBleMacAddressCommand() {
+  if (_statusRequest.pending) {
+    DEBUG_DEBUG("AgentsConfiguratorManager::%s received a GetBleMacAddress request while executing another request", __FUNCTION__);
+    sendStatus(MessageTypeCodes::OTHER_REQUEST_IN_EXECUTION);
+    return;
+  }
+
+  uint8_t mac[6] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+
+#ifdef BOARD_HAS_BLE
+  if(!isBLEAgentEnabled()){
+    BLE.begin();
+  }
+
+  HCI.readBdAddr(mac);
+
+  for(int i = 0; i < 3; i++){
+    uint8_t byte = mac[i];
+    mac[i] = mac[5-i];
+    mac[5-i] = byte;
+  }
+#endif
+
+  ProvisioningOutputMessage outputMsg;
+  outputMsg.type = MessageOutputType::BLE_MAC_ADDRESS;
+  outputMsg.m.BLEMacAddress = mac;
+  _selectedAgent->sendMsg(outputMsg);
+
 }
 
 bool AgentsConfiguratorManager::sendNetworkOptions() {

@@ -16,12 +16,14 @@
 #define CBOR_DATA_UHWID_LEN MAX_UHWID_SIZE + 2 + CBOR_DATA_HEADER_LEN  //UHWID size + 2 bytes for CBOR array of bytes identifier + CBOR header size
 #define CBOR_DATA_JWT_LEN MAX_JWT_SIZE + 3 + CBOR_DATA_HEADER_LEN      //Signature size + 2 bytes for CBOR array of bytes identifier + CBOR header size
 #define CBOR_DATA_STATUS_LEN 4 + CBOR_DATA_HEADER_LEN
+#define CBOR_DATA_BLE_MAC_LEN BLE_MAC_ADDRESS_SIZE + 2 + CBOR_DATA_HEADER_LEN
 
 
 class CBORAdapter {
 public:
   static bool uhwidToCBOR(const char *uhwid, uint8_t *data, size_t *len);
   static bool jwtToCBOR(const char *jwt, uint8_t *data, size_t *len);
+  static bool BLEMacAddressToCBOR(const uint8_t *mac, uint8_t *data, size_t *len);
   static bool statusToCBOR(StatusMessage msg, uint8_t *data, size_t *len);
   static bool networkOptionsToCBOR(const NetworkOptions *netOptions, uint8_t *data, size_t *len);
   static bool getMsgFromCBOR(uint8_t *data, size_t len, ProvisioningCommandDown *msg);

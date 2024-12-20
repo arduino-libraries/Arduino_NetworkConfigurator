@@ -46,6 +46,23 @@ bool CBORAdapter::jwtToCBOR(const char *jwt, uint8_t *data, size_t *len) {
   return status == Encoder::Status::Complete ? true : false;
 }
 
+bool CBORAdapter::BLEMacAddressToCBOR(const uint8_t *mac, uint8_t *data, size_t *len) {
+  CBORMessageEncoder encoder;
+  if (*len < CBOR_DATA_BLE_MAC_LEN) {
+    return false;
+  }
+
+  memset(data, 0x00, *len);
+
+  ProvisioningBLEMacAddressMessage bleMacMsg;
+  bleMacMsg.c.id = CommandId::ProvisioningBLEMacAddress;
+  memcpy(bleMacMsg.params.macAddress, mac, BLE_MAC_ADDRESS_SIZE);
+
+  Encoder::Status status = encoder.encode((Message *)&bleMacMsg, data, *len);
+
+  return status == Encoder::Status::Complete ? true : false;
+}
+
 bool CBORAdapter::statusToCBOR(StatusMessage msg, uint8_t *data, size_t *len) {
   bool result = false;
 
