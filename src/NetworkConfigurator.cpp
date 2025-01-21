@@ -156,7 +156,10 @@ NetworkConfigurator::ConnectionResult NetworkConfigurator::connectToNetwork(Mess
   } else if (connectionRes != NetworkConnectionState::CONNECTED && millis() - _startConnectionAttempt > NC_CONNECTION_TIMEOUT)  //connection attempt failed
   {
 #ifdef BOARD_HAS_WIFI
+// Need for restoring the scan after a failed connection attempt
+#if defined(ARDUINO_UNOR4_WIFI)
     WiFi.end();
+#endif
 #endif
     _startConnectionAttempt = 0;
     int errorCode;
@@ -254,7 +257,6 @@ bool NetworkConfigurator::scanWiFiNetworks(WiFiOption &wifiOptObj) {
     }
   }
 
-  WiFi.end();
   return true;
 }
 #endif
@@ -428,13 +430,8 @@ NetworkConfiguratorStates NetworkConfigurator::handleWaitingForConf() {
     if (millis() - _lastOptionUpdate > 120000) {
       //if board doesn't support wifi and ble connectivity at the same time and the configuration is in progress skip updateAvailableOptions
 #ifdef BOARD_HAS_WIFI
-#if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT) || defined(ARDUINO_AVR_UNO_WIFI_REV2) || defined(ARDUINO_NANO_RP2040_CONNECT)
-      if (_agentManager->isConfigInProgress() == true) {
-        return nextState;
-      }
+    updateNetworkOptions();
 #endif
-#endif
-      updateNetworkOptions();
     }
 
     if (_connectionHandlerIstantiated && _agentManager->isConfigInProgress() != true && (millis() - _lastConnectionAttempt > 120000)) {
@@ -480,10 +477,7 @@ NetworkConfiguratorStates NetworkConfigurator::handleConfigured() {
   if (peerConnected) {
     nextState = NetworkConfiguratorStates::UPDATING_CONFIG;
 #ifdef BOARD_HAS_WIFI
-    WiFi.end();
-#endif
-#if !defined(ARDUINO_SAMD_MKRWIFI1010) && !defined(ARDUINO_SAMD_NANO_33_IOT) && !defined(ARDUINO_AVR_UNO_WIFI_REV2) && !defined(ARDUINO_NANO_RP2040_CONNECT)
-    updateNetworkOptions();
+  updateNetworkOptions();
 #endif
   }
 

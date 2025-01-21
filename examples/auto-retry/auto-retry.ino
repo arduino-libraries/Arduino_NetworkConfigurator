@@ -100,9 +100,6 @@ void loop() {
     if (digitalRead(RESETCRED_BUTTON) == HIGH) {
 #endif
       Serial.println("Update config");
-#ifdef BOARD_HAS_WIFI
-      WiFi.end();
-#endif
       if (!ConfiguratorManager.isBLEAgentEnabled()) {
         ConfiguratorManager.enableBLEAgent(true);
       }
@@ -112,6 +109,7 @@ void loop() {
     if (NetworkConf.poll() == NetworkConfiguratorStates::UPDATING_CONFIG) {
       networkConfigured = false;
       changeMode(DeviceMode::CONFIG);
+      return;
     }
 
     // Your code here

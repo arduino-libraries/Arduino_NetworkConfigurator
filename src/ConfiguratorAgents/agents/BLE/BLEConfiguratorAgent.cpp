@@ -99,6 +99,9 @@ ConfiguratorAgent::AgentConfiguratorStates BLEConfiguratorAgent::end() {
 }
 
 ConfiguratorAgent::AgentConfiguratorStates BLEConfiguratorAgent::poll() {
+  if (_state == AgentConfiguratorStates::END) {
+    return _state;
+  }
   BLE.poll();
   if (_bleEvent.newEvent) {
     _bleEvent.newEvent = false;

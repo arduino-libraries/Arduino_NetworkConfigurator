@@ -108,9 +108,6 @@ void AgentsConfiguratorManager::disconnect() {
 
 bool AgentsConfiguratorManager::setStatusMessage(StatusMessage msg) {
   if ((int)msg < 0) {
-#if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT) || defined(ARDUINO_AVR_UNO_WIFI_REV2) || defined(ARDUINO_NANO_RP2040_CONNECT)
-      startBLEAgent();
-#endif
     if (_statusRequest.pending) {
       _statusRequest.reset();
     }
@@ -119,9 +116,6 @@ bool AgentsConfiguratorManager::setStatusMessage(StatusMessage msg) {
       _statusRequest.reset();
     }
   } else if ((msg == MessageTypeCodes::SCANNING || msg == MessageTypeCodes::CONNECTING) && _state != AgentsConfiguratorManagerStates::CONFIG_IN_PROGRESS) {
-    #if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT) || defined(ARDUINO_AVR_UNO_WIFI_REV2) || defined(ARDUINO_NANO_RP2040_CONNECT)
-    stopBLEAgent();
-    #endif
     return true;
   }
 
@@ -133,11 +127,6 @@ bool AgentsConfiguratorManager::setStatusMessage(StatusMessage msg) {
     _initStatusMsg = msg;
   }
 
-#if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT) || defined(ARDUINO_AVR_UNO_WIFI_REV2) || defined(ARDUINO_NANO_RP2040_CONNECT)
-  if(msg == MessageTypeCodes::CONNECTING || msg == MessageTypeCodes::SCANNING) {
-    stopBLEAgent();
-  }
-#endif
   return true;
 }
 
@@ -146,14 +135,6 @@ bool AgentsConfiguratorManager::setNetworkOptions(NetworkOptions netOptions) {
   if (_statusRequest.pending && _statusRequest.key == RequestType::SCAN) {
     _statusRequest.reset();
   }
-
-#ifdef BOARD_HAS_WIFI
-#if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT) || defined(ARDUINO_AVR_UNO_WIFI_REV2) || defined(ARDUINO_NANO_RP2040_CONNECT)
-  if (netOptions.type == NetworkOptionsClass::WIFI) {
-    startBLEAgent();
-  }
-#endif
-#endif
 
   if (_state == AgentsConfiguratorManagerStates::CONFIG_IN_PROGRESS) {
     //Send immediately if agent is connected with a peer and configuration is in progress
