@@ -8,16 +8,18 @@
 #include "ConfiguratorAgents/agents/BLE/BLEConfiguratorAgent.h"
 #endif
 #include "ConfiguratorAgents/agents/Serial/SerialAgent.h"
-#include "provisioning.h"
 
-const char SSID[] = SECRET_SSID;           // Network SSID (name)
-const char PASS[] = SECRET_OPTIONAL_PASS;  // Network password (use for WPA, or use as key for WEP)
+const char SSID[]     = SECRET_SSID;    // Network SSID (name)
+const char PASS[]     = SECRET_OPTIONAL_PASS;    // Network password (use for WPA, or use as key for WEP)
 
 void onCounterChange();
 
 int counter;
 
-void initProperties() {
+GenericConnectionHandler ArduinoIoTPreferredConnection;
+NetworkConfigurator NetworkConf(ConfiguratorManager, ArduinoIoTPreferredConnection);
+
+void initProperties(){
 
   ArduinoCloud.addProperty(counter, READWRITE, ON_CHANGE, onCounterChange);
 #if !defined(ARDUINO_SAMD_MKRGSM1400) && !defined(ARDUINO_SAMD_MKRNB1500) && !defined(ARDUINO_SAMD_MKRWAN1300) && !defined(ARDUINO_SAMD_MKRWAN1310)
@@ -26,6 +28,4 @@ void initProperties() {
   ConfiguratorManager.addAgent(SerialAgent);
 }
 
-GenericConnectionHandler ArduinoIoTPreferredConnection;
-NetworkConfigurator NetworkConf(ConfiguratorManager, ArduinoIoTPreferredConnection);
-Provisioning ProvisioningSystem(ConfiguratorManager);
+

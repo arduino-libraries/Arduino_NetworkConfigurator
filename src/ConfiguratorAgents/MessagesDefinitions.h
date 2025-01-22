@@ -30,6 +30,7 @@ enum class MessageTypeCodes {
   HW_ERROR_CONN_MODULE       = -101,
   WIFI_IDLE                  = -102,
   WIFI_STOPPED               = -103,
+  ERROR_STORAGE_BEGIN        = -200, 
   ERROR                      = -255
 };
 

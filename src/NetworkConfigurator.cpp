@@ -14,9 +14,18 @@
 #include "WiFiConnectionHandler.h"
 #endif
 #include "NetworkConfigurator.h"
+#if !defined(ARDUINO_SAMD_MKRGSM1400) && !defined(ARDUINO_SAMD_MKRNB1500)
+#include <Arduino_KVStore.h>
+#endif
+
 #define SERVICE_ID_FOR_AGENTMANAGER 0xB0
-constexpr char *SSIDKEY{ "SSID" };
-constexpr char *PSWKEY{ "PASSWORD" };
+
+#include "NetworkConfigurator.h"
+
+#if !defined(ARDUINO_SAMD_MKRGSM1400) && !defined(ARDUINO_SAMD_MKRNB1500)
+  KVStore _kvstore;
+#endif
+constexpr char *STORAGE_KEY{ "NETWORK_CONFIGS" };
 
 NetworkConfigurator::NetworkConfigurator(AgentsConfiguratorManager &agentManager, GenericConnectionHandler &connectionHandler, bool startConfigurationIfConnectionFails)
   : _agentManager{ &agentManager },
@@ -29,17 +38,6 @@ bool NetworkConfigurator::begin() {
   _state = NetworkConfiguratorStates::READ_STORED_CONFIG;
   _startConnectionAttempt = 0;
   memset(&_networkSetting, 0x00, sizeof(models::NetworkSetting));
-#ifdef ARDUINO_UNOR4_WIFI
-  while (1) {
-    if (!_preferences.begin("my-app", false)) {
-      DEBUG_VERBOSE("Cannot initialize preferences");
-      _preferences.end();
-    } else {
-      DEBUG_DEBUG("preferences initialized");
-      break;
-    }
-  }
-#endif
 
 #ifdef BOARD_HAS_WIFI
 #ifndef ARDUINO_ARCH_ESP32
@@ -97,29 +95,18 @@ NetworkConfiguratorStates NetworkConfigurator::poll() {
 }
 
 bool NetworkConfigurator::resetStoredConfiguration() {
-#ifdef ARDUINO_UNOR4_WIFI
-  bool initialized = false;
-  for (uint8_t attempt = 0; attempt < 3; attempt++) {
-    if (!_preferences.begin("my-app", false)) {
-      DEBUG_VERBOSE("Cannot initialize preferences");
-      _preferences.end();
-    } else {
-      DEBUG_DEBUG("preferences initialized");
-      initialized = true;
-      break;
-    }
+#if !defined(ARDUINO_SAMD_MKRGSM1400) && !defined(ARDUINO_SAMD_MKRNB1500)
+  bool res = false;
+  if (_kvstore.begin()) {
+    res = _kvstore.remove(STORAGE_KEY);
+    _kvstore.end();
+  } else {
+    DEBUG_DEBUG("Cannot initialize kvstore for deleting network settings");
   }
-  if (!initialized) {
-    return false;
-  }
-
-  bool res = _preferences.clear();
-
-  _preferences.end();
-
   return res;
+#else 
+  return true;
 #endif
-  return false;
 }
 
 bool NetworkConfigurator::end() {
@@ -129,9 +116,6 @@ bool NetworkConfigurator::end() {
   _agentManager->removeRequestHandler(RequestType::SCAN);
   _agentManager->removeRequestHandler(RequestType::CONNECT);
   _state = NetworkConfiguratorStates::END;
-#ifdef ARDUINO_UNOR4_WIFI
-  _preferences.end();
-#endif
   return _agentManager->end(SERVICE_ID_FOR_AGENTMANAGER);
 }
 
@@ -143,6 +127,7 @@ NetworkConfigurator::ConnectionResult NetworkConfigurator::connectToNetwork(Mess
   if (_startConnectionAttempt == 0) {
     _startConnectionAttempt = millis();
   }
+
   NetworkConnectionState connectionRes = NetworkConnectionState::DISCONNECTED;
 
   connectionRes = _connectionHandler->check();
@@ -283,16 +268,31 @@ NetworkConfiguratorStates NetworkConfigurator::handleConnectRequest() {
   }
 
   _agentManager->setStatusMessage(MessageTypeCodes::CONNECTING);
-  
-  if(_connectionHandlerIstantiated) {
+
+#if !defined(ARDUINO_SAMD_MKRGSM1400) && !defined(ARDUINO_SAMD_MKRNB1500)
+  if (!_kvstore.begin()) {
+    DEBUG_ERROR("NetworkConfigurator::%s error initializing kvstore", __FUNCTION__);
+    _agentManager->setStatusMessage(MessageTypeCodes::ERROR);
+    return nextState;
+  }
+  if (!_kvstore.putBytes(STORAGE_KEY, (uint8_t *)&_networkSetting, sizeof(models::NetworkSetting))) {
+    DEBUG_ERROR("NetworkConfigurator::%s error saving network settings", __FUNCTION__);
+    _agentManager->setStatusMessage(MessageTypeCodes::ERROR);
+    return nextState;
+  }
+
+  _kvstore.end();
+#endif
+
+  if (_connectionHandlerIstantiated) {
     _connectionHandler->disconnect();
     uint32_t startDisconnection = millis();
     NetworkConnectionState s;
-    do{
-       s = _connectionHandler->check();
-    }while(s != NetworkConnectionState::CLOSED && millis() - startDisconnection < 5000);
+    do {
+      s = _connectionHandler->check();
+    } while (s != NetworkConnectionState::CLOSED && millis() - startDisconnection < 5000);
 
-    if(s != NetworkConnectionState::CLOSED){
+    if (s != NetworkConnectionState::CLOSED) {
       DEBUG_ERROR("NetworkConfigurator::%s Impossible to disconnect the network", __FUNCTION__);
       _agentManager->setStatusMessage(MessageTypeCodes::ERROR);
       return nextState;
@@ -300,7 +300,7 @@ NetworkConfiguratorStates NetworkConfigurator::handleConnectRequest() {
     // Reset the connection handler to INIT state
     _connectionHandler->connect();
   }
-  
+
   if (!_connectionHandler->updateSetting(_networkSetting)) {
     DEBUG_WARNING("NetworkConfigurator::%s The received network parameters are not supported", __FUNCTION__);
     _agentManager->setStatusMessage(MessageTypeCodes::INVALID_PARAMS);
@@ -315,15 +315,6 @@ NetworkConfiguratorStates NetworkConfigurator::handleConnectRequest() {
 void NetworkConfigurator::handleNewNetworkSettings() {
   printNetworkSettings();
   _connectionLostStatus = false;  //reset for updating the failure reason
-#ifdef BOARD_HAS_WIFI
-#ifdef ARDUINO_UNOR4_WIFI
-  _preferences.remove(SSIDKEY);
-  _preferences.putString(SSIDKEY, _networkSetting.wifi.ssid);
-  _preferences.remove(PSWKEY);
-  _preferences.putString(PSWKEY, _networkSetting.wifi.pwd);
-
-#endif
-#endif
 }
 
 String NetworkConfigurator::decodeConnectionErrorMessage(NetworkConnectionState err, int *errorCode) {
@@ -369,30 +360,30 @@ NetworkConfiguratorStates NetworkConfigurator::handleCheckEth() {
 
 NetworkConfiguratorStates NetworkConfigurator::handleReadStorage() {
   NetworkConfiguratorStates nextState = _state;
-#ifdef BOARD_HAS_WIFI
-#ifdef ARDUINO_UNOR4_WIFI
-  String SSID = _preferences.getString(SSIDKEY, "");
-  String Password = _preferences.getString(PSWKEY, "");
-  //preferences.end();
-  if (SSID != "" && Password != "") {
-    DEBUG_INFO("Found WiFi configuration on storage.\n SSID: %s PSW: %s", SSID.c_str(), Password.c_str());
-    _networkSetting.type = NetworkAdapter::WIFI;
-    memcpy(_networkSetting.wifi.ssid, SSID.c_str(), SSID.length());
-    memcpy(_networkSetting.wifi.pwd, Password.c_str(), Password.length());
+#if !defined(ARDUINO_SAMD_MKRGSM1400) && !defined(ARDUINO_SAMD_MKRNB1500)
+  if (!_kvstore.begin()) {
+    DEBUG_ERROR("NetworkConfigurator::%s error initializing kvstore", __FUNCTION__);
+    return nextState;
+  }
+
+  if (_kvstore.exists(STORAGE_KEY)) {
+    _kvstore.getBytes(STORAGE_KEY, (uint8_t *)&_networkSetting, sizeof(models::NetworkSetting));
+    printNetworkSettings();
     if (!_connectionHandler->updateSetting(_networkSetting)) {
       DEBUG_WARNING("NetworkConfigurator::%s Network parameters found on storage are not supported.", __FUNCTION__);
       nextState = NetworkConfiguratorStates::WAITING_FOR_CONFIG;
     } else {
       _connectionHandlerIstantiated = true;
+      _agentManager->setStatusMessage(MessageTypeCodes::CONNECTING);
       nextState = NetworkConfiguratorStates::TEST_STORED_CONFIG;
     }
 
   } else {
     nextState = NetworkConfiguratorStates::WAITING_FOR_CONFIG;
   }
+  _kvstore.end();
 #else
-  nextState = NetworkConfiguratorStates::WAITING_FOR_CONFIG;
-#endif
+  nextState = NetworkConfiguratorStates::CONFIGURED; //Fix when implement the check if the provided connectionhandler is already configured
 #endif
   return nextState;
 }
@@ -400,6 +391,9 @@ NetworkConfiguratorStates NetworkConfigurator::handleReadStorage() {
 NetworkConfiguratorStates NetworkConfigurator::handleTestStoredConfig() {
   NetworkConfiguratorStates nextState = _state;
   MessageTypeCodes err;
+#if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT) || defined(ARDUINO_AVR_UNO_WIFI_REV2) || defined(ARDUINO_NANO_RP2040_CONNECT)
+  _agentManager->setStatusMessage(MessageTypeCodes::CONNECTING);
+#endif
   ConnectionResult res = connectToNetwork(&err);
   if (res == ConnectionResult::SUCCESS) {
     nextState = NetworkConfiguratorStates::CONFIGURED;
@@ -428,7 +422,6 @@ NetworkConfiguratorStates NetworkConfigurator::handleWaitingForConf() {
   if (nextState == _state) {
     //Check if update the network options
     if (millis() - _lastOptionUpdate > 120000) {
-      //if board doesn't support wifi and ble connectivity at the same time and the configuration is in progress skip updateAvailableOptions
 #ifdef BOARD_HAS_WIFI
     updateNetworkOptions();
 #endif
@@ -476,6 +469,7 @@ NetworkConfiguratorStates NetworkConfigurator::handleConfigured() {
 
   if (peerConnected) {
     nextState = NetworkConfiguratorStates::UPDATING_CONFIG;
+
 #ifdef BOARD_HAS_WIFI
   updateNetworkOptions();
 #endif
@@ -505,11 +499,12 @@ void PrintIP(models::ip_addr *ip) {
   } else {
     len = 16;
   }
-
+  Debug.newlineOff();
   for (int i = 0; i < len; i++) {
     DEBUG_INFO("%d ", ip->bytes[i]);
   }
   DEBUG_INFO("\n");
+  Debug.newlineOn();
 }
 #endif
 

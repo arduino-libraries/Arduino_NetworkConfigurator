@@ -10,9 +10,6 @@
 #include "Arduino.h"
 #include "GenericConnectionHandler.h"
 #include "ConfiguratorAgents/AgentsConfiguratorManager.h"
-#ifdef ARDUINO_UNOR4_WIFI
-#include <Preferences.h>  //TODO REPLACE with final lib
-#endif
 #include <settings/settings.h>
 #define NC_CONNECTION_TIMEOUT 15000
 
@@ -57,9 +54,6 @@ private:
                                 FAILED,
                                 IN_PROGRESS };
 
-#ifdef ARDUINO_UNOR4_WIFI
-  Preferences _preferences;
-#endif
 #ifdef BOARD_HAS_ETHERNET
   NetworkConfiguratorStates handleCheckEth();
 #endif
