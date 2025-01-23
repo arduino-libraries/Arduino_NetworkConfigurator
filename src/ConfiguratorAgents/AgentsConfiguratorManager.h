@@ -25,7 +25,8 @@ typedef void (*ReturnNetworkSettings)(models::NetworkSetting *netSetting);
 enum class RequestType { NONE,
                          CONNECT,
                          SCAN,
-                         GET_ID };
+                         GET_ID, 
+                         RESET };
 
 class AgentsConfiguratorManager {
 public:
@@ -62,7 +63,7 @@ private:
   AgentsConfiguratorManagerStates _state = AgentsConfiguratorManagerStates::END;
   std::list<ConfiguratorAgent *> _agentsList;
   std::list<uint8_t> _servicesList;
-  ConfiguratorRequestHandler _reqHandlers[3];
+  ConfiguratorRequestHandler _reqHandlers[4];
   ReturnTimestamp _returnTimestampCb = nullptr;
   ReturnNetworkSettings _returnNetworkSettingsCb = nullptr;
   ConfiguratorAgent *_selectedAgent = nullptr;
@@ -91,6 +92,7 @@ private:
   void handleUpdateOptCommand();
   void handleGetIDCommand();
   void handleGetBleMacAddressCommand();
+  void handleResetCommand();
   bool sendNetworkOptions();
   bool sendStatus(StatusMessage msg);
 

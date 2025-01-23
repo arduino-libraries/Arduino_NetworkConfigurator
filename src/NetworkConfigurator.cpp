@@ -59,7 +59,7 @@ bool NetworkConfigurator::begin() {
     DEBUG_ERROR("NetworkConfigurator::%s Error registering \"network settings\" callback to AgentManager", __FUNCTION__);
   }
 
-  updateNetworkOptions();
+  updateNetworkOptions(); //TODO MOVE
   if (!_agentManager->begin(SERVICE_ID_FOR_AGENTMANAGER)) {
     DEBUG_ERROR("NetworkConfigurator::%s Failed to initialize the AgentsConfiguratorManager", __FUNCTION__);
   }
@@ -98,15 +98,34 @@ bool NetworkConfigurator::resetStoredConfiguration() {
 #if !defined(ARDUINO_SAMD_MKRGSM1400) && !defined(ARDUINO_SAMD_MKRNB1500)
   bool res = false;
   if (_kvstore.begin()) {
-    res = _kvstore.remove(STORAGE_KEY);
+    if(_kvstore.exists(STORAGE_KEY)) {
+      res = _kvstore.remove(STORAGE_KEY);
+    } else{
+      res = true;
+    }
     _kvstore.end();
   } else {
     DEBUG_DEBUG("Cannot initialize kvstore for deleting network settings");
   }
-  return res;
-#else 
-  return true;
+  if (!res) {
+    return false;
+  }
 #endif
+
+  memset(&_networkSetting, 0x00, sizeof(models::NetworkSetting));
+  if(_connectionHandlerIstantiated) {
+    _connectionHandler->disconnect();
+    uint32_t startDisconnection = millis();
+    NetworkConnectionState s;
+    do{
+       s = _connectionHandler->check();
+    }while(s != NetworkConnectionState::CLOSED && millis() - startDisconnection < 5000);
+
+    // Reset the connection handler to INIT state
+    _connectionHandler->connect();
+  }
+
+  return true;
 }
 
 bool NetworkConfigurator::end() {
@@ -122,8 +141,8 @@ bool NetworkConfigurator::end() {
 
 NetworkConfigurator::ConnectionResult NetworkConfigurator::connectToNetwork(MessageTypeCodes *err) {
   ConnectionResult res = ConnectionResult::IN_PROGRESS;
-  DEBUG_DEBUG("Connecting to network");
-  printNetworkSettings();
+ // DEBUG_DEBUG("Connecting to network");
+  //printNetworkSettings();
   if (_startConnectionAttempt == 0) {
     _startConnectionAttempt = millis();
   }
@@ -374,8 +393,12 @@ NetworkConfiguratorStates NetworkConfigurator::handleReadStorage() {
       nextState = NetworkConfiguratorStates::WAITING_FOR_CONFIG;
     } else {
       _connectionHandlerIstantiated = true;
-      _agentManager->setStatusMessage(MessageTypeCodes::CONNECTING);
-      nextState = NetworkConfiguratorStates::TEST_STORED_CONFIG;
+      if (_checkStoredCred){
+        nextState = NetworkConfiguratorStates::TEST_STORED_CONFIG;
+      } else {
+        nextState = NetworkConfiguratorStates::CONFIGURED;
+      }
+      
     }
 
   } else {

@@ -117,6 +117,10 @@ bool AgentsConfiguratorManager::setStatusMessage(StatusMessage msg) {
     }
   } else if ((msg == MessageTypeCodes::SCANNING || msg == MessageTypeCodes::CONNECTING) && _state != AgentsConfiguratorManagerStates::CONFIG_IN_PROGRESS) {
     return true;
+  } else if (msg == MessageTypeCodes::RESET_COMPLETED) {
+    if (_statusRequest.pending && _statusRequest.key == RequestType::RESET) {
+      _statusRequest.reset();
+    }
   }
 
   if (_selectedAgent) {
@@ -266,10 +270,11 @@ AgentsConfiguratorManagerStates AgentsConfiguratorManager::handleConfInProgress(
 
 void AgentsConfiguratorManager::handleReceivedCommands(RemoteCommands cmd) {
   switch (cmd) {
-    case RemoteCommands::CONNECT: handleConnectCommand(); break;
-    case RemoteCommands::SCAN: handleUpdateOptCommand(); break;
+    case RemoteCommands::CONNECT:             handleConnectCommand         (); break;
+    case RemoteCommands::SCAN:                handleUpdateOptCommand       (); break;
     case RemoteCommands::GET_ID:              handleGetIDCommand           (); break;
     case RemoteCommands::GET_BLE_MAC_ADDRESS: handleGetBleMacAddressCommand(); break;
+    case RemoteCommands::RESET:               handleResetCommand           (); break;
   }
 }
 
@@ -373,6 +378,18 @@ bool AgentsConfiguratorManager::sendNetworkOptions() {
   outputMsg.type = MessageOutputType::NETWORK_OPTIONS;
   outputMsg.m.netOptions = &_netOptions;
   return _selectedAgent->sendMsg(outputMsg);
+}
+
+void AgentsConfiguratorManager::handleResetCommand() {
+  if (_statusRequest.pending) {
+    DEBUG_DEBUG("AgentsConfiguratorManager::%s received a GetUnique request while executing another request", __FUNCTION__);
+    sendStatus(MessageTypeCodes::OTHER_REQUEST_IN_EXECUTION);
+    return;
+  }
+
+  _statusRequest.pending = true;
+  _statusRequest.key = RequestType::RESET;
+  callHandler(RequestType::RESET);
 }
 
 bool AgentsConfiguratorManager::sendStatus(StatusMessage msg) {

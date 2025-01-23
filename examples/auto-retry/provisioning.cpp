@@ -1,5 +1,45 @@
 #include "provisioning.h"
 #include "ConfiguratorAgents/MessagesDefinitions.h"
+#if defined(ARDUINO_OPTA) || defined(ARDUINO_PORTENTA_H7_M7)
+#include "mbed.h"
+#include "mbed_mem_trace.h"
+#endif
+extern "C" char* sbrk(int incr);
+int freeRam() {
+  char top;
+#if defined(ARDUINO_OPTA) || defined(ARDUINO_PORTENTA_H7_M7)
+    int cnt = osThreadGetCount();
+    mbed_stats_stack_t *stats = (mbed_stats_stack_t*) malloc(cnt * sizeof(mbed_stats_stack_t));
+
+    cnt = mbed_stats_stack_get_each(stats, cnt);
+    for (int i = 0; i < cnt; i++) {
+        Serial.print("Thread: ");
+        Serial.println(stats[i].thread_id, HEX);
+        Serial.print("Stack size: ");
+        Serial.print( stats[i].max_size);
+        Serial.print("/");
+        Serial.println(stats[i].reserved_size);
+    }
+    free(stats);
+
+    // Grab the heap statistics
+    mbed_stats_heap_t heap_stats;
+    mbed_stats_heap_get(&heap_stats);
+    Serial.print("Heap size: ");
+    Serial.print(heap_stats.current_size);
+    Serial.print("/");
+    Serial.println(heap_stats.reserved_size);
+
+    return 0;
+#else
+  return &top - reinterpret_cast<char*>(sbrk(0));
+  #endif
+}
+
+void display_freeram(){
+  Serial.print(F("- SRAM left: "));
+  Serial.println(freeRam());
+}
 #define PROVISIONING_SERVICEID_FOR_AGENTMANAGER 0xB1
 Provisioning::Provisioning(AgentsConfiguratorManager &agc)
   : _agentManager{ &agc } {

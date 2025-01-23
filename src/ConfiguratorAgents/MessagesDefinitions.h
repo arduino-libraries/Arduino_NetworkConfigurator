@@ -18,6 +18,7 @@ enum class MessageTypeCodes {
   NONE                       = 0,
   CONNECTING                 = 1,
   CONNECTED                  = 2,
+  RESET_COMPLETED            = 4,
   SCANNING                   = 100,
   FAILED_TO_CONNECT          = -1,
   CONNECTION_LOST            = -2,
@@ -36,10 +37,12 @@ enum class MessageTypeCodes {
 
 typedef MessageTypeCodes StatusMessage;
 
-enum class RemoteCommands { CONNECT = 1,
-                            GET_ID = 2,
+enum class RemoteCommands { CONNECT             = 1,
+                            GET_ID              = 2,
                             GET_BLE_MAC_ADDRESS = 3,
-                            SCAN = 100 };
+                            RESET               = 4,
+                            SCAN                = 100 
+};
 
 enum class MessageOutputType { STATUS,
                                NETWORK_OPTIONS,
