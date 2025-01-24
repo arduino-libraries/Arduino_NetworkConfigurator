@@ -114,15 +114,7 @@ bool NetworkConfigurator::resetStoredConfiguration() {
 
   memset(&_networkSetting, 0x00, sizeof(models::NetworkSetting));
   if(_connectionHandlerIstantiated) {
-    _connectionHandler->disconnect();
-    uint32_t startDisconnection = millis();
-    NetworkConnectionState s;
-    do{
-       s = _connectionHandler->check();
-    }while(s != NetworkConnectionState::CLOSED && millis() - startDisconnection < 5000);
-
-    // Reset the connection handler to INIT state
-    _connectionHandler->connect();
+    disconnectFromNetwork();
   }
 
   return true;
@@ -148,9 +140,7 @@ NetworkConfigurator::ConnectionResult NetworkConfigurator::connectToNetwork(Mess
   }
 
   NetworkConnectionState connectionRes = NetworkConnectionState::DISCONNECTED;
-
   connectionRes = _connectionHandler->check();
-
   if (connectionRes == NetworkConnectionState::CONNECTED) {
     _startConnectionAttempt = 0;
     DEBUG_INFO("Connected to network");
@@ -176,6 +166,23 @@ NetworkConfigurator::ConnectionResult NetworkConfigurator::connectToNetwork(Mess
   }
 
   return res;
+}
+
+NetworkConfigurator::ConnectionResult NetworkConfigurator::disconnectFromNetwork() {
+  _connectionHandler->disconnect();
+  uint32_t startDisconnection = millis();
+  NetworkConnectionState s;
+  do {
+    s = _connectionHandler->check();
+  } while (s != NetworkConnectionState::CLOSED && millis() - startDisconnection < 5000);
+
+  if (s != NetworkConnectionState::CLOSED) {
+    return ConnectionResult::FAILED;
+  }
+  // Reset the connection handler to INIT state
+  _connectionHandler->connect();
+
+  return ConnectionResult::SUCCESS;
 }
 
 bool NetworkConfigurator::updateNetworkOptions() {
@@ -304,20 +311,11 @@ NetworkConfiguratorStates NetworkConfigurator::handleConnectRequest() {
 #endif
 
   if (_connectionHandlerIstantiated) {
-    _connectionHandler->disconnect();
-    uint32_t startDisconnection = millis();
-    NetworkConnectionState s;
-    do {
-      s = _connectionHandler->check();
-    } while (s != NetworkConnectionState::CLOSED && millis() - startDisconnection < 5000);
-
-    if (s != NetworkConnectionState::CLOSED) {
+    if(disconnectFromNetwork() == ConnectionResult::FAILED) {
       DEBUG_ERROR("NetworkConfigurator::%s Impossible to disconnect the network", __FUNCTION__);
       _agentManager->setStatusMessage(MessageTypeCodes::ERROR);
       return nextState;
     }
-    // Reset the connection handler to INIT state
-    _connectionHandler->connect();
   }
 
   if (!_connectionHandler->updateSetting(_networkSetting)) {
@@ -370,6 +368,9 @@ NetworkConfiguratorStates NetworkConfigurator::handleCheckEth() {
     nextState = NetworkConfiguratorStates::CONFIGURED;
   } else if (connectionRes == ConnectionResult::FAILED) {
     DEBUG_VERBOSE("NetworkConfigurator::%s Connection eth fail", __FUNCTION__);
+    if(disconnectFromNetwork() == ConnectionResult::FAILED) {
+      _agentManager->setStatusMessage(MessageTypeCodes::ERROR);
+    }
     _connectionHandlerIstantiated = false;
     nextState = NetworkConfiguratorStates::READ_STORED_CONFIG;
   }

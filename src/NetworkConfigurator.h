@@ -73,6 +73,7 @@ private:
 
   String decodeConnectionErrorMessage(NetworkConnectionState err, int *errorCode);
   ConnectionResult connectToNetwork(MessageTypeCodes *err);
+  ConnectionResult disconnectFromNetwork();
   bool updateNetworkOptions();
   void printNetworkSettings();
 #ifdef BOARD_HAS_WIFI
