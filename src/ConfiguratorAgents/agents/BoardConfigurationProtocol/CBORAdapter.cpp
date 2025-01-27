@@ -9,6 +9,7 @@
 #include "CBORAdapter.h"
 #include "cbor/MessageEncoder.h"
 #include "cbor/MessageDecoder.h"
+#include <settings/settings_default.h>
 
 bool CBORAdapter::uhwidToCBOR(const char *uhwid, uint8_t *data, size_t *len) {
   CBORMessageEncoder encoder;
@@ -266,7 +267,8 @@ bool CBORAdapter::extractCellularSettings(ProvisioningCommandDown *msg, models::
 #if defined(BOARD_HAS_CATM1_NBIOT)
 bool CBORAdapter::extractCATM1Settings(ProvisioningCommandDown *msg, models::NetworkSetting *netSetting) {
   netSetting->type = NetworkAdapter::CATM1;
-
+  
+  netSetting->catm1.rat = models::settingsDefault(NetworkAdapter::CATM1).catm1.rat; 
   memcpy(netSetting->catm1.pin, msg->provisioningCATM1Config.params.pin, sizeof(msg->provisioningCATM1Config.params.pin));
   memcpy(netSetting->catm1.apn, msg->provisioningCATM1Config.params.apn, sizeof(msg->provisioningCATM1Config.params.apn));
   memcpy(netSetting->catm1.login, msg->provisioningCATM1Config.params.login, sizeof(msg->provisioningCATM1Config.params.login));
