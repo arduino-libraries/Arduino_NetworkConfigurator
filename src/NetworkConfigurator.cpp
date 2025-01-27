@@ -66,6 +66,8 @@ bool NetworkConfigurator::begin() {
 
 #ifdef BOARD_HAS_ETHERNET
   _networkSetting.type = NetworkAdapter::ETHERNET;
+  _networkSetting.eth.timeout = 250;
+  _networkSetting.eth.response_timeout = 500;
   if (!_connectionHandler->updateSetting(_networkSetting)) {
     DEBUG_WARNING("NetworkConfigurator::%s Is not possible check the eth connectivity", __FUNCTION__);
     return true;
