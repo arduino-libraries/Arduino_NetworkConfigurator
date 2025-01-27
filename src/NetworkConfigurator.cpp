@@ -14,15 +14,15 @@
 #include "WiFiConnectionHandler.h"
 #endif
 #include "NetworkConfigurator.h"
-#if !defined(ARDUINO_SAMD_MKRGSM1400) && !defined(ARDUINO_SAMD_MKRNB1500)
+#if !defined(ARDUINO_SAMD_MKRGSM1400) && !defined(ARDUINO_SAMD_MKRNB1500) && !defined(ARDUINO_SAMD_MKRWAN1300) && !defined(ARDUINO_SAMD_MKRWAN1310)
+#define BOARD_HAS_KVSTORE
 #include <Arduino_KVStore.h>
 #endif
 
 #define SERVICE_ID_FOR_AGENTMANAGER 0xB0
 
-#include "NetworkConfigurator.h"
 
-#if !defined(ARDUINO_SAMD_MKRGSM1400) && !defined(ARDUINO_SAMD_MKRNB1500)
+#if defined(BOARD_HAS_KVSTORE)
   KVStore _kvstore;
 #endif
 constexpr char *STORAGE_KEY{ "NETWORK_CONFIGS" };
@@ -95,7 +95,7 @@ NetworkConfiguratorStates NetworkConfigurator::poll() {
 }
 
 bool NetworkConfigurator::resetStoredConfiguration() {
-#if !defined(ARDUINO_SAMD_MKRGSM1400) && !defined(ARDUINO_SAMD_MKRNB1500)
+#if defined(BOARD_HAS_KVSTORE)
   bool res = false;
   if (_kvstore.begin()) {
     if(_kvstore.exists(STORAGE_KEY)) {
@@ -295,7 +295,7 @@ NetworkConfiguratorStates NetworkConfigurator::handleConnectRequest() {
 
   _agentManager->setStatusMessage(MessageTypeCodes::CONNECTING);
 
-#if !defined(ARDUINO_SAMD_MKRGSM1400) && !defined(ARDUINO_SAMD_MKRNB1500)
+#if defined(BOARD_HAS_KVSTORE)
   if (!_kvstore.begin()) {
     DEBUG_ERROR("NetworkConfigurator::%s error initializing kvstore", __FUNCTION__);
     _agentManager->setStatusMessage(MessageTypeCodes::ERROR);
@@ -380,7 +380,7 @@ NetworkConfiguratorStates NetworkConfigurator::handleCheckEth() {
 
 NetworkConfiguratorStates NetworkConfigurator::handleReadStorage() {
   NetworkConfiguratorStates nextState = _state;
-#if !defined(ARDUINO_SAMD_MKRGSM1400) && !defined(ARDUINO_SAMD_MKRNB1500)
+#if defined(BOARD_HAS_KVSTORE)
   if (!_kvstore.begin()) {
     DEBUG_ERROR("NetworkConfigurator::%s error initializing kvstore", __FUNCTION__);
     return nextState;
