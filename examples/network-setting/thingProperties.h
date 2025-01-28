@@ -5,7 +5,7 @@
 #include "NetworkConfigurator.h"
 #include "ConfiguratorAgents/AgentsConfiguratorManager.h"
 #if !defined(ARDUINO_SAMD_MKRGSM1400) && !defined(ARDUINO_SAMD_MKRNB1500) && !defined(ARDUINO_SAMD_MKRWAN1300) && !defined(ARDUINO_SAMD_MKRWAN1310)
-#include "ConfiguratorAgents/agents/BLE/BLEConfiguratorAgent.h"
+#include "ConfiguratorAgents/agents/BLE/BLEAgent.h"
 #endif
 #include "ConfiguratorAgents/agents/Serial/SerialAgent.h"
 

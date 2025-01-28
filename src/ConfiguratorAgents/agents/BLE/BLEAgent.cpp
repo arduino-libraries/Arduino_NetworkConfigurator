@@ -11,7 +11,7 @@
 #include "utility/HCI.h"
 #include "BLEStringCharacteristic.h"
 #include "BLECharacteristic.h"
-#include "BLEConfiguratorAgent.h"
+#include "BLEAgent.h"
 #define DEBUG_PACKET
 #define BASE_LOCAL_NAME "Arduino"
 #define ARDUINO_COMPANY_ID 0x09A3
@@ -38,34 +38,33 @@
 #error "Board not supported for BLE configuration"
 #endif
 
-BLEConfiguratorAgent::BLEConfiguratorAgent()
+BLEAgentClass::BLEAgentClass()
   : _confService{ "5e5be887-c816-4d4f-b431-9eb34b02f4d9" },
     _inputStreamCharacteristic{ "0000ffe1-0000-1000-8000-00805f9b34fc", BLEWrite, 256 },
     _outputStreamCharacteristic{ "0000ffe1-0000-1000-8000-00805f9b34fa", BLEIndicate, 64 } {
 }
 
-ConfiguratorAgent::AgentConfiguratorStates BLEConfiguratorAgent::begin() {
+ConfiguratorAgent::AgentConfiguratorStates BLEAgentClass::begin() {
   if (_state != AgentConfiguratorStates::END) {
     return _state;
   }
 
   if (!BLE.begin()) {
-    DEBUG_ERROR("BLEConfiguratorAgent::%s Starting  Bluetooth® Low Energy module failed!", __FUNCTION__);
+    DEBUG_ERROR("BLEAgentClass::%s Starting  Bluetooth® Low Energy module failed!", __FUNCTION__);
 
     return AgentConfiguratorStates::ERROR;
   }
 
   if (!setLocalName()) {
-    DEBUG_WARNING("BLEConfiguratorAgent::%s fail to set local name", __FUNCTION__);
+    DEBUG_WARNING("BLEAgentClass::%s fail to set local name", __FUNCTION__);
   }
   // set manufacturer data
   if (!setManufacturerData()) {
-    DEBUG_WARNING("BLEConfiguratorAgent::%s fail to set manufacturer data", __FUNCTION__);
+    DEBUG_WARNING("BLEAgentClass::%s fail to set manufacturer data", __FUNCTION__);
   }
 
   BLE.setAdvertisedService(_confService);
 
-  BLE.setEventHandler(BLEConnected, blePeripheralConnectHandler);
   BLE.setEventHandler(BLEDisconnected, blePeripheralDisconnectHandler);
   _outputStreamCharacteristic.setEventHandler(BLESubscribed, bleOutputStreamSubscribed);
 
@@ -79,11 +78,11 @@ ConfiguratorAgent::AgentConfiguratorStates BLEConfiguratorAgent::begin() {
   // start advertising
   BLE.advertise();
   _state = AgentConfiguratorStates::INIT;
-  DEBUG_DEBUG("BLEConfiguratorAgent begin completed");
+  DEBUG_DEBUG("BLEAgentClass begin completed");
   return _state;
 }
 
-ConfiguratorAgent::AgentConfiguratorStates BLEConfiguratorAgent::end() {
+ConfiguratorAgent::AgentConfiguratorStates BLEAgentClass::end() {
 
   if (_state != AgentConfiguratorStates::END) {
     if (_state != AgentConfiguratorStates::INIT) {
@@ -98,28 +97,27 @@ ConfiguratorAgent::AgentConfiguratorStates BLEConfiguratorAgent::end() {
   return _state;
 }
 
-ConfiguratorAgent::AgentConfiguratorStates BLEConfiguratorAgent::poll() {
+ConfiguratorAgent::AgentConfiguratorStates BLEAgentClass::poll() {
   if (_state == AgentConfiguratorStates::END) {
     return _state;
   }
   BLE.poll();
-  if (_bleEvent.newEvent) {
-    _bleEvent.newEvent = false;
-    switch (_bleEvent.type) {
-      case BLEEventType::SUBSCRIBED:
-        if (_state != AgentConfiguratorStates::PEER_CONNECTED) {
-          _state = AgentConfiguratorStates::PEER_CONNECTED;
-        }
-        break;
-      case BLEEventType::DISCONNECTED:
-        _inputStreamCharacteristic.writeValue("");
-        clear();
-        _state = AgentConfiguratorStates::INIT;
-        break;
-      default:
-        break;
-    }
+
+  switch (_bleEvent) {
+    case BLEEvent::SUBSCRIBED:
+      if (_state != AgentConfiguratorStates::PEER_CONNECTED) {
+        _state = AgentConfiguratorStates::PEER_CONNECTED;
+      }
+      break;
+    case BLEEvent::DISCONNECTED:
+      _inputStreamCharacteristic.writeValue("");
+      clear();
+      _state = AgentConfiguratorStates::INIT;
+      break;
+    default:
+      break;
   }
+  _bleEvent = BLEEvent::NONE;
 
   switch (_state) {
     case AgentConfiguratorStates::INIT:                                           break;
@@ -134,7 +132,7 @@ ConfiguratorAgent::AgentConfiguratorStates BLEConfiguratorAgent::poll() {
   return _state;
 }
 
-bool BLEConfiguratorAgent::getReceivedMsg(ProvisioningInputMessage &msg) {
+bool BLEAgentClass::getReceivedMsg(ProvisioningInputMessage &msg) {
   bool res = BoardConfigurationProtocol::getReceivedMsg(msg);
   if (receivedMsgAvailable() == false) {
     _state = AgentConfiguratorStates::PEER_CONNECTED;
@@ -142,32 +140,22 @@ bool BLEConfiguratorAgent::getReceivedMsg(ProvisioningInputMessage &msg) {
   return res;
 }
 
-bool BLEConfiguratorAgent::isPeerConnected() {
+bool BLEAgentClass::isPeerConnected() {
   return _outputStreamCharacteristic.subscribed() && (_state == AgentConfiguratorStates::PEER_CONNECTED || _state == AgentConfiguratorStates::RECEIVED_DATA);
 }
 
-void BLEConfiguratorAgent::blePeripheralConnectHandler(BLEDevice central) {
-  // central connected event handler
-  _bleEvent.type = BLEEventType::CONNECTED;
-  _bleEvent.newEvent = true;
-
-  DEBUG_INFO("BLEConfiguratorAgent Connected event, central: %s", central.address().c_str());
-}
-
-void BLEConfiguratorAgent::blePeripheralDisconnectHandler(BLEDevice central) {
+void BLEAgentClass::blePeripheralDisconnectHandler(BLEDevice central) {
   // central disconnected event handler
-  _bleEvent.type = BLEEventType::DISCONNECTED;
-  _bleEvent.newEvent = true;
-  DEBUG_INFO("BLEConfiguratorAgent Disconnected event, central: %s", central.address().c_str());
+  _bleEvent = BLEEvent::DISCONNECTED;
+  DEBUG_INFO("BLEAgentClass Disconnected event, central: %s", central.address().c_str());
 }
 
-void BLEConfiguratorAgent::bleOutputStreamSubscribed(BLEDevice central, BLECharacteristic characteristic) {
-  DEBUG_INFO("BLEConfiguratorAgent OutputStream subscribed, central: %s", central.address().c_str());
-  _bleEvent.type = BLEEventType::SUBSCRIBED;
-  _bleEvent.newEvent = true;
+void BLEAgentClass::bleOutputStreamSubscribed(BLEDevice central, BLECharacteristic characteristic) {
+  _bleEvent = BLEEvent::SUBSCRIBED;
+  DEBUG_INFO("BLEAgentClass Connected event, central: %s", central.address().c_str());
 }
 
-bool BLEConfiguratorAgent::hasReceivedBytes() {
+bool BLEAgentClass::hasReceivedBytes() {
   bool res = _inputStreamCharacteristic.written();
   if (res) {
     _readByte = 0;
@@ -175,11 +163,11 @@ bool BLEConfiguratorAgent::hasReceivedBytes() {
   return res;
 }
 
-size_t BLEConfiguratorAgent::receivedBytes() {
+size_t BLEAgentClass::receivedBytes() {
   return _inputStreamCharacteristic.valueLength();
 }
 
-uint8_t BLEConfiguratorAgent::readByte() {
+uint8_t BLEAgentClass::readByte() {
   const uint8_t *charValue = _inputStreamCharacteristic.value();
   if (_readByte < _inputStreamCharacteristic.valueLength()) {
     return charValue[_readByte++];
@@ -187,14 +175,14 @@ uint8_t BLEConfiguratorAgent::readByte() {
   return 0;
 }
 
-int BLEConfiguratorAgent::writeBytes(const uint8_t *data, size_t len) {
+int BLEAgentClass::writeBytes(const uint8_t *data, size_t len) {
   return _outputStreamCharacteristic.write(data, len);
 }
 
-void BLEConfiguratorAgent::handleDisconnectRequest() {
+void BLEAgentClass::handleDisconnectRequest() {
 }
 
-ConfiguratorAgent::AgentConfiguratorStates BLEConfiguratorAgent::handlePeerConnected() {
+ConfiguratorAgent::AgentConfiguratorStates BLEAgentClass::handlePeerConnected() {
   AgentConfiguratorStates nextState = _state;
 
   TransmissionResult res = sendAndReceive();
@@ -218,7 +206,7 @@ ConfiguratorAgent::AgentConfiguratorStates BLEConfiguratorAgent::handlePeerConne
 }
 
 //The local name is sent after a BLE scan Request
-bool BLEConfiguratorAgent::setLocalName() {
+bool BLEAgentClass::setLocalName() {
   _Static_assert(sizeof(BASE_LOCAL_NAME) < 19, "Error BLE device Local Name too long. Reduce BASE_LOCAL_NAME length");  //Check at compile time if the local name length is valid
   char vid[5];
   char pid[5];
@@ -235,7 +223,7 @@ bool BLEConfiguratorAgent::setLocalName() {
 }
 
 //The manufacturer data is sent with the service uuid as advertised data
-bool BLEConfiguratorAgent::setManufacturerData() {
+bool BLEAgentClass::setManufacturerData() {
   uint8_t addr[6] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
   HCI.readBdAddr(addr);
   uint16_t companyID = ARDUINO_COMPANY_ID;
@@ -249,7 +237,8 @@ bool BLEConfiguratorAgent::setManufacturerData() {
 }
 
 
-void BLEConfiguratorAgent::disconnectPeer() {
+void BLEAgentClass::disconnectPeer() {
+  _inputStreamCharacteristic.writeValue("");
   uint32_t start = millis();
   BLE.disconnect();
   do {
@@ -260,6 +249,6 @@ void BLEConfiguratorAgent::disconnectPeer() {
   return;
 }
 
-BLEConfiguratorAgent BLEAgent;
+BLEAgentClass BLEAgent;
 
 #endif

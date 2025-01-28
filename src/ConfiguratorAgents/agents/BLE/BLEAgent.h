@@ -12,9 +12,9 @@
 #include <ArduinoBLE.h>
 #include "ConfiguratorAgents/agents/BoardConfigurationProtocol/BoardConfigurationProtocol.h"
 
-class BLEConfiguratorAgent : public BoardConfigurationProtocol {
+class BLEAgentClass : public BoardConfigurationProtocol {
 public:
-  BLEConfiguratorAgent();
+  BLEAgentClass();
   AgentConfiguratorStates begin();
   AgentConfiguratorStates end();
   AgentConfiguratorStates poll();
@@ -25,15 +25,11 @@ public:
     return AgentTypes::BLE;
   };
 private:
-  enum class BLEEventType { NONE,
-                            CONNECTED,
-                            DISCONNECTED,
-                            SUBSCRIBED };
-  typedef struct {
-    BLEEventType type;
-    bool newEvent;
-  } BLEEvent;
-  static inline BLEEvent _bleEvent = { BLEEventType::NONE, false };
+  enum class BLEEvent { NONE,
+                        DISCONNECTED,
+                        SUBSCRIBED };
+
+  static inline BLEEvent _bleEvent = BLEEvent::NONE;
   AgentConfiguratorStates _state = AgentConfiguratorStates::END;
   BLEService _confService;  // Bluetooth® Low Energy LED Service
   BLECharacteristic _inputStreamCharacteristic;
@@ -44,7 +40,6 @@ private:
   AgentConfiguratorStates handlePeerConnected();
   bool setLocalName();
   bool setManufacturerData();
-  static void blePeripheralConnectHandler(BLEDevice central);
   static void blePeripheralDisconnectHandler(BLEDevice central);
   static void bleOutputStreamSubscribed(BLEDevice central, BLECharacteristic characteristic);
   virtual bool hasReceivedBytes();
@@ -54,4 +49,4 @@ private:
   virtual void handleDisconnectRequest();
 };
 
-extern BLEConfiguratorAgent BLEAgent;
+extern BLEAgentClass BLEAgent;

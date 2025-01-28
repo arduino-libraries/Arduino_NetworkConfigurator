@@ -4,7 +4,7 @@
 #include <GenericConnectionHandler.h>
 #include "NetworkConfigurator.h"
 #include "ConfiguratorAgents/AgentsConfiguratorManager.h"
-#include "ConfiguratorAgents/agents/BLE/BLEConfiguratorAgent.h"
+#include "ConfiguratorAgents/agents/BLE/BLEAgent.h"
 #include "ConfiguratorAgents/agents/Serial/SerialAgent.h"
 #include "ClaimingHandler.h"
 
