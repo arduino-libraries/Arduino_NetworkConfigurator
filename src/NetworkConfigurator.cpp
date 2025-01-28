@@ -27,7 +27,7 @@
 #endif
 constexpr char *STORAGE_KEY{ "NETWORK_CONFIGS" };
 
-NetworkConfigurator::NetworkConfigurator(AgentsConfiguratorManager &agentManager, GenericConnectionHandler &connectionHandler, bool startConfigurationIfConnectionFails)
+NetworkConfigurator::NetworkConfigurator(AgentsConfiguratorManager &agentManager, ConnectionHandler &connectionHandler, bool startConfigurationIfConnectionFails)
   : _agentManager{ &agentManager },
     _connectionHandler{ &connectionHandler },
     _startBLEIfConnectionFails{ startConfigurationIfConnectionFails } {

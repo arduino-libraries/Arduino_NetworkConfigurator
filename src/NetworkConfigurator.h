@@ -24,13 +24,13 @@ enum class NetworkConfiguratorStates { CHECK_ETH,
 
 class NetworkConfigurator {
 public:
-  NetworkConfigurator(AgentsConfiguratorManager &agentManager, GenericConnectionHandler &connectionHandler, bool startBLEIfConnectionFails = false);
+  NetworkConfigurator(AgentsConfiguratorManager &agentManager, ConnectionHandler &connectionHandler, bool startBLEIfConnectionFails = false);
   bool begin();
   NetworkConfiguratorStates poll();
   void startBLEIfConnectionFails(bool enable) {
     _startBLEIfConnectionFails = enable;
   };
-  bool setCheckStoredCred(bool check) {
+  void setCheckStoredCred(bool check) {
     _checkStoredCred = check;
   };
   bool resetStoredConfiguration();
@@ -39,7 +39,7 @@ public:
 private:
   NetworkConfiguratorStates _state = NetworkConfiguratorStates::END;
   AgentsConfiguratorManager *_agentManager;
-  GenericConnectionHandler *_connectionHandler;
+  ConnectionHandler *_connectionHandler;
   static inline models::NetworkSetting _networkSetting;
   bool _startBLEIfConnectionFails;
   bool _connectionHandlerIstantiated = false;
