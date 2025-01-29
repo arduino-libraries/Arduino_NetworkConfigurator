@@ -25,7 +25,7 @@ typedef void (*ReturnNetworkSettings)(models::NetworkSetting *netSetting);
 enum class RequestType { NONE,
                          CONNECT,
                          SCAN,
-                         GET_ID, 
+                         GET_ID,
                          RESET };
 
 class AgentsConfiguratorManager {
@@ -40,9 +40,8 @@ public:
   bool isBLEAgentEnabled() {
     return _bleAgentEnabled;
   };
-  bool setStatusMessage(StatusMessage msg);
-  bool setNetworkOptions(NetworkOptions netOptions);
-  bool setID(String uhwid, String jwt);
+
+  bool sendMsg(ProvisioningOutputMessage &msg);
   bool addAgent(ConfiguratorAgent &agent);
   bool addRequestHandler(RequestType type, ConfiguratorRequestHandler callback);
   void removeRequestHandler(RequestType type) {
@@ -75,12 +74,14 @@ private:
     void reset() {
       pending = false;
       key = RequestType::NONE;
+      completion = 0;
     };
+    uint8_t completion;
     bool pending;
     RequestType key;
   } StatusRequest;
 
-  StatusRequest _statusRequest = { .pending = false, .key = RequestType::NONE };
+  StatusRequest _statusRequest = { .completion = 0 , .pending = false, .key = RequestType::NONE};
 
   AgentsConfiguratorManagerStates handleInit();
   AgentsConfiguratorManagerStates handleSendInitialStatus();
@@ -93,7 +94,6 @@ private:
   void handleGetIDCommand();
   void handleGetBleMacAddressCommand();
   void handleResetCommand();
-  bool sendNetworkOptions();
   bool sendStatus(StatusMessage msg);
 
   AgentsConfiguratorManagerStates handlePeerDisconnected();

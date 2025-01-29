@@ -146,7 +146,7 @@ NetworkConfigurator::ConnectionResult NetworkConfigurator::connectToNetwork(Mess
   if (connectionRes == NetworkConnectionState::CONNECTED) {
     _startConnectionAttempt = 0;
     DEBUG_INFO("Connected to network");
-    _agentManager->setStatusMessage(MessageTypeCodes::CONNECTED);
+    sendStatus(MessageTypeCodes::CONNECTED);
     delay(3000);  //TODO remove
     res = ConnectionResult::SUCCESS;
   } else if (connectionRes != NetworkConnectionState::CONNECTED && millis() - _startConnectionAttempt > NC_CONNECTION_TIMEOUT)  //connection attempt failed
@@ -190,14 +190,14 @@ NetworkConfigurator::ConnectionResult NetworkConfigurator::disconnectFromNetwork
 bool NetworkConfigurator::updateNetworkOptions() {
 #ifdef BOARD_HAS_WIFI
   DEBUG_DEBUG("Scanning");
-  _agentManager->setStatusMessage(MessageTypeCodes::SCANNING);  //Notify before scan
+  sendStatus(MessageTypeCodes::SCANNING);  //Notify before scan
 
   WiFiOption wifiOptObj;
 
   if (!scanWiFiNetworks(wifiOptObj)) {
     DEBUG_WARNING("NetworkConfigurator::%s Error during scan for wifi networks", __FUNCTION__);
 
-    _agentManager->setStatusMessage(MessageTypeCodes::HW_ERROR_CONN_MODULE);
+    sendStatus(MessageTypeCodes::HW_ERROR_CONN_MODULE);
 
     return false;
   }
@@ -207,8 +207,9 @@ bool NetworkConfigurator::updateNetworkOptions() {
 #else
   NetworkOptions netOption = { NetworkOptionsClass::NONE };
 #endif
-
-  _agentManager->setNetworkOptions(netOption);
+  ProvisioningOutputMessage netOptionMsg = { MessageOutputType::NETWORK_OPTIONS };
+  netOptionMsg.m.netOptions = &netOption;
+  _agentManager->sendMsg(netOptionMsg);
 
   _lastOptionUpdate = millis();
 
@@ -291,21 +292,21 @@ NetworkConfiguratorStates NetworkConfigurator::handleConnectRequest() {
   NetworkConfiguratorStates nextState = _state;
   if (_networkSetting.type == NetworkAdapter::NONE) {
     DEBUG_DEBUG("NetworkConfigurator::%s Connect request received but network settings not received yet", __FUNCTION__);
-    _agentManager->setStatusMessage(MessageTypeCodes::PARAMS_NOT_FOUND);
+    sendStatus(MessageTypeCodes::PARAMS_NOT_FOUND);
     return nextState;
   }
 
-  _agentManager->setStatusMessage(MessageTypeCodes::CONNECTING);
+  sendStatus(MessageTypeCodes::CONNECTING);
 
 #if defined(BOARD_HAS_KVSTORE)
   if (!_kvstore.begin()) {
     DEBUG_ERROR("NetworkConfigurator::%s error initializing kvstore", __FUNCTION__);
-    _agentManager->setStatusMessage(MessageTypeCodes::ERROR);
+    sendStatus(MessageTypeCodes::ERROR_STORAGE_BEGIN);
     return nextState;
   }
   if (!_kvstore.putBytes(STORAGE_KEY, (uint8_t *)&_networkSetting, sizeof(models::NetworkSetting))) {
     DEBUG_ERROR("NetworkConfigurator::%s error saving network settings", __FUNCTION__);
-    _agentManager->setStatusMessage(MessageTypeCodes::ERROR);
+    sendStatus(MessageTypeCodes::ERROR);
     return nextState;
   }
 
@@ -315,14 +316,14 @@ NetworkConfiguratorStates NetworkConfigurator::handleConnectRequest() {
   if (_connectionHandlerIstantiated) {
     if(disconnectFromNetwork() == ConnectionResult::FAILED) {
       DEBUG_ERROR("NetworkConfigurator::%s Impossible to disconnect the network", __FUNCTION__);
-      _agentManager->setStatusMessage(MessageTypeCodes::ERROR);
+      sendStatus(MessageTypeCodes::ERROR);
       return nextState;
     }
   }
 
   if (!_connectionHandler->updateSetting(_networkSetting)) {
     DEBUG_WARNING("NetworkConfigurator::%s The received network parameters are not supported", __FUNCTION__);
-    _agentManager->setStatusMessage(MessageTypeCodes::INVALID_PARAMS);
+    sendStatus(MessageTypeCodes::INVALID_PARAMS);
     return nextState;
   }
 
@@ -371,7 +372,7 @@ NetworkConfiguratorStates NetworkConfigurator::handleCheckEth() {
   } else if (connectionRes == ConnectionResult::FAILED) {
     DEBUG_VERBOSE("NetworkConfigurator::%s Connection eth fail", __FUNCTION__);
     if(disconnectFromNetwork() == ConnectionResult::FAILED) {
-      _agentManager->setStatusMessage(MessageTypeCodes::ERROR);
+      sendStatus(MessageTypeCodes::ERROR);
     }
     _connectionHandlerIstantiated = false;
     nextState = NetworkConfiguratorStates::READ_STORED_CONFIG;
@@ -385,6 +386,7 @@ NetworkConfiguratorStates NetworkConfigurator::handleReadStorage() {
 #if defined(BOARD_HAS_KVSTORE)
   if (!_kvstore.begin()) {
     DEBUG_ERROR("NetworkConfigurator::%s error initializing kvstore", __FUNCTION__);
+    sendStatus(MessageTypeCodes::ERROR_STORAGE_BEGIN);
     return nextState;
   }
 
@@ -401,7 +403,6 @@ NetworkConfiguratorStates NetworkConfigurator::handleReadStorage() {
       } else {
         nextState = NetworkConfiguratorStates::CONFIGURED;
       }
-      
     }
 
   } else {
@@ -417,14 +418,11 @@ NetworkConfiguratorStates NetworkConfigurator::handleReadStorage() {
 NetworkConfiguratorStates NetworkConfigurator::handleTestStoredConfig() {
   NetworkConfiguratorStates nextState = _state;
   MessageTypeCodes err;
-#if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT) || defined(ARDUINO_AVR_UNO_WIFI_REV2) || defined(ARDUINO_NANO_RP2040_CONNECT)
-  _agentManager->setStatusMessage(MessageTypeCodes::CONNECTING);
-#endif
   ConnectionResult res = connectToNetwork(&err);
   if (res == ConnectionResult::SUCCESS) {
     nextState = NetworkConfiguratorStates::CONFIGURED;
   } else if (res == ConnectionResult::FAILED) {
-    _agentManager->setStatusMessage(MessageTypeCodes::CONNECTION_LOST);
+    sendStatus(MessageTypeCodes::CONNECTION_LOST);
     _connectionLostStatus = true;
     if (_startBLEIfConnectionFails) {
       _agentManager->enableBLEAgent(true);
@@ -454,7 +452,7 @@ NetworkConfiguratorStates NetworkConfigurator::handleWaitingForConf() {
     }
 
     if (_connectionHandlerIstantiated && _agentManager->isConfigInProgress() != true && (millis() - _lastConnectionAttempt > 120000)) {
-      _agentManager->setStatusMessage(MessageTypeCodes::CONNECTING);
+      sendStatus(MessageTypeCodes::CONNECTING);
       nextState = NetworkConfiguratorStates::CONNECTING;
     }
   }
@@ -472,7 +470,7 @@ NetworkConfiguratorStates NetworkConfigurator::handleConnecting() {
     nextState = NetworkConfiguratorStates::CONFIGURED;
   } else if (res == ConnectionResult::FAILED) {
     if (!_connectionLostStatus) {
-      _agentManager->setStatusMessage(err);
+      sendStatus(err);
     }
     nextState = NetworkConfiguratorStates::WAITING_FOR_CONFIG;
   }
@@ -508,13 +506,18 @@ NetworkConfiguratorStates NetworkConfigurator::handleUpdatingConfig() {
   NetworkConfiguratorStates nextState = _state;
   if (_agentManager->isConfigInProgress() == false) {
     //If peer disconnects without updating the network settings, go to connecting state for check the connection
-    _agentManager->setStatusMessage(MessageTypeCodes::CONNECTING);
+    sendStatus(MessageTypeCodes::CONNECTING);
     nextState = NetworkConfiguratorStates::CONNECTING;
   } else {
     nextState = handleWaitingForConf();
   }
 
   return nextState;
+}
+
+bool NetworkConfigurator::sendStatus(StatusMessage msg) {
+  ProvisioningOutputMessage statusMsg = { MessageOutputType::STATUS, { msg } };
+  return _agentManager->sendMsg(statusMsg);
 }
 
 #if defined(BOARD_HAS_ETHERNET)

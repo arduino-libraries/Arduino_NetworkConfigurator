@@ -31,7 +31,7 @@ enum class MessageTypeCodes {
   HW_ERROR_CONN_MODULE       = -101,
   WIFI_IDLE                  = -102,
   WIFI_STOPPED               = -103,
-  ERROR_STORAGE_BEGIN        = -200, 
+  ERROR_STORAGE_BEGIN        = -200,
   ERROR                      = -255
 };
 
@@ -41,7 +41,7 @@ enum class RemoteCommands { CONNECT             = 1,
                             GET_ID              = 2,
                             GET_BLE_MAC_ADDRESS = 3,
                             RESET               = 4,
-                            SCAN                = 100 
+                            SCAN                = 100
 };
 
 enum class MessageOutputType { STATUS,

@@ -50,7 +50,6 @@ void ClaimingHandlerClass::poll() {
   if(_state == ClaimingHandlerStates::END) {
     return;
   }
-  
   _agentManager->poll();
 
   switch (_receivedEvent) {
@@ -67,7 +66,7 @@ void ClaimingHandlerClass::getIdReqHandler() {
     Serial.println(*_uhwid);
     if (*_uhwid == "") {
       DEBUG_ERROR("ClaimingHandlerClass::%s Error: UHWID not found", __FUNCTION__);
-      _agentManager->setStatusMessage(MessageTypeCodes::ERROR);
+      sendStatus(MessageTypeCodes::ERROR);
       return;
     }
 
@@ -76,31 +75,38 @@ void ClaimingHandlerClass::getIdReqHandler() {
     Serial.println(token);
     if (token == "") {
       DEBUG_ERROR("ClaimingHandlerClass::%s Error: token not created", __FUNCTION__);
-      _agentManager->setStatusMessage(MessageTypeCodes::ERROR);
+      sendStatus(MessageTypeCodes::ERROR);
       return;
     }
     byte _uhwidBytes[33];
     hexStringToBytes(*_uhwid, _uhwidBytes, _uhwid->length());
     _uhwidBytes[32] = '\0';
-    _agentManager->setID((char *)_uhwidBytes, token);
+    //Send UHWID
+    ProvisioningOutputMessage idMsg = {MessageOutputType::UHWID};
+    idMsg.m.uhwid = (char *)_uhwidBytes;
+    _agentManager->sendMsg(idMsg);
+    //Send JWT
+    ProvisioningOutputMessage jwtMsg = {MessageOutputType::JWT};
+    jwtMsg.m.jwt = token.c_str();
+    _agentManager->sendMsg(jwtMsg);
     _ts = 0;
   } else {
     DEBUG_DEBUG("ClaimingHandlerClass::%s Error: timestamp not provided" , __FUNCTION__);
-    _agentManager->setStatusMessage(MessageTypeCodes::PARAMS_NOT_FOUND);
+    sendStatus(MessageTypeCodes::PARAMS_NOT_FOUND);
   }
 }
 
 void ClaimingHandlerClass::resetStoredCredReqHandler() {
   if( _clearStoredCredentials == nullptr) {
-    _agentManager->setStatusMessage(MessageTypeCodes::ERROR);
+    sendStatus(MessageTypeCodes::ERROR);
     return;
   }
 
   if( !_clearStoredCredentials()){
     DEBUG_ERROR("ClaimingHandlerClass::%s Error: reset stored credentials failed", __FUNCTION__);
-    _agentManager->setStatusMessage(MessageTypeCodes::ERROR);
+    sendStatus(MessageTypeCodes::ERROR);
   } else {
-    _agentManager->setStatusMessage(MessageTypeCodes::RESET_COMPLETED);
+    sendStatus(MessageTypeCodes::RESET_COMPLETED);
   }
 
 }
@@ -115,4 +121,9 @@ void ClaimingHandlerClass::setTimestamp(uint64_t ts) {
 void ClaimingHandlerClass::resetStoredCredRequestCb() {
   DEBUG_DEBUG("ClaimingHandlerClass::%s Reset stored credentials request received", __FUNCTION__);
   _receivedEvent = ClaimingReqEvents::RESET;
+}
+
+bool ClaimingHandlerClass::sendStatus(StatusMessage msg) {
+  ProvisioningOutputMessage statusMsg = { MessageOutputType::STATUS, { msg } };
+  return _agentManager->sendMsg(statusMsg);
 }

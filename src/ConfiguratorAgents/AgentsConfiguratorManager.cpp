@@ -106,70 +106,53 @@ void AgentsConfiguratorManager::disconnect() {
   }
 }
 
-bool AgentsConfiguratorManager::setStatusMessage(StatusMessage msg) {
-  if ((int)msg < 0) {
-    if (_statusRequest.pending) {
-      _statusRequest.reset();
-    }
-  } else if (msg == MessageTypeCodes::CONNECTED) {
-    if (_statusRequest.pending && _statusRequest.key == RequestType::CONNECT) {
-      _statusRequest.reset();
-    }
-  } else if ((msg == MessageTypeCodes::SCANNING || msg == MessageTypeCodes::CONNECTING) && _state != AgentsConfiguratorManagerStates::CONFIG_IN_PROGRESS) {
-    return true;
-  } else if (msg == MessageTypeCodes::RESET_COMPLETED) {
-    if (_statusRequest.pending && _statusRequest.key == RequestType::RESET) {
-      _statusRequest.reset();
-    }
-  }
+bool AgentsConfiguratorManager::sendMsg(ProvisioningOutputMessage &msg) {
 
-  if (_selectedAgent) {
-    if (!sendStatus(msg)) {
-      DEBUG_WARNING("AgentsConfiguratorManager::%s failed to send status to the peer", __FUNCTION__);
-    }
-  } else {
-    _initStatusMsg = msg;
-  }
-
-  return true;
-}
-
-bool AgentsConfiguratorManager::setNetworkOptions(NetworkOptions netOptions) {
-  memcpy(&_netOptions, &netOptions, sizeof(NetworkOptions));
-  if (_statusRequest.pending && _statusRequest.key == RequestType::SCAN) {
-    _statusRequest.reset();
-  }
-
-  if (_state == AgentsConfiguratorManagerStates::CONFIG_IN_PROGRESS) {
-    //Send immediately if agent is connected with a peer and configuration is in progress
-    sendNetworkOptions();
-  }
-
-  return true;
-}
-
-bool AgentsConfiguratorManager::setID(String uhwid, String jwt) {
-  bool res = false;
-  if (_statusRequest.pending && _statusRequest.key == RequestType::GET_ID) {
-    if (_selectedAgent) {
-      ProvisioningOutputMessage msg;
-      msg.type = MessageOutputType::UHWID;
-      msg.m.uhwid = uhwid.c_str();
-      res = _selectedAgent->sendMsg(msg);
-      if (!res) {
-        return res;
+  switch (msg.type) {
+    case MessageOutputType::STATUS:
+      {
+        if ((int)msg.m.status < 0) {
+          if (_statusRequest.pending) {
+            _statusRequest.reset();
+          }
+          _initStatusMsg = msg.m.status;
+        } else if (msg.m.status == MessageTypeCodes::CONNECTED) {
+          if (_statusRequest.pending && _statusRequest.key == RequestType::CONNECT) {
+            _statusRequest.reset();
+          }
+          _initStatusMsg = msg.m.status;
+        } else if (msg.m.status == MessageTypeCodes::RESET_COMPLETED) {
+          if (_statusRequest.pending && _statusRequest.key == RequestType::RESET) {
+            _statusRequest.reset();
+          }
+        }
       }
-
-      msg.type = MessageOutputType::JWT;
-      msg.m.jwt = jwt.c_str();
-      res = _selectedAgent->sendMsg(msg);
-      if (!res) {
-        return res;
+      break;
+    case MessageOutputType::NETWORK_OPTIONS:
+      {
+        memcpy(&_netOptions, msg.m.netOptions, sizeof(NetworkOptions));
+        if (_statusRequest.pending && _statusRequest.key == RequestType::SCAN) {
+          _statusRequest.reset();
+        }
       }
-      _statusRequest.reset();
-    }
+      break;
+    case MessageOutputType::UHWID:
+    case MessageOutputType::JWT:
+      {
+        _statusRequest.completion++;
+        if (_statusRequest.pending && _statusRequest.key == RequestType::GET_ID && _statusRequest.completion == 2) {
+          _statusRequest.reset();
+        }
+      }
+      break;
+    default:
+      break;
   }
-  return res;
+
+  if(_state == AgentsConfiguratorManagerStates::CONFIG_IN_PROGRESS) {
+    return _selectedAgent->sendMsg(msg);
+  }
+  return true;
 }
 
 bool AgentsConfiguratorManager::addRequestHandler(RequestType type, ConfiguratorRequestHandler callback) {
@@ -241,7 +224,9 @@ AgentsConfiguratorManagerStates AgentsConfiguratorManager::handleSendInitialStat
 
 AgentsConfiguratorManagerStates AgentsConfiguratorManager::handleSendNetworkOptions() {
   AgentsConfiguratorManagerStates nextState = _state;
-  if (sendNetworkOptions()) {
+  ProvisioningOutputMessage networkOptionMsg = { MessageOutputType::NETWORK_OPTIONS };
+  networkOptionMsg.m.netOptions = &_netOptions;
+  if (_selectedAgent->sendMsg(networkOptionMsg)) {
     nextState = AgentsConfiguratorManagerStates::CONFIG_IN_PROGRESS;
   }
   return nextState;
@@ -373,13 +358,6 @@ void AgentsConfiguratorManager::handleGetBleMacAddressCommand() {
 
 }
 
-bool AgentsConfiguratorManager::sendNetworkOptions() {
-  ProvisioningOutputMessage outputMsg;
-  outputMsg.type = MessageOutputType::NETWORK_OPTIONS;
-  outputMsg.m.netOptions = &_netOptions;
-  return _selectedAgent->sendMsg(outputMsg);
-}
-
 void AgentsConfiguratorManager::handleResetCommand() {
   if (_statusRequest.pending) {
     DEBUG_DEBUG("AgentsConfiguratorManager::%s received a GetUnique request while executing another request", __FUNCTION__);
@@ -393,9 +371,7 @@ void AgentsConfiguratorManager::handleResetCommand() {
 }
 
 bool AgentsConfiguratorManager::sendStatus(StatusMessage msg) {
-  ProvisioningOutputMessage outputMsg;
-  outputMsg.type = MessageOutputType::STATUS;
-  outputMsg.m.status = msg;
+  ProvisioningOutputMessage outputMsg = { MessageOutputType::STATUS, { msg } };
   return _selectedAgent->sendMsg(outputMsg);
 }
 

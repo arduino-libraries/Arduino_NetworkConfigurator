@@ -1,5 +1,7 @@
 #include "provisioning.h"
 #include "ConfiguratorAgents/MessagesDefinitions.h"
+const char * UHWID = "identifier1212123210111213141516";
+const char * TOKEN = "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjODcxODE3ZTRkN2VhY2QxOGI5NGYwYWE4YjAwNDZkZDE5Zjg0MGEwMDgzMzZiNTA5YWJmOTkwYjQ3ZTNiMTg3IiwiaWF0IjoxNzI4NDc1MTA4LCJleHAiOjE3Mjg0Nzg3MDh9.-f_UodDftALaC27UXj3lmp8SCWXCpHLBYl70Pl6DbHzb4lc-GqLYt2I_g_pquiNPym2YApUPL_7yqO-NfWuQHQ";
 #if defined(ARDUINO_OPTA) || defined(ARDUINO_PORTENTA_H7_M7)
 #include "mbed.h"
 #include "mbed_mem_trace.h"
@@ -70,12 +72,21 @@ bool Provisioning::poll() {
     _reqReceived = false;
 
     if (_ts != 0) {
-
-      _agentManager->setID("identifier1212123210111213141516", "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjODcxODE3ZTRkN2VhY2QxOGI5NGYwYWE4YjAwNDZkZDE5Zjg0MGEwMDgzMzZiNTA5YWJmOTkwYjQ3ZTNiMTg3IiwiaWF0IjoxNzI4NDc1MTA4LCJleHAiOjE3Mjg0Nzg3MDh9.-f_UodDftALaC27UXj3lmp8SCWXCpHLBYl70Pl6DbHzb4lc-GqLYt2I_g_pquiNPym2YApUPL_7yqO-NfWuQHQ");
+      //Send UHWID
+      ProvisioningOutputMessage idMsg;
+      idMsg.type = MessageOutputType::UHWID;
+      idMsg.m.uhwid = UHWID;
+      _agentManager->sendMsg(idMsg);
+      //Send JWT
+      ProvisioningOutputMessage jwtMsg;
+      jwtMsg.type = MessageOutputType::JWT;
+      jwtMsg.m.jwt = TOKEN;
+      _agentManager->sendMsg(jwtMsg);
       _reqCompleted = true;
     } else {
       Serial.println("Error: timestamp not provided");
-      _agentManager->setStatusMessage(MessageTypeCodes::PARAMS_NOT_FOUND);
+      ProvisioningOutputMessage msg = { MessageOutputType::STATUS, { MessageTypeCodes::ERROR }  };
+      _agentManager->sendMsg(msg);
     }
   }
   return _reqCompleted;

@@ -75,6 +75,7 @@ private:
   ConnectionResult connectToNetwork(MessageTypeCodes *err);
   ConnectionResult disconnectFromNetwork();
   bool updateNetworkOptions();
+  bool sendStatus(StatusMessage msg);
   void printNetworkSettings();
 #ifdef BOARD_HAS_WIFI
   bool scanWiFiNetworks(WiFiOption &wifiOptObj);

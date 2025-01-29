@@ -35,6 +35,7 @@ private:
   ClearStoredCredentialsHandler _clearStoredCredentials = nullptr;
   void getIdReqHandler();
   void resetStoredCredReqHandler();
+  bool sendStatus(StatusMessage msg);
   static void getIdRequestCb();
   static void setTimestamp(uint64_t ts);
   static void resetStoredCredRequestCb();
