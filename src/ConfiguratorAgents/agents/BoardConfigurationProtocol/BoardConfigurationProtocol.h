@@ -9,14 +9,13 @@
 #pragma once
 #include <list>
 #include "PacketManager.h"
-#include "ConfiguratorAgents/agents/ConfiguratorAgent.h"
 #include "ConfiguratorAgents/MessagesDefinitions.h"
 
-class BoardConfigurationProtocol : public ConfiguratorAgent {
+class BoardConfigurationProtocol {
 public:
-  virtual bool getReceivedMsg(ProvisioningInputMessage &msg);
-  virtual bool sendMsg(ProvisioningOutputMessage &msg);
-  virtual bool receivedMsgAvailable();
+  bool getMsg(ProvisioningInputMessage &msg);
+  bool sendNewMsg(ProvisioningOutputMessage &msg);
+  bool msgAvailable();
 
 protected:
   enum class TransmissionResult { INVALID_DATA = -2,
@@ -35,6 +34,7 @@ protected:
   virtual uint8_t readByte() = 0;
   virtual int writeBytes(const uint8_t *data, size_t len) = 0;
   virtual void handleDisconnectRequest() = 0;
+  virtual bool isPeerConnected() = 0;
 
 private:
   bool sendStatus(StatusMessage msg);

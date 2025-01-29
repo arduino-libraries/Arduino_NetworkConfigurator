@@ -25,7 +25,7 @@ public:
   } ReceivedData;
   PacketManager()
     : _tempInputMessageHeader{ 5 }, _tempInputMessageEnd{ 4 } {};
-  bool createPacket(OutputPacketBuffer &msg, MessageType type, const uint8_t *data, size_t len);
+  static bool createPacket(OutputPacketBuffer &msg, MessageType type, const uint8_t *data, size_t len);
   ReceivingState handleReceivedByte(ReceivedData &receivedData, uint8_t byte);
   void clear();
 private:

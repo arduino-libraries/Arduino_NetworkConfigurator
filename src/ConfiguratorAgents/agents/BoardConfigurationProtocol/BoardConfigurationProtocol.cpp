@@ -10,8 +10,93 @@
 #include "CBORAdapter.h"
 #include "cbor/CBOR.h"
 
-#define PACKET_VALIDITY_S 30000
+#define PACKET_VALIDITY_MS 30000
 
+/******************************************************************************
+ * PUBLIC MEMBER FUNCTIONS
+ ******************************************************************************/
+bool BoardConfigurationProtocol::getMsg(ProvisioningInputMessage &msg) {
+  if (_inputMessagesList.size() == 0) {
+    return false;
+  }
+  InputPacketBuffer *buf = &_inputMessagesList.front();
+  size_t len = buf->len();
+  uint8_t data[len];
+  memset(data, 0x00, len);
+  memcpy(data, &(*buf)[0], len);
+  _inputMessagesList.pop_front();
+
+  ProvisioningCommandDown cborMsg;
+  if (!CBORAdapter::getMsgFromCBOR(data, len, &cborMsg)) {
+    DEBUG_DEBUG("BoardConfigurationProtocol::%s Invalid message", __FUNCTION__);
+    sendStatus(MessageTypeCodes::INVALID_PARAMS);
+    return false;
+  }
+
+  if (cborMsg.c.id == CommandId::ProvisioningTimestamp) {
+    uint64_t ts;
+    if (!CBORAdapter::extractTimestamp(&cborMsg, &ts)) {
+      DEBUG_DEBUG("BoardConfigurationProtocol::%s Invalid timestamp", __FUNCTION__);
+      sendStatus(MessageTypeCodes::INVALID_PARAMS);
+      return false;
+    }
+
+    msg.type = MessageInputType::TIMESTAMP;
+    msg.m.timestamp = ts;
+
+  } else if (cborMsg.c.id == CommandId::ProvisioningCommands) {
+    RemoteCommands cmd;
+    if (!CBORAdapter::extractCommand(&cborMsg, &cmd)) {
+      DEBUG_DEBUG("BoardConfigurationProtocol::%s Invalid command", __FUNCTION__);
+      sendStatus(MessageTypeCodes::INVALID_PARAMS);
+      return false;
+    }
+
+    msg.type = MessageInputType::COMMANDS;
+    msg.m.cmd = cmd;
+  } else {
+    msg.type = MessageInputType::NETWORK_SETTINGS;
+    if (!CBORAdapter::extractNetworkSetting(&cborMsg, &msg.m.netSetting)) {
+      DEBUG_DEBUG("BoardConfigurationProtocol::%s Invalid network Setting", __FUNCTION__);
+      sendStatus(MessageTypeCodes::INVALID_PARAMS);
+      return false;
+    }
+  }
+
+  return true;
+}
+
+bool BoardConfigurationProtocol::sendNewMsg(ProvisioningOutputMessage &msg) {
+  bool res = false;
+  switch (msg.type) {
+    case MessageOutputType::STATUS:
+      res = sendStatus(msg.m.status);
+      break;
+    case MessageOutputType::NETWORK_OPTIONS:
+      res = sendNetworkOptions(msg.m.netOptions);
+      break;
+    case MessageOutputType::UHWID:
+      res = sendUhwid(msg.m.uhwid, strlen(msg.m.uhwid));
+      break;
+    case MessageOutputType::JWT:
+      res = sendJwt(msg.m.jwt, strlen(msg.m.jwt));
+      break;
+    case MessageOutputType::BLE_MAC_ADDRESS:
+      res = sendBleMacAddress(msg.m.BLEMacAddress, BLE_MAC_ADDRESS_SIZE);
+    default:
+      break;
+  }
+
+  return res;
+}
+
+bool BoardConfigurationProtocol::msgAvailable() {
+  return _inputMessagesList.size() > 0;
+}
+
+/******************************************************************************
+ * PROTECTED MEMBER FUNCTIONS
+ ******************************************************************************/
 BoardConfigurationProtocol::TransmissionResult BoardConfigurationProtocol::sendAndReceive() {
   TransmissionResult transmissionRes = TransmissionResult::NOT_COMPLETED;
   if (!isPeerConnected()) {
@@ -78,91 +163,12 @@ bool BoardConfigurationProtocol::sendNak() {
   return sendData(PacketManager::MessageType::TRANSMISSION_CONTROL, &data, sizeof(data));
 }
 
-bool BoardConfigurationProtocol::getReceivedMsg(ProvisioningInputMessage &msg) {
-  if (_inputMessagesList.size() == 0) {
-    return false;
-  }
-  InputPacketBuffer *buf = &_inputMessagesList.front();
-  size_t len = buf->len();
-  uint8_t data[len];
-  memset(data, 0x00, len);
-  memcpy(data, &(*buf)[0], len);
-  _inputMessagesList.pop_front();
-
-  ProvisioningCommandDown cborMsg;
-  if (!CBORAdapter::getMsgFromCBOR(data, len, &cborMsg)) {
-    DEBUG_DEBUG("BoardConfigurationProtocol::%s Invalid message", __FUNCTION__);
-    sendStatus(MessageTypeCodes::INVALID_PARAMS);
-    return false;
-  }
-
-  if (cborMsg.c.id == CommandId::ProvisioningTimestamp) {
-    uint64_t ts;
-    if (!CBORAdapter::extractTimestamp(&cborMsg, &ts)) {
-      DEBUG_DEBUG("BoardConfigurationProtocol::%s Invalid timestamp", __FUNCTION__);
-      sendStatus(MessageTypeCodes::INVALID_PARAMS);
-      return false;
-    }
-
-    msg.type = MessageInputType::TIMESTAMP;
-    msg.m.timestamp = ts;
-
-  } else if (cborMsg.c.id == CommandId::ProvisioningCommands) {
-    RemoteCommands cmd;
-    if (!CBORAdapter::extractCommand(&cborMsg, &cmd)) {
-      DEBUG_DEBUG("BoardConfigurationProtocol::%s Invalid command", __FUNCTION__);
-      sendStatus(MessageTypeCodes::INVALID_PARAMS);
-      return false;
-    }
-
-    msg.type = MessageInputType::COMMANDS;
-    msg.m.cmd = cmd;
-  } else {
-    msg.type = MessageInputType::NETWORK_SETTINGS;
-    if (!CBORAdapter::extractNetworkSetting(&cborMsg, &msg.m.netSetting)) {
-      DEBUG_DEBUG("BoardConfigurationProtocol::%s Invalid network Setting", __FUNCTION__);
-      sendStatus(MessageTypeCodes::INVALID_PARAMS);
-      return false;
-    }
-  }
-
-  return true;
-}
-
-bool BoardConfigurationProtocol::sendMsg(ProvisioningOutputMessage &msg) {
-  bool res = false;
-  switch (msg.type) {
-    case MessageOutputType::STATUS:
-      res = sendStatus(msg.m.status);
-      break;
-    case MessageOutputType::NETWORK_OPTIONS:
-      res = sendNetworkOptions(msg.m.netOptions);
-      break;
-    case MessageOutputType::UHWID:
-      res = sendUhwid(msg.m.uhwid, strlen(msg.m.uhwid));
-      break;
-    case MessageOutputType::JWT:
-      res = sendJwt(msg.m.jwt, strlen(msg.m.jwt));
-      break;
-    case MessageOutputType::BLE_MAC_ADDRESS:
-      res = sendBleMacAddress(msg.m.BLEMacAddress, BLE_MAC_ADDRESS_SIZE);
-    default:
-      break;
-  }
-
-  return res;
-}
-
-bool BoardConfigurationProtocol::receivedMsgAvailable() {
-  return _inputMessagesList.size() > 0;
-}
-
 bool BoardConfigurationProtocol::sendData(PacketManager::MessageType type, const uint8_t *data, size_t len) {
   OutputPacketBuffer outputMsg;
-  outputMsg.setValidityTs(millis() + PACKET_VALIDITY_S);
+  outputMsg.setValidityTs(millis() + PACKET_VALIDITY_MS);
 
-  if (!Packet.createPacket(outputMsg, type, data, len)) {
-    DEBUG_WARNING("BLEConfiguratorAgent::%s Failed to create packet", __FUNCTION__);
+  if (!PacketManager::createPacket(outputMsg, type, data, len)) {
+    DEBUG_WARNING("BoardConfigurationProtocol::%s Failed to create packet", __FUNCTION__);
     return false;
   }
 
@@ -181,6 +187,27 @@ bool BoardConfigurationProtocol::sendData(PacketManager::MessageType type, const
   return true;
 }
 
+void BoardConfigurationProtocol::clear() {
+  Packet.clear();
+  _outputMessagesList.clear();
+  _inputMessagesList.clear();
+}
+
+void BoardConfigurationProtocol::checkOutputPacketValidity() {
+  if (_outputMessagesList.size() == 0) {
+    return;
+  }
+  _outputMessagesList.remove_if([](OutputPacketBuffer &packet) {
+    if (packet.getValidityTs() != 0 && packet.getValidityTs() < millis()) {
+      return true;
+    }
+    return false;
+  });
+}
+
+/******************************************************************************
+ * PRIVATE MEMBER FUNCTIONS
+ ******************************************************************************/
 bool BoardConfigurationProtocol::sendStatus(StatusMessage msg) {
   bool res = false;
   size_t len = CBOR_DATA_STATUS_LEN;
@@ -326,24 +353,6 @@ BoardConfigurationProtocol::TransmissionResult BoardConfigurationProtocol::trans
   }
 
   return res;
-}
-
-void BoardConfigurationProtocol::clear() {
-  Packet.clear();
-  _outputMessagesList.clear();
-  _inputMessagesList.clear();
-}
-
-void BoardConfigurationProtocol::checkOutputPacketValidity() {
-  if (_outputMessagesList.size() == 0) {
-    return;
-  }
-  _outputMessagesList.remove_if([](OutputPacketBuffer &packet) {
-    if (packet.getValidityTs() != 0 && packet.getValidityTs() < millis()) {
-      return true;
-    }
-    return false;
-  });
 }
 
 void BoardConfigurationProtocol::printPacket(const char *label, const uint8_t *data, size_t len) {

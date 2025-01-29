@@ -9,31 +9,36 @@
 #pragma once
 #include <list>
 #include "Arduino.h"
+#include "ConfiguratorAgents/agents/ConfiguratorAgent.h"
 #include "ConfiguratorAgents/agents/BoardConfigurationProtocol/BoardConfigurationProtocol.h"
 
-class SerialAgentClass : public BoardConfigurationProtocol {
+class SerialAgentClass : public ConfiguratorAgent, BoardConfigurationProtocol {
 public:
   SerialAgentClass();
   AgentConfiguratorStates begin();
   AgentConfiguratorStates end();
   AgentConfiguratorStates poll();
   void disconnectPeer();
-  bool getReceivedMsg(ProvisioningInputMessage &msg) override;
+  bool receivedMsgAvailable();
+  bool getReceivedMsg(ProvisioningInputMessage &msg);
+  bool sendMsg(ProvisioningOutputMessage &msg);
   bool isPeerConnected();
   inline AgentTypes getAgentType() {
     return AgentTypes::USB_SERIAL;
   };
 private:
   AgentConfiguratorStates _state = AgentConfiguratorStates::END;
-
+  bool _disconnectRequest = false;
+  /*SerialAgent private methods*/
   AgentConfiguratorStates handleInit();
   AgentConfiguratorStates handlePeerConnected();
+
+  /*BoardConfigurationProtocol pure virtual methods implementation*/
   bool hasReceivedBytes();
   size_t receivedBytes();
   uint8_t readByte();
   int writeBytes(const uint8_t *data, size_t len);
   void handleDisconnectRequest();
-  volatile bool _disconnectRequest = false;
 };
 
 extern SerialAgentClass SerialAgent;

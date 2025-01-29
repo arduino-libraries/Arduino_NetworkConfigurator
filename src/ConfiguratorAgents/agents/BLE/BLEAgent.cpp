@@ -133,11 +133,19 @@ ConfiguratorAgent::AgentConfiguratorStates BLEAgentClass::poll() {
 }
 
 bool BLEAgentClass::getReceivedMsg(ProvisioningInputMessage &msg) {
-  bool res = BoardConfigurationProtocol::getReceivedMsg(msg);
+  bool res = BoardConfigurationProtocol::getMsg(msg);
   if (receivedMsgAvailable() == false) {
     _state = AgentConfiguratorStates::PEER_CONNECTED;
   }
   return res;
+}
+
+bool BLEAgentClass::receivedMsgAvailable() {
+  return BoardConfigurationProtocol::msgAvailable();
+}
+
+bool BLEAgentClass::sendMsg(ProvisioningOutputMessage &msg) {
+  return BoardConfigurationProtocol::sendNewMsg(msg);
 }
 
 bool BLEAgentClass::isPeerConnected() {

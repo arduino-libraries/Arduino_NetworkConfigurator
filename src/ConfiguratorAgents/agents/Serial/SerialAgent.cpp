@@ -59,11 +59,19 @@ void SerialAgentClass::disconnectPeer() {
 }
 
 bool SerialAgentClass::getReceivedMsg(ProvisioningInputMessage &msg) {
-  bool res = BoardConfigurationProtocol::getReceivedMsg(msg);
+  bool res = BoardConfigurationProtocol::getMsg(msg);
   if (receivedMsgAvailable() == false) {
     _state = AgentConfiguratorStates::PEER_CONNECTED;
   }
   return res;
+}
+
+bool SerialAgentClass::receivedMsgAvailable() {
+  return BoardConfigurationProtocol::msgAvailable();
+}
+
+bool SerialAgentClass::sendMsg(ProvisioningOutputMessage &msg) {
+  return BoardConfigurationProtocol::sendNewMsg(msg);
 }
 
 bool SerialAgentClass::isPeerConnected() {

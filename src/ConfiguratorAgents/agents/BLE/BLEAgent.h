@@ -10,16 +10,19 @@
 #include <list>
 #include "Arduino.h"
 #include <ArduinoBLE.h>
+#include "ConfiguratorAgents/agents/ConfiguratorAgent.h"
 #include "ConfiguratorAgents/agents/BoardConfigurationProtocol/BoardConfigurationProtocol.h"
 
-class BLEAgentClass : public BoardConfigurationProtocol {
+class BLEAgentClass : public ConfiguratorAgent, BoardConfigurationProtocol {
 public:
   BLEAgentClass();
   AgentConfiguratorStates begin();
   AgentConfiguratorStates end();
   AgentConfiguratorStates poll();
   void disconnectPeer();
-  bool getReceivedMsg(ProvisioningInputMessage &msg) override;
+  bool receivedMsgAvailable();
+  bool getReceivedMsg(ProvisioningInputMessage &msg);
+  bool sendMsg(ProvisioningOutputMessage &msg);
   bool isPeerConnected();
   inline AgentTypes getAgentType() {
     return AgentTypes::BLE;
@@ -31,22 +34,28 @@ private:
 
   static inline BLEEvent _bleEvent = BLEEvent::NONE;
   AgentConfiguratorStates _state = AgentConfiguratorStates::END;
-  BLEService _confService;  // Bluetooth® Low Energy LED Service
+  BLEService _confService;  // BLE Configuration Service
   BLECharacteristic _inputStreamCharacteristic;
   BLECharacteristic _outputStreamCharacteristic;
   String _localName;
   uint8_t _manufacturerData[8];
   size_t _readByte = 0;
+
+  /*BLEAgent private methods*/
   AgentConfiguratorStates handlePeerConnected();
   bool setLocalName();
   bool setManufacturerData();
+
+  /*ArduinoBLE events callback functions*/
   static void blePeripheralDisconnectHandler(BLEDevice central);
   static void bleOutputStreamSubscribed(BLEDevice central, BLECharacteristic characteristic);
-  virtual bool hasReceivedBytes();
-  virtual size_t receivedBytes();
-  virtual uint8_t readByte();
-  virtual int writeBytes(const uint8_t *data, size_t len);
-  virtual void handleDisconnectRequest();
+
+  /*BoardConfigurationProtocol pure virtual methods implementation*/
+  bool hasReceivedBytes();
+  size_t receivedBytes();
+  uint8_t readByte();
+  int writeBytes(const uint8_t *data, size_t len);
+  void handleDisconnectRequest();
 };
 
 extern BLEAgentClass BLEAgent;
