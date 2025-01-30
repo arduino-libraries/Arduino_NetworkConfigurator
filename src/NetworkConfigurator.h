@@ -72,7 +72,7 @@ private:
   void handleNewNetworkSettings();
 
   String decodeConnectionErrorMessage(NetworkConnectionState err, int *errorCode);
-  ConnectionResult connectToNetwork(MessageTypeCodes *err);
+  ConnectionResult connectToNetwork(StatusMessage *err);
   ConnectionResult disconnectFromNetwork();
   bool updateNetworkOptions();
   bool sendStatus(StatusMessage msg);

@@ -92,7 +92,7 @@ bool AgentsConfiguratorManager::end(uint8_t id) {
 #endif
     _selectedAgent = nullptr;
     _statusRequest.reset();
-    _initStatusMsg = MessageTypeCodes::NONE;
+    _initStatusMsg = StatusMessage::NONE;
     _state = AgentsConfiguratorManagerStates::END;
   }
 
@@ -116,12 +116,12 @@ bool AgentsConfiguratorManager::sendMsg(ProvisioningOutputMessage &msg) {
             _statusRequest.reset();
           }
           _initStatusMsg = msg.m.status;
-        } else if (msg.m.status == MessageTypeCodes::CONNECTED) {
+        } else if (msg.m.status == StatusMessage::CONNECTED) {
           if (_statusRequest.pending && _statusRequest.key == RequestType::CONNECT) {
             _statusRequest.reset();
           }
           _initStatusMsg = msg.m.status;
-        } else if (msg.m.status == MessageTypeCodes::RESET_COMPLETED) {
+        } else if (msg.m.status == StatusMessage::RESET_COMPLETED) {
           if (_statusRequest.pending && _statusRequest.key == RequestType::RESET) {
             _statusRequest.reset();
           }
@@ -211,12 +211,12 @@ AgentsConfiguratorManagerStates AgentsConfiguratorManager::handleInit() {
 
 AgentsConfiguratorManagerStates AgentsConfiguratorManager::handleSendInitialStatus() {
   AgentsConfiguratorManagerStates nextState = _state;
-  if (_initStatusMsg != MessageTypeCodes::NONE) {
+  if (_initStatusMsg != StatusMessage::NONE) {
     if (!sendStatus(_initStatusMsg)) {
       DEBUG_WARNING("AgentsConfiguratorManager::%s failed to send initial status", __FUNCTION__);
       return nextState;
     }
-    _initStatusMsg = MessageTypeCodes::NONE;
+    _initStatusMsg = StatusMessage::NONE;
   }
   nextState = AgentsConfiguratorManagerStates::SEND_NETWORK_OPTIONS;
   return nextState;
@@ -295,7 +295,7 @@ void AgentsConfiguratorManager::handleReceivedData() {
 void AgentsConfiguratorManager::handleConnectCommand() {
   if (_statusRequest.pending) {
     DEBUG_DEBUG("AgentsConfiguratorManager::%s received a Connect request while executing another request", __FUNCTION__);
-    sendStatus(MessageTypeCodes::OTHER_REQUEST_IN_EXECUTION);
+    sendStatus(StatusMessage::OTHER_REQUEST_IN_EXECUTION);
     return;
   }
 
@@ -307,7 +307,7 @@ void AgentsConfiguratorManager::handleConnectCommand() {
 void AgentsConfiguratorManager::handleUpdateOptCommand() {
   if (_statusRequest.pending) {
     DEBUG_DEBUG("AgentsConfiguratorManager::%s received a UpdateConnectivityOptions request while executing another request", __FUNCTION__);
-    sendStatus(MessageTypeCodes::OTHER_REQUEST_IN_EXECUTION);
+    sendStatus(StatusMessage::OTHER_REQUEST_IN_EXECUTION);
     return;
   }
 
@@ -319,7 +319,7 @@ void AgentsConfiguratorManager::handleUpdateOptCommand() {
 void AgentsConfiguratorManager::handleGetIDCommand() {
   if (_statusRequest.pending) {
     DEBUG_DEBUG("AgentsConfiguratorManager::%s received a GetUnique request while executing another request", __FUNCTION__);
-    sendStatus(MessageTypeCodes::OTHER_REQUEST_IN_EXECUTION);
+    sendStatus(StatusMessage::OTHER_REQUEST_IN_EXECUTION);
     return;
   }
 
@@ -331,7 +331,7 @@ void AgentsConfiguratorManager::handleGetIDCommand() {
 void AgentsConfiguratorManager::handleGetBleMacAddressCommand() {
   if (_statusRequest.pending) {
     DEBUG_DEBUG("AgentsConfiguratorManager::%s received a GetBleMacAddress request while executing another request", __FUNCTION__);
-    sendStatus(MessageTypeCodes::OTHER_REQUEST_IN_EXECUTION);
+    sendStatus(StatusMessage::OTHER_REQUEST_IN_EXECUTION);
     return;
   }
 
@@ -361,7 +361,7 @@ void AgentsConfiguratorManager::handleGetBleMacAddressCommand() {
 void AgentsConfiguratorManager::handleResetCommand() {
   if (_statusRequest.pending) {
     DEBUG_DEBUG("AgentsConfiguratorManager::%s received a GetUnique request while executing another request", __FUNCTION__);
-    sendStatus(MessageTypeCodes::OTHER_REQUEST_IN_EXECUTION);
+    sendStatus(StatusMessage::OTHER_REQUEST_IN_EXECUTION);
     return;
   }
 
@@ -410,7 +410,7 @@ void AgentsConfiguratorManager::callHandler(RequestType type) {
 
     DEBUG_WARNING("AgentsConfiguratorManager::%s %s request received, but handler function is not provided", __FUNCTION__, err.c_str());
     _statusRequest.reset();
-    sendStatus(MessageTypeCodes::INVALID_REQUEST);
+    sendStatus(StatusMessage::INVALID_REQUEST);
   }
 }
 

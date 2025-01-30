@@ -71,7 +71,7 @@ bool CBORAdapter::statusToCBOR(StatusMessage msg, uint8_t *data, size_t *len) {
   bool result = false;
 
   switch (msg) {
-    case MessageTypeCodes::NONE:
+    case StatusMessage::NONE:
       break;
     default:
       result = adaptStatus(msg, data, len);

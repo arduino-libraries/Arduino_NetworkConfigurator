@@ -29,7 +29,7 @@ bool BoardConfigurationProtocol::getMsg(ProvisioningInputMessage &msg) {
   ProvisioningCommandDown cborMsg;
   if (!CBORAdapter::getMsgFromCBOR(data, len, &cborMsg)) {
     DEBUG_DEBUG("BoardConfigurationProtocol::%s Invalid message", __FUNCTION__);
-    sendStatus(MessageTypeCodes::INVALID_PARAMS);
+    sendStatus(StatusMessage::INVALID_PARAMS);
     return false;
   }
 
@@ -37,7 +37,7 @@ bool BoardConfigurationProtocol::getMsg(ProvisioningInputMessage &msg) {
     uint64_t ts;
     if (!CBORAdapter::extractTimestamp(&cborMsg, &ts)) {
       DEBUG_DEBUG("BoardConfigurationProtocol::%s Invalid timestamp", __FUNCTION__);
-      sendStatus(MessageTypeCodes::INVALID_PARAMS);
+      sendStatus(StatusMessage::INVALID_PARAMS);
       return false;
     }
 
@@ -48,7 +48,7 @@ bool BoardConfigurationProtocol::getMsg(ProvisioningInputMessage &msg) {
     RemoteCommands cmd;
     if (!CBORAdapter::extractCommand(&cborMsg, &cmd)) {
       DEBUG_DEBUG("BoardConfigurationProtocol::%s Invalid command", __FUNCTION__);
-      sendStatus(MessageTypeCodes::INVALID_PARAMS);
+      sendStatus(StatusMessage::INVALID_PARAMS);
       return false;
     }
 
@@ -58,7 +58,7 @@ bool BoardConfigurationProtocol::getMsg(ProvisioningInputMessage &msg) {
     msg.type = MessageInputType::NETWORK_SETTINGS;
     if (!CBORAdapter::extractNetworkSetting(&cborMsg, &msg.m.netSetting)) {
       DEBUG_DEBUG("BoardConfigurationProtocol::%s Invalid network Setting", __FUNCTION__);
-      sendStatus(MessageTypeCodes::INVALID_PARAMS);
+      sendStatus(StatusMessage::INVALID_PARAMS);
       return false;
     }
   }

@@ -66,7 +66,7 @@ void ClaimingHandlerClass::getIdReqHandler() {
     Serial.println(*_uhwid);
     if (*_uhwid == "") {
       DEBUG_ERROR("ClaimingHandlerClass::%s Error: UHWID not found", __FUNCTION__);
-      sendStatus(MessageTypeCodes::ERROR);
+      sendStatus(StatusMessage::ERROR);
       return;
     }
 
@@ -75,7 +75,7 @@ void ClaimingHandlerClass::getIdReqHandler() {
     Serial.println(token);
     if (token == "") {
       DEBUG_ERROR("ClaimingHandlerClass::%s Error: token not created", __FUNCTION__);
-      sendStatus(MessageTypeCodes::ERROR);
+      sendStatus(StatusMessage::ERROR);
       return;
     }
     byte _uhwidBytes[33];
@@ -92,21 +92,21 @@ void ClaimingHandlerClass::getIdReqHandler() {
     _ts = 0;
   } else {
     DEBUG_DEBUG("ClaimingHandlerClass::%s Error: timestamp not provided" , __FUNCTION__);
-    sendStatus(MessageTypeCodes::PARAMS_NOT_FOUND);
+    sendStatus(StatusMessage::PARAMS_NOT_FOUND);
   }
 }
 
 void ClaimingHandlerClass::resetStoredCredReqHandler() {
   if( _clearStoredCredentials == nullptr) {
-    sendStatus(MessageTypeCodes::ERROR);
+    sendStatus(StatusMessage::ERROR);
     return;
   }
 
   if( !_clearStoredCredentials()){
     DEBUG_ERROR("ClaimingHandlerClass::%s Error: reset stored credentials failed", __FUNCTION__);
-    sendStatus(MessageTypeCodes::ERROR);
+    sendStatus(StatusMessage::ERROR);
   } else {
-    sendStatus(MessageTypeCodes::RESET_COMPLETED);
+    sendStatus(StatusMessage::RESET_COMPLETED);
   }
 
 }

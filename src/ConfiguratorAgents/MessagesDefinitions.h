@@ -14,7 +14,7 @@
 #define MAX_UHWID_SIZE 32
 #define MAX_JWT_SIZE  268
 
-enum class MessageTypeCodes {
+enum class StatusMessage {
   NONE                       = 0,
   CONNECTING                 = 1,
   CONNECTED                  = 2,
@@ -34,8 +34,6 @@ enum class MessageTypeCodes {
   ERROR_STORAGE_BEGIN        = -200,
   ERROR                      = -255
 };
-
-typedef MessageTypeCodes StatusMessage;
 
 enum class RemoteCommands { CONNECT             = 1,
                             GET_ID              = 2,

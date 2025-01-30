@@ -68,7 +68,7 @@ private:
   ConfiguratorAgent *_selectedAgent = nullptr;
   uint8_t _instances = 0;
   bool _bleAgentEnabled = true;
-  StatusMessage _initStatusMsg = MessageTypeCodes::NONE;
+  StatusMessage _initStatusMsg = StatusMessage::NONE;
   NetworkOptions _netOptions;
   typedef struct {
     void reset() {

@@ -85,7 +85,7 @@ bool Provisioning::poll() {
       _reqCompleted = true;
     } else {
       Serial.println("Error: timestamp not provided");
-      ProvisioningOutputMessage msg = { MessageOutputType::STATUS, { MessageTypeCodes::ERROR }  };
+      ProvisioningOutputMessage msg = { MessageOutputType::STATUS, { StatusMessage::ERROR }  };
       _agentManager->sendMsg(msg);
     }
   }
