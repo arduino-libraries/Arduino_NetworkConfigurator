@@ -17,7 +17,7 @@ void onCounterChange();
 int counter;
 
 GenericConnectionHandler ArduinoIoTPreferredConnection;
-NetworkConfigurator NetworkConf(AgentsManager, ArduinoIoTPreferredConnection);
+NetworkConfiguratorClass NetworkConfigurator(AgentsManager, ArduinoIoTPreferredConnection);
 
 void initProperties(){
 

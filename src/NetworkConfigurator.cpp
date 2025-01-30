@@ -27,13 +27,13 @@
 #endif
 constexpr char *STORAGE_KEY{ "NETWORK_CONFIGS" };
 
-NetworkConfigurator::NetworkConfigurator(AgentsManagerClass &agentManager, ConnectionHandler &connectionHandler, bool startConfigurationIfConnectionFails)
+NetworkConfiguratorClass::NetworkConfiguratorClass(AgentsManagerClass &agentManager, ConnectionHandler &connectionHandler, bool startConfigurationIfConnectionFails)
   : _agentManager{ &agentManager },
     _connectionHandler{ &connectionHandler },
     _startBLEIfConnectionFails{ startConfigurationIfConnectionFails } {
 }
 
-bool NetworkConfigurator::begin() {
+bool NetworkConfiguratorClass::begin() {
   _connectionLostStatus = false;
   _state = NetworkConfiguratorStates::READ_STORED_CONFIG;
   _startConnectionAttempt = 0;
@@ -47,20 +47,20 @@ bool NetworkConfigurator::begin() {
   }
 #endif
   if (!_agentManager->addRequestHandler(RequestType::SCAN, scanReqHandler)) {
-    DEBUG_ERROR("NetworkConfigurator::%s Error registering \"scan request\" callback to AgentManager", __FUNCTION__);
+    DEBUG_ERROR("NetworkConfiguratorClass::%s Error registering \"scan request\" callback to AgentManager", __FUNCTION__);
   }
 #endif
 
   if (!_agentManager->addRequestHandler(RequestType::CONNECT, connectReqHandler)) {
-    DEBUG_ERROR("NetworkConfigurator::%s Error registering \"connect request\" callback to AgentManager", __FUNCTION__);
+    DEBUG_ERROR("NetworkConfiguratorClass::%s Error registering \"connect request\" callback to AgentManager", __FUNCTION__);
   }
 
   if (!_agentManager->addReturnNetworkSettingsCallback(setNetworkSettingsHandler)) {
-    DEBUG_ERROR("NetworkConfigurator::%s Error registering \"network settings\" callback to AgentManager", __FUNCTION__);
+    DEBUG_ERROR("NetworkConfiguratorClass::%s Error registering \"network settings\" callback to AgentManager", __FUNCTION__);
   }
 
   if (!_agentManager->begin(SERVICE_ID_FOR_AGENTMANAGER)) {
-    DEBUG_ERROR("NetworkConfigurator::%s Failed to initialize the AgentsManagerClass", __FUNCTION__);
+    DEBUG_ERROR("NetworkConfiguratorClass::%s Failed to initialize the AgentsManagerClass", __FUNCTION__);
   }
 
 #ifdef BOARD_HAS_ETHERNET
@@ -68,7 +68,7 @@ bool NetworkConfigurator::begin() {
   _networkSetting.eth.timeout = 250;
   _networkSetting.eth.response_timeout = 500;
   if (!_connectionHandler->updateSetting(_networkSetting)) {
-    DEBUG_WARNING("NetworkConfigurator::%s Is not possible check the eth connectivity", __FUNCTION__);
+    DEBUG_WARNING("NetworkConfiguratorClass::%s Is not possible check the eth connectivity", __FUNCTION__);
     return true;
   }
   _connectionHandlerIstantiated = true;
@@ -77,7 +77,7 @@ bool NetworkConfigurator::begin() {
   return true;
 }
 
-NetworkConfiguratorStates NetworkConfigurator::poll() {
+NetworkConfiguratorStates NetworkConfiguratorClass::poll() {
 
   switch (_state) {
 #ifdef BOARD_HAS_ETHERNET
@@ -95,7 +95,7 @@ NetworkConfiguratorStates NetworkConfigurator::poll() {
   return _state;
 }
 
-bool NetworkConfigurator::resetStoredConfiguration() {
+bool NetworkConfiguratorClass::resetStoredConfiguration() {
 #if defined(BOARD_HAS_KVSTORE)
   bool res = false;
   if (_kvstore.begin()) {
@@ -121,7 +121,7 @@ bool NetworkConfigurator::resetStoredConfiguration() {
   return true;
 }
 
-bool NetworkConfigurator::end() {
+bool NetworkConfiguratorClass::end() {
   _lastConnectionAttempt = 0;
   _lastOptionUpdate = 0;
   _agentManager->removeReturnNetworkSettingsCallback();
@@ -132,7 +132,7 @@ bool NetworkConfigurator::end() {
 }
 
 
-NetworkConfigurator::ConnectionResult NetworkConfigurator::connectToNetwork(StatusMessage *err) {
+NetworkConfiguratorClass::ConnectionResult NetworkConfiguratorClass::connectToNetwork(StatusMessage *err) {
   ConnectionResult res = ConnectionResult::IN_PROGRESS;
 
   if (_startConnectionAttempt == 0) {
@@ -167,7 +167,7 @@ NetworkConfigurator::ConnectionResult NetworkConfigurator::connectToNetwork(Stat
   return res;
 }
 
-NetworkConfigurator::ConnectionResult NetworkConfigurator::disconnectFromNetwork() {
+NetworkConfiguratorClass::ConnectionResult NetworkConfiguratorClass::disconnectFromNetwork() {
   _connectionHandler->disconnect();
   uint32_t startDisconnection = millis();
   NetworkConnectionState s;
@@ -184,7 +184,7 @@ NetworkConfigurator::ConnectionResult NetworkConfigurator::disconnectFromNetwork
   return ConnectionResult::SUCCESS;
 }
 
-bool NetworkConfigurator::updateNetworkOptions() {
+bool NetworkConfiguratorClass::updateNetworkOptions() {
 #ifdef BOARD_HAS_WIFI
   DEBUG_DEBUG("Scanning");
   sendStatus(StatusMessage::SCANNING);  //Notify before scan
@@ -192,7 +192,7 @@ bool NetworkConfigurator::updateNetworkOptions() {
   WiFiOption wifiOptObj;
 
   if (!scanWiFiNetworks(wifiOptObj)) {
-    DEBUG_WARNING("NetworkConfigurator::%s Error during scan for wifi networks", __FUNCTION__);
+    DEBUG_WARNING("NetworkConfiguratorClass::%s Error during scan for wifi networks", __FUNCTION__);
 
     sendStatus(StatusMessage::HW_ERROR_CONN_MODULE);
 
@@ -215,7 +215,7 @@ bool NetworkConfigurator::updateNetworkOptions() {
 
 #ifdef BOARD_HAS_WIFI
 // insert a new WiFi network in the list of discovered networks
-bool NetworkConfigurator::insertWiFiAP(WiFiOption &wifiOptObj, char *ssid, int rssi) {
+bool NetworkConfiguratorClass::insertWiFiAP(WiFiOption &wifiOptObj, char *ssid, int rssi) {
   if (wifiOptObj.numDiscoveredWiFiNetworks >= MAX_WIFI_NETWORKS) {
     return false;
   }
@@ -241,29 +241,29 @@ bool NetworkConfigurator::insertWiFiAP(WiFiOption &wifiOptObj, char *ssid, int r
   return true;
 }
 
-bool NetworkConfigurator::scanWiFiNetworks(WiFiOption &wifiOptObj) {
+bool NetworkConfiguratorClass::scanWiFiNetworks(WiFiOption &wifiOptObj) {
   wifiOptObj.numDiscoveredWiFiNetworks = 0;
   // check for the WiFi module:
   if (WiFi.status() == WL_NO_MODULE) {
-    DEBUG_WARNING("NetworkConfigurator::%s Communication with WiFi module failed!", __FUNCTION__);
+    DEBUG_WARNING("NetworkConfiguratorClass::%s Communication with WiFi module failed!", __FUNCTION__);
     return false;
   }
 
   int numSsid = WiFi.scanNetworks();
   if (numSsid == -1) {
-    DEBUG_WARNING("NetworkConfigurator::%s Couldn't get any WiFi connection", __FUNCTION__);
+    DEBUG_WARNING("NetworkConfiguratorClass::%s Couldn't get any WiFi connection", __FUNCTION__);
     return false;
   }
 
   // print the list of networks seen:
-  DEBUG_VERBOSE("NetworkConfigurator::%s number of available networks: %d", __FUNCTION__, numSsid);
+  DEBUG_VERBOSE("NetworkConfiguratorClass::%s number of available networks: %d", __FUNCTION__, numSsid);
 
   // insert the networks in the list
   for (int thisNet = 0; thisNet < numSsid && thisNet < MAX_WIFI_NETWORKS; thisNet++) {
-    DEBUG_VERBOSE("NetworkConfigurator::%s found network %d) %s \tSignal %d dbm", __FUNCTION__, thisNet, WiFi.SSID(thisNet), WiFi.RSSI(thisNet));
+    DEBUG_VERBOSE("NetworkConfiguratorClass::%s found network %d) %s \tSignal %d dbm", __FUNCTION__, thisNet, WiFi.SSID(thisNet), WiFi.RSSI(thisNet));
 
     if (!insertWiFiAP(wifiOptObj, const_cast<char *>(WiFi.SSID(thisNet)), WiFi.RSSI(thisNet))) {
-      DEBUG_WARNING("NetworkConfigurator::%s The maximum number of WiFi networks has been reached", __FUNCTION__);
+      DEBUG_WARNING("NetworkConfiguratorClass::%s The maximum number of WiFi networks has been reached", __FUNCTION__);
       break;
     }
   }
@@ -272,23 +272,23 @@ bool NetworkConfigurator::scanWiFiNetworks(WiFiOption &wifiOptObj) {
 }
 #endif
 
-void NetworkConfigurator::scanReqHandler() {
+void NetworkConfiguratorClass::scanReqHandler() {
   _receivedEvent = NetworkConfiguratorEvents::SCAN_REQ;
 }
 
-void NetworkConfigurator::connectReqHandler() {
+void NetworkConfiguratorClass::connectReqHandler() {
   _receivedEvent = NetworkConfiguratorEvents::CONNECT_REQ;
 }
 
-void NetworkConfigurator::setNetworkSettingsHandler(models::NetworkSetting *netSetting) {
+void NetworkConfiguratorClass::setNetworkSettingsHandler(models::NetworkSetting *netSetting) {
   memcpy(&_networkSetting, netSetting, sizeof(models::NetworkSetting));
   _receivedEvent = NetworkConfiguratorEvents::NEW_NETWORK_SETTINGS;
 }
 
-NetworkConfiguratorStates NetworkConfigurator::handleConnectRequest() {
+NetworkConfiguratorStates NetworkConfiguratorClass::handleConnectRequest() {
   NetworkConfiguratorStates nextState = _state;
   if (_networkSetting.type == NetworkAdapter::NONE) {
-    DEBUG_DEBUG("NetworkConfigurator::%s Connect request received but network settings not received yet", __FUNCTION__);
+    DEBUG_DEBUG("NetworkConfiguratorClass::%s Connect request received but network settings not received yet", __FUNCTION__);
     sendStatus(StatusMessage::PARAMS_NOT_FOUND);
     return nextState;
   }
@@ -297,12 +297,12 @@ NetworkConfiguratorStates NetworkConfigurator::handleConnectRequest() {
 
 #if defined(BOARD_HAS_KVSTORE)
   if (!_kvstore.begin()) {
-    DEBUG_ERROR("NetworkConfigurator::%s error initializing kvstore", __FUNCTION__);
+    DEBUG_ERROR("NetworkConfiguratorClass::%s error initializing kvstore", __FUNCTION__);
     sendStatus(StatusMessage::ERROR_STORAGE_BEGIN);
     return nextState;
   }
   if (!_kvstore.putBytes(STORAGE_KEY, (uint8_t *)&_networkSetting, sizeof(models::NetworkSetting))) {
-    DEBUG_ERROR("NetworkConfigurator::%s error saving network settings", __FUNCTION__);
+    DEBUG_ERROR("NetworkConfiguratorClass::%s error saving network settings", __FUNCTION__);
     sendStatus(StatusMessage::ERROR);
     return nextState;
   }
@@ -312,14 +312,14 @@ NetworkConfiguratorStates NetworkConfigurator::handleConnectRequest() {
 
   if (_connectionHandlerIstantiated) {
     if(disconnectFromNetwork() == ConnectionResult::FAILED) {
-      DEBUG_ERROR("NetworkConfigurator::%s Impossible to disconnect the network", __FUNCTION__);
+      DEBUG_ERROR("NetworkConfiguratorClass::%s Impossible to disconnect the network", __FUNCTION__);
       sendStatus(StatusMessage::ERROR);
       return nextState;
     }
   }
 
   if (!_connectionHandler->updateSetting(_networkSetting)) {
-    DEBUG_WARNING("NetworkConfigurator::%s The received network parameters are not supported", __FUNCTION__);
+    DEBUG_WARNING("NetworkConfiguratorClass::%s The received network parameters are not supported", __FUNCTION__);
     sendStatus(StatusMessage::INVALID_PARAMS);
     return nextState;
   }
@@ -329,12 +329,12 @@ NetworkConfiguratorStates NetworkConfigurator::handleConnectRequest() {
   return nextState;
 }
 
-void NetworkConfigurator::handleNewNetworkSettings() {
+void NetworkConfiguratorClass::handleNewNetworkSettings() {
   printNetworkSettings();
   _connectionLostStatus = false;  //reset for updating the failure reason
 }
 
-String NetworkConfigurator::decodeConnectionErrorMessage(NetworkConnectionState err, int *errorCode) {
+String NetworkConfiguratorClass::decodeConnectionErrorMessage(NetworkConnectionState err, int *errorCode) {
   switch (err) {
     case NetworkConnectionState::ERROR:
       *errorCode = (int)StatusMessage::HW_ERROR_CONN_MODULE;
@@ -360,14 +360,14 @@ String NetworkConfigurator::decodeConnectionErrorMessage(NetworkConnectionState 
 }
 
 #ifdef BOARD_HAS_ETHERNET
-NetworkConfiguratorStates NetworkConfigurator::handleCheckEth() {
+NetworkConfiguratorStates NetworkConfiguratorClass::handleCheckEth() {
   NetworkConfiguratorStates nextState = _state;
   StatusMessage err;
   ConnectionResult connectionRes = connectToNetwork(&err);
   if (connectionRes == ConnectionResult::SUCCESS) {
     nextState = NetworkConfiguratorStates::CONFIGURED;
   } else if (connectionRes == ConnectionResult::FAILED) {
-    DEBUG_VERBOSE("NetworkConfigurator::%s Connection eth fail", __FUNCTION__);
+    DEBUG_VERBOSE("NetworkConfiguratorClass::%s Connection eth fail", __FUNCTION__);
     if(disconnectFromNetwork() == ConnectionResult::FAILED) {
       sendStatus(StatusMessage::ERROR);
     }
@@ -378,11 +378,11 @@ NetworkConfiguratorStates NetworkConfigurator::handleCheckEth() {
 }
 #endif
 
-NetworkConfiguratorStates NetworkConfigurator::handleReadStorage() {
+NetworkConfiguratorStates NetworkConfiguratorClass::handleReadStorage() {
   NetworkConfiguratorStates nextState = _state;
 #if defined(BOARD_HAS_KVSTORE)
   if (!_kvstore.begin()) {
-    DEBUG_ERROR("NetworkConfigurator::%s error initializing kvstore", __FUNCTION__);
+    DEBUG_ERROR("NetworkConfiguratorClass::%s error initializing kvstore", __FUNCTION__);
     sendStatus(StatusMessage::ERROR_STORAGE_BEGIN);
     return nextState;
   }
@@ -391,7 +391,7 @@ NetworkConfiguratorStates NetworkConfigurator::handleReadStorage() {
     _kvstore.getBytes(STORAGE_KEY, (uint8_t *)&_networkSetting, sizeof(models::NetworkSetting));
     printNetworkSettings();
     if (!_connectionHandler->updateSetting(_networkSetting)) {
-      DEBUG_WARNING("NetworkConfigurator::%s Network parameters found on storage are not supported.", __FUNCTION__);
+      DEBUG_WARNING("NetworkConfiguratorClass::%s Network parameters found on storage are not supported.", __FUNCTION__);
       nextState = NetworkConfiguratorStates::WAITING_FOR_CONFIG;
     } else {
       _connectionHandlerIstantiated = true;
@@ -416,7 +416,7 @@ NetworkConfiguratorStates NetworkConfigurator::handleReadStorage() {
   return nextState;
 }
 
-NetworkConfiguratorStates NetworkConfigurator::handleTestStoredConfig() {
+NetworkConfiguratorStates NetworkConfiguratorClass::handleTestStoredConfig() {
   NetworkConfiguratorStates nextState = _state;
   StatusMessage err;
   ConnectionResult res = connectToNetwork(&err);
@@ -436,7 +436,7 @@ NetworkConfiguratorStates NetworkConfigurator::handleTestStoredConfig() {
   return nextState;
 }
 
-NetworkConfiguratorStates NetworkConfigurator::handleWaitingForConf() {
+NetworkConfiguratorStates NetworkConfiguratorClass::handleWaitingForConf() {
   NetworkConfiguratorStates nextState = _state;
 
   _agentManager->poll();
@@ -464,7 +464,7 @@ NetworkConfiguratorStates NetworkConfigurator::handleWaitingForConf() {
   return nextState;
 }
 
-NetworkConfiguratorStates NetworkConfigurator::handleConnecting() {
+NetworkConfiguratorStates NetworkConfiguratorClass::handleConnecting() {
   NetworkConfiguratorStates nextState = _state;
   _agentManager->poll();  //To keep alive the connection with the configurator
   StatusMessage err;
@@ -482,7 +482,7 @@ NetworkConfiguratorStates NetworkConfigurator::handleConnecting() {
   return nextState;
 }
 
-NetworkConfiguratorStates NetworkConfigurator::handleConfigured() {
+NetworkConfiguratorStates NetworkConfiguratorClass::handleConfigured() {
   NetworkConfiguratorStates nextState = _state;
   bool peerConnected = false;
   if (_agentManager->isConfigInProgress()) {
@@ -506,7 +506,7 @@ NetworkConfiguratorStates NetworkConfigurator::handleConfigured() {
   return nextState;
 }
 
-NetworkConfiguratorStates NetworkConfigurator::handleUpdatingConfig() {
+NetworkConfiguratorStates NetworkConfiguratorClass::handleUpdatingConfig() {
   NetworkConfiguratorStates nextState = _state;
   if (_agentManager->isConfigInProgress() == false) {
     //If peer disconnects without updating the network settings, go to connecting state for check the connection
@@ -519,7 +519,7 @@ NetworkConfiguratorStates NetworkConfigurator::handleUpdatingConfig() {
   return nextState;
 }
 
-bool NetworkConfigurator::sendStatus(StatusMessage msg) {
+bool NetworkConfiguratorClass::sendStatus(StatusMessage msg) {
   ProvisioningOutputMessage statusMsg = { MessageOutputType::STATUS, { msg } };
   return _agentManager->sendMsg(statusMsg);
 }
@@ -541,7 +541,7 @@ void PrintIP(models::ip_addr *ip) {
 }
 #endif
 
-void NetworkConfigurator::printNetworkSettings() {
+void NetworkConfiguratorClass::printNetworkSettings() {
   DEBUG_INFO("Network settings received:");
   switch (_networkSetting.type) {
 #if defined(BOARD_HAS_WIFI)

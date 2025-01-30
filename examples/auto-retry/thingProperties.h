@@ -27,5 +27,5 @@ void initProperties() {
 }
 
 GenericConnectionHandler ArduinoIoTPreferredConnection;
-NetworkConfigurator NetworkConf(AgentsManager, ArduinoIoTPreferredConnection);
+NetworkConfiguratorClass NetworkConfigurator(AgentsManager, ArduinoIoTPreferredConnection);
 Provisioning ProvisioningSystem(AgentsManager);

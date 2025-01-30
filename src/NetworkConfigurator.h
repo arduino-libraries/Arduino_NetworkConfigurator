@@ -22,9 +22,9 @@ enum class NetworkConfiguratorStates { CHECK_ETH,
                                        UPDATING_CONFIG,
                                        END };
 
-class NetworkConfigurator {
+class NetworkConfiguratorClass {
 public:
-  NetworkConfigurator(AgentsManagerClass &agentManager, ConnectionHandler &connectionHandler, bool startBLEIfConnectionFails = false);
+  NetworkConfiguratorClass(AgentsManagerClass &agentManager, ConnectionHandler &connectionHandler, bool startBLEIfConnectionFails = false);
   bool begin();
   NetworkConfiguratorStates poll();
   void startBLEIfConnectionFails(bool enable) {

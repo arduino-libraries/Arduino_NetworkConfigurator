@@ -19,7 +19,7 @@
 #define RESETCRED_BUTTON BTN_USER
 #elif defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT)
 #define RESETCRED_BUTTON 7
-#else 
+#else
 #define RESETCRED_BUTTON 13
 #endif
 uint32_t lastUpdate = 0;
@@ -62,17 +62,17 @@ void setup() {
   pinMode(RESETCRED_BUTTON, INPUT);
 #endif
 
-#if defined(ARDUINO_OPTA) 
+#if defined(ARDUINO_OPTA)
   if(digitalRead(RESETCRED_BUTTON) == LOW){
 #else
   if (digitalRead(RESETCRED_BUTTON) == HIGH) {
 #endif
     Serial.println("Resetting cred");
-    NetworkConf.resetStoredConfiguration();
+    NetworkConfigurator.resetStoredConfiguration();
   }
-  NetworkConf.startBLEIfConnectionFails(true);
-  NetworkConf.updateNetworkOptions();
-  NetworkConf.begin();
+  NetworkConfigurator.startBLEIfConnectionFails(true);
+  NetworkConfigurator.updateNetworkOptions();
+  NetworkConfigurator.begin();
   ProvisioningSystem.begin();
 
   ArduinoCloud.printDebugInfo();
@@ -94,7 +94,7 @@ void loop() {
 #if defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MBED)
     watchdog_reset();
 #endif
-    NetworkConfiguratorStates s = NetworkConf.poll();
+    NetworkConfiguratorStates s = NetworkConfigurator.poll();
     if (s == NetworkConfiguratorStates::CONFIGURED && !toUpdate) {
       networkConfigured = true;
       changeMode(DeviceMode::RUN);
@@ -117,7 +117,7 @@ void loop() {
       networkConfigured = false;
     }
 
-    if (NetworkConf.poll() == NetworkConfiguratorStates::UPDATING_CONFIG) {
+    if (NetworkConfigurator.poll() == NetworkConfiguratorStates::UPDATING_CONFIG) {
       networkConfigured = false;
       changeMode(DeviceMode::CONFIG);
       return;

@@ -42,12 +42,12 @@ CSRHandlerClass *CSRHandler;
 
 bool clearStoredCredentials() {
   const uint8_t empty[4] = {0x00,0x00,0x00,0x00};
-  /*if(!NetworkConf.resetStoredConfiguration() || \
+  /*if(!NetworkConfigurator.resetStoredConfiguration() || \
    !secureElement.writeSlot(static_cast<int>(SElementArduinoCloudSlot::DeviceId), (byte*)empty, sizeof(empty)) || \
    !secureElement.writeSlot(static_cast<int>(SElementArduinoCloudSlot::CompressedCertificate), (byte*)empty, sizeof(empty))) {
     return false;
   }*/
- if(!NetworkConf.resetStoredConfiguration()) {
+ if(!NetworkConfigurator.resetStoredConfiguration()) {
     Serial.println("reset network config failed");
     return false;
   }
@@ -126,12 +126,12 @@ void setup() {
   if (digitalRead(RESETCRED_BUTTON) == HIGH) {
 #endif
     Serial.println("Resetting cred");
-    NetworkConf.resetStoredConfiguration();
+    NetworkConfigurator.resetStoredConfiguration();
   }
 
-  NetworkConf.setCheckStoredCred(false);
-  NetworkConf.updateNetworkOptions();
-  NetworkConf.begin();
+  NetworkConfigurator.setCheckStoredCred(false);
+  NetworkConfigurator.updateNetworkOptions();
+  NetworkConfigurator.begin();
   ClaimingHandler.begin(&secureElement, &uhwid, clearStoredCredentials);
 
   Serial.println("end setup");
@@ -141,7 +141,7 @@ void setup() {
 DeviceState handleFirstConfig() {
   DeviceState nextState = _state;
   ClaimingHandler.poll();
-  NetworkConfiguratorStates s = NetworkConf.poll();
+  NetworkConfiguratorStates s = NetworkConfigurator.poll();
   if (s == NetworkConfiguratorStates::CONFIGURED) {
     String deviceId = "";
     SElementArduinoCloudDeviceId::read(secureElement, deviceId, SElementArduinoCloudSlot::DeviceId);
@@ -197,7 +197,7 @@ DeviceState handleRun() {
   ArduinoCloud.update();
 
   ClaimingHandler.poll();
-  if (NetworkConf.poll() == NetworkConfiguratorStates::UPDATING_CONFIG) {
+  if (NetworkConfigurator.poll() == NetworkConfiguratorStates::UPDATING_CONFIG) {
     nextState = DeviceState::FIRST_CONFIG;
   }
   
