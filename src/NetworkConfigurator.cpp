@@ -135,8 +135,7 @@ bool NetworkConfigurator::end() {
 
 NetworkConfigurator::ConnectionResult NetworkConfigurator::connectToNetwork(StatusMessage *err) {
   ConnectionResult res = ConnectionResult::IN_PROGRESS;
- // DEBUG_DEBUG("Connecting to network");
-  //printNetworkSettings();
+
   if (_startConnectionAttempt == 0) {
     _startConnectionAttempt = millis();
   }
@@ -147,7 +146,6 @@ NetworkConfigurator::ConnectionResult NetworkConfigurator::connectToNetwork(Stat
     _startConnectionAttempt = 0;
     DEBUG_INFO("Connected to network");
     sendStatus(StatusMessage::CONNECTED);
-    delay(3000);  //TODO remove
     res = ConnectionResult::SUCCESS;
   } else if (connectionRes != NetworkConnectionState::CONNECTED && millis() - _startConnectionAttempt > NC_CONNECTION_TIMEOUT)  //connection attempt failed
   {
