@@ -12,7 +12,7 @@
 #include "agents/ConfiguratorAgent.h"
 #include "MessagesDefinitions.h"
 
-enum class AgentsConfiguratorManagerStates { INIT,
+enum class AgentsManagerStates { INIT,
                                              SEND_INITIAL_STATUS,
                                              SEND_NETWORK_OPTIONS,
                                              CONFIG_IN_PROGRESS,
@@ -28,14 +28,14 @@ enum class RequestType { NONE,
                          GET_ID,
                          RESET };
 
-class AgentsConfiguratorManager {
+class AgentsManagerClass {
 public:
-  AgentsConfiguratorManager()
+  AgentsManagerClass()
     : _netOptions{ .type = NetworkOptionsClass::NONE } {};
   bool begin(uint8_t id);
   bool end(uint8_t id);
   void disconnect();
-  AgentsConfiguratorManagerStates poll();
+  AgentsManagerStates poll();
   void enableBLEAgent(bool enable);
   bool isBLEAgentEnabled() {
     return _bleAgentEnabled;
@@ -56,10 +56,10 @@ public:
     _returnNetworkSettingsCb = nullptr;
   };
   inline bool isConfigInProgress() {
-    return _state != AgentsConfiguratorManagerStates::INIT && _state != AgentsConfiguratorManagerStates::END;
+    return _state != AgentsManagerStates::INIT && _state != AgentsManagerStates::END;
   };
 private:
-  AgentsConfiguratorManagerStates _state = AgentsConfiguratorManagerStates::END;
+  AgentsManagerStates _state = AgentsManagerStates::END;
   std::list<ConfiguratorAgent *> _agentsList;
   std::list<uint8_t> _servicesList;
   ConfiguratorRequestHandler _reqHandlers[4];
@@ -83,10 +83,10 @@ private:
 
   StatusRequest _statusRequest = { .completion = 0 , .pending = false, .key = RequestType::NONE};
 
-  AgentsConfiguratorManagerStates handleInit();
-  AgentsConfiguratorManagerStates handleSendInitialStatus();
-  AgentsConfiguratorManagerStates handleSendNetworkOptions();
-  AgentsConfiguratorManagerStates handleConfInProgress();
+  AgentsManagerStates handleInit();
+  AgentsManagerStates handleSendInitialStatus();
+  AgentsManagerStates handleSendNetworkOptions();
+  AgentsManagerStates handleConfInProgress();
   void handleReceivedCommands(RemoteCommands cmd);
   void handleReceivedData();
   void handleConnectCommand();
@@ -96,10 +96,10 @@ private:
   void handleResetCommand();
   bool sendStatus(StatusMessage msg);
 
-  AgentsConfiguratorManagerStates handlePeerDisconnected();
+  AgentsManagerStates handlePeerDisconnected();
   void callHandler(RequestType key);
   void stopBLEAgent();
   void startBLEAgent();
 };
 
-extern AgentsConfiguratorManager ConfiguratorManager;
+extern AgentsManagerClass AgentsManager;

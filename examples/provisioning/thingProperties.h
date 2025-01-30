@@ -3,7 +3,7 @@
 #include <ArduinoIoTCloud.h>
 #include <GenericConnectionHandler.h>
 #include "NetworkConfigurator.h"
-#include "ConfiguratorAgents/AgentsConfiguratorManager.h"
+#include "ConfiguratorAgents/AgentsManager.h"
 #include "ConfiguratorAgents/agents/BLE/BLEAgent.h"
 #include "ConfiguratorAgents/agents/Serial/SerialAgent.h"
 #include "ClaimingHandler.h"
@@ -15,10 +15,10 @@ int counter;
 void initProperties() {
 
   ArduinoCloud.addProperty(counter, READWRITE, ON_CHANGE, onCounterChange);
-  ConfiguratorManager.addAgent(BLEAgent);
-  ConfiguratorManager.addAgent(SerialAgent);
+  AgentsManager.addAgent(BLEAgent);
+  AgentsManager.addAgent(SerialAgent);
 }
 
 GenericConnectionHandler ArduinoIoTPreferredConnection;
-NetworkConfigurator NetworkConf(ConfiguratorManager, ArduinoIoTPreferredConnection);
-ClaimingHandlerClass ClaimingHandler(ConfiguratorManager);
+NetworkConfigurator NetworkConf(AgentsManager, ArduinoIoTPreferredConnection);
+ClaimingHandlerClass ClaimingHandler(AgentsManager);

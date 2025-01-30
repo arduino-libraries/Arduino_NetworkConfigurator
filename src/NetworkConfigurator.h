@@ -9,7 +9,7 @@
 #pragma once
 #include "Arduino.h"
 #include "GenericConnectionHandler.h"
-#include "ConfiguratorAgents/AgentsConfiguratorManager.h"
+#include "ConfiguratorAgents/AgentsManager.h"
 #include <settings/settings.h>
 #define NC_CONNECTION_TIMEOUT 15000
 
@@ -24,7 +24,7 @@ enum class NetworkConfiguratorStates { CHECK_ETH,
 
 class NetworkConfigurator {
 public:
-  NetworkConfigurator(AgentsConfiguratorManager &agentManager, ConnectionHandler &connectionHandler, bool startBLEIfConnectionFails = false);
+  NetworkConfigurator(AgentsManagerClass &agentManager, ConnectionHandler &connectionHandler, bool startBLEIfConnectionFails = false);
   bool begin();
   NetworkConfiguratorStates poll();
   void startBLEIfConnectionFails(bool enable) {
@@ -38,7 +38,7 @@ public:
   bool updateNetworkOptions();
 private:
   NetworkConfiguratorStates _state = NetworkConfiguratorStates::END;
-  AgentsConfiguratorManager *_agentManager;
+  AgentsManagerClass *_agentManager;
   ConnectionHandler *_connectionHandler;
   static inline models::NetworkSetting _networkSetting;
   bool _startBLEIfConnectionFails;

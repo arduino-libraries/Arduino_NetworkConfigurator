@@ -27,7 +27,7 @@
 #endif
 constexpr char *STORAGE_KEY{ "NETWORK_CONFIGS" };
 
-NetworkConfigurator::NetworkConfigurator(AgentsConfiguratorManager &agentManager, ConnectionHandler &connectionHandler, bool startConfigurationIfConnectionFails)
+NetworkConfigurator::NetworkConfigurator(AgentsManagerClass &agentManager, ConnectionHandler &connectionHandler, bool startConfigurationIfConnectionFails)
   : _agentManager{ &agentManager },
     _connectionHandler{ &connectionHandler },
     _startBLEIfConnectionFails{ startConfigurationIfConnectionFails } {
@@ -60,7 +60,7 @@ bool NetworkConfigurator::begin() {
   }
 
   if (!_agentManager->begin(SERVICE_ID_FOR_AGENTMANAGER)) {
-    DEBUG_ERROR("NetworkConfigurator::%s Failed to initialize the AgentsConfiguratorManager", __FUNCTION__);
+    DEBUG_ERROR("NetworkConfigurator::%s Failed to initialize the AgentsManagerClass", __FUNCTION__);
   }
 
 #ifdef BOARD_HAS_ETHERNET
@@ -488,9 +488,9 @@ NetworkConfiguratorStates NetworkConfigurator::handleConfigured() {
   if (_agentManager->isConfigInProgress()) {
     peerConnected = true;
   } else {
-    AgentsConfiguratorManagerStates agManagerState = _agentManager->poll();
+    AgentsManagerStates agManagerState = _agentManager->poll();
     // If the agent manager changes state, it means that user is trying to configure the network, so the network configurator should change state
-    if (agManagerState != AgentsConfiguratorManagerStates::INIT && agManagerState != AgentsConfiguratorManagerStates::END) {
+    if (agManagerState != AgentsManagerStates::INIT && agManagerState != AgentsManagerStates::END) {
       peerConnected = true;
     }
   }

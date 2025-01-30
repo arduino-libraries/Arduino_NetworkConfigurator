@@ -11,7 +11,7 @@
 #include "Arduino_DebugUtils.h"
 #define PROVISIONING_SERVICEID_FOR_AGENTMANAGER 0xB1
 
-ClaimingHandlerClass::ClaimingHandlerClass(AgentsConfiguratorManager &agc) {
+ClaimingHandlerClass::ClaimingHandlerClass(AgentsManagerClass &agc) {
   _agentManager = &agc;
 }
 

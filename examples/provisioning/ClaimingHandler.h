@@ -8,13 +8,13 @@
 
 #pragma once
 #include "Arduino.h"
-#include "ConfiguratorAgents/AgentsConfiguratorManager.h"
+#include "ConfiguratorAgents/AgentsManager.h"
 #include <Arduino_SecureElement.h>
 
 typedef bool (*ClearStoredCredentialsHandler)(); 
 class ClaimingHandlerClass {
 public:
-  ClaimingHandlerClass(AgentsConfiguratorManager &agc);
+  ClaimingHandlerClass(AgentsManagerClass &agc);
   bool begin(SecureElement *secureElement, String *uhwid, ClearStoredCredentialsHandler clearStoredCredentials);
   void end();
   void poll();
@@ -29,7 +29,7 @@ private:
                                  RESET };
   static inline ClaimingReqEvents _receivedEvent = ClaimingReqEvents::NONE;
   ClaimingHandlerStates _state = ClaimingHandlerStates::END;
-  AgentsConfiguratorManager *_agentManager = nullptr;
+  AgentsManagerClass *_agentManager = nullptr;
   static inline uint64_t _ts = 0;
   SecureElement *_secureElement;
   ClearStoredCredentialsHandler _clearStoredCredentials = nullptr;

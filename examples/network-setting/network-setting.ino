@@ -31,9 +31,9 @@ DeviceMode deviceMode = DeviceMode::CONFIG;
 void changeMode(DeviceMode nextMode){
   if(nextMode == DeviceMode::RUN){
     if(deviceMode == DeviceMode::CONFIG){
-      ConfiguratorManager.disconnect();
-      if (ConfiguratorManager.isBLEAgentEnabled()) {
-        ConfiguratorManager.enableBLEAgent(false);
+      AgentsManager.disconnect();
+      if (AgentsManager.isBLEAgentEnabled()) {
+        AgentsManager.enableBLEAgent(false);
       }
     }
     deviceMode = DeviceMode::RUN;
@@ -102,8 +102,8 @@ void loop() {
     if (digitalRead(RESETCRED_BUTTON) == HIGH) {
 #endif
       Serial.println("Update config");
-      if (!ConfiguratorManager.isBLEAgentEnabled()) {
-        ConfiguratorManager.enableBLEAgent(true);
+      if (!AgentsManager.isBLEAgentEnabled()) {
+        AgentsManager.enableBLEAgent(true);
       }
     }
 

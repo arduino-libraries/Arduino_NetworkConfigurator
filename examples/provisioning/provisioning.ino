@@ -180,9 +180,9 @@ DeviceState handleCSR() {
 
 DeviceState handleBeginCloud() {
   // Close the connection to the peer (App mobile, FE, etc)
-  ConfiguratorManager.disconnect();
-  if (ConfiguratorManager.isBLEAgentEnabled()) {
-    ConfiguratorManager.enableBLEAgent(false);
+  AgentsManager.disconnect();
+  if (AgentsManager.isBLEAgentEnabled()) {
+    AgentsManager.enableBLEAgent(false);
   }
   // Connect to Arduino IoT Cloud
   ArduinoCloud.begin(ArduinoIoTPreferredConnection, false, "mqtts-sa.iot.oniudra.cc");

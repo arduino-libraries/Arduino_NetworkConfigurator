@@ -3,7 +3,7 @@
 #include <ArduinoIoTCloud.h>
 #include <GenericConnectionHandler.h>
 #include "NetworkConfigurator.h"
-#include "ConfiguratorAgents/AgentsConfiguratorManager.h"
+#include "ConfiguratorAgents/AgentsManager.h"
 #if !defined(ARDUINO_SAMD_MKRGSM1400) && !defined(ARDUINO_SAMD_MKRNB1500) && !defined(ARDUINO_SAMD_MKRWAN1300) && !defined(ARDUINO_SAMD_MKRWAN1310)
 #include "ConfiguratorAgents/agents/BLE/BLEAgent.h"
 #endif
@@ -21,11 +21,11 @@ void initProperties() {
 
   ArduinoCloud.addProperty(counter, READWRITE, ON_CHANGE, onCounterChange);
 #if !defined(ARDUINO_SAMD_MKRGSM1400) && !defined(ARDUINO_SAMD_MKRNB1500) && !defined(ARDUINO_SAMD_MKRWAN1300) && !defined(ARDUINO_SAMD_MKRWAN1310)
-  ConfiguratorManager.addAgent(BLEAgent);
+  AgentsManager.addAgent(BLEAgent);
 #endif
-  ConfiguratorManager.addAgent(SerialAgent);
+  AgentsManager.addAgent(SerialAgent);
 }
 
 GenericConnectionHandler ArduinoIoTPreferredConnection;
-NetworkConfigurator NetworkConf(ConfiguratorManager, ArduinoIoTPreferredConnection);
-Provisioning ProvisioningSystem(ConfiguratorManager);
+NetworkConfigurator NetworkConf(AgentsManager, ArduinoIoTPreferredConnection);
+Provisioning ProvisioningSystem(AgentsManager);

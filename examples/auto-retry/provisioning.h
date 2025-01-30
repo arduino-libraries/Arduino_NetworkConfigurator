@@ -1,16 +1,16 @@
 #pragma once
 #include "Arduino.h"
-#include "ConfiguratorAgents/AgentsConfiguratorManager.h"
+#include "ConfiguratorAgents/AgentsManager.h"
 
 class Provisioning {
 public:
-  Provisioning(AgentsConfiguratorManager &agc);
+  Provisioning(AgentsManagerClass &agc);
   void begin();
   void end();
   bool poll();
 private:
   bool _agentInitialized = false;
-  AgentsConfiguratorManager *_agentManager = nullptr;
+  AgentsManagerClass *_agentManager = nullptr;
   bool _reqCompleted = false;
   static inline uint64_t _ts = 0;
   static inline bool _reqReceived = false;

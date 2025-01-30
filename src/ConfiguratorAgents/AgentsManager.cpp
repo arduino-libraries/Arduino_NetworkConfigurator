@@ -9,7 +9,7 @@
 #include <Arduino_DebugUtils.h>
 #include <algorithm>
 #include <settings/settings.h>
-#include "AgentsConfiguratorManager.h"
+#include "AgentsManager.h"
 #include "NetworkOptionsDefinitions.h"
 #if !defined(ARDUINO_SAMD_MKRGSM1400) && !defined(ARDUINO_SAMD_MKRNB1500) && !defined(ARDUINO_SAMD_MKRWAN1300) && !defined(ARDUINO_SAMD_MKRWAN1310)
 #define BOARD_HAS_BLE
@@ -20,23 +20,23 @@
 #include "utility/HCI.h"
 #endif
 
-bool AgentsConfiguratorManager::addAgent(ConfiguratorAgent &agent) {
+bool AgentsManagerClass::addAgent(ConfiguratorAgent &agent) {
   _agentsList.push_back(&agent);
 }
 
-bool AgentsConfiguratorManager::begin(uint8_t id) {
-  if (_state == AgentsConfiguratorManagerStates::END) {
+bool AgentsManagerClass::begin(uint8_t id) {
+  if (_state == AgentsManagerStates::END) {
     pinMode(LED_BUILTIN, OUTPUT);
 
     for (std::list<ConfiguratorAgent *>::iterator agent = _agentsList.begin(); agent != _agentsList.end(); ++agent) {
       if ((*agent)->begin() == ConfiguratorAgent::AgentConfiguratorStates::ERROR) {
-        DEBUG_ERROR("AgentsConfiguratorManager::%s agent type %d fails", __FUNCTION__, (int)(*agent)->getAgentType());
+        DEBUG_ERROR("AgentsManagerClass::%s agent type %d fails", __FUNCTION__, (int)(*agent)->getAgentType());
         return false;
       }
     }
 
-    DEBUG_DEBUG("AgentsConfiguratorManager begin completed");
-    _state = AgentsConfiguratorManagerStates::INIT;
+    DEBUG_DEBUG("AgentsManagerClass begin completed");
+    _state = AgentsManagerStates::INIT;
   }
 
   _servicesList.push_back(id);
@@ -46,19 +46,19 @@ bool AgentsConfiguratorManager::begin(uint8_t id) {
   return true;
 }
 
-AgentsConfiguratorManagerStates AgentsConfiguratorManager::poll() {
+AgentsManagerStates AgentsManagerClass::poll() {
   switch (_state) {
-    case AgentsConfiguratorManagerStates::INIT:                 _state = handleInit              (); break;
-    case AgentsConfiguratorManagerStates::SEND_INITIAL_STATUS:  _state = handleSendInitialStatus (); break;
-    case AgentsConfiguratorManagerStates::SEND_NETWORK_OPTIONS: _state = handleSendNetworkOptions(); break;
-    case AgentsConfiguratorManagerStates::CONFIG_IN_PROGRESS:   _state = handleConfInProgress    (); break;
-    case AgentsConfiguratorManagerStates::END:                                                       break;
+    case AgentsManagerStates::INIT:                 _state = handleInit              (); break;
+    case AgentsManagerStates::SEND_INITIAL_STATUS:  _state = handleSendInitialStatus (); break;
+    case AgentsManagerStates::SEND_NETWORK_OPTIONS: _state = handleSendNetworkOptions(); break;
+    case AgentsManagerStates::CONFIG_IN_PROGRESS:   _state = handleConfInProgress    (); break;
+    case AgentsManagerStates::END:                                                       break;
   }
 
   return _state;
 }
 
-void AgentsConfiguratorManager::enableBLEAgent(bool enable) {
+void AgentsManagerClass::enableBLEAgent(bool enable) {
   if (_bleAgentEnabled == enable) {
     return;
   }
@@ -71,7 +71,7 @@ void AgentsConfiguratorManager::enableBLEAgent(bool enable) {
   }
 }
 
-bool AgentsConfiguratorManager::end(uint8_t id) {
+bool AgentsManagerClass::end(uint8_t id) {
   std::list<uint8_t>::iterator it = std::find(_servicesList.begin(), _servicesList.end(), id);
   if (it != _servicesList.end()) {
     _servicesList.erase(it);
@@ -93,20 +93,20 @@ bool AgentsConfiguratorManager::end(uint8_t id) {
     _selectedAgent = nullptr;
     _statusRequest.reset();
     _initStatusMsg = StatusMessage::NONE;
-    _state = AgentsConfiguratorManagerStates::END;
+    _state = AgentsManagerStates::END;
   }
 
   return true;
 }
 
-void AgentsConfiguratorManager::disconnect() {
+void AgentsManagerClass::disconnect() {
   if (_selectedAgent) {
     _selectedAgent->disconnectPeer();
     _state = handlePeerDisconnected();
   }
 }
 
-bool AgentsConfiguratorManager::sendMsg(ProvisioningOutputMessage &msg) {
+bool AgentsManagerClass::sendMsg(ProvisioningOutputMessage &msg) {
 
   switch (msg.type) {
     case MessageOutputType::STATUS:
@@ -149,13 +149,13 @@ bool AgentsConfiguratorManager::sendMsg(ProvisioningOutputMessage &msg) {
       break;
   }
 
-  if(_state == AgentsConfiguratorManagerStates::CONFIG_IN_PROGRESS) {
+  if(_state == AgentsManagerStates::CONFIG_IN_PROGRESS) {
     return _selectedAgent->sendMsg(msg);
   }
   return true;
 }
 
-bool AgentsConfiguratorManager::addRequestHandler(RequestType type, ConfiguratorRequestHandler callback) {
+bool AgentsManagerClass::addRequestHandler(RequestType type, ConfiguratorRequestHandler callback) {
   bool success = false;
   if (_reqHandlers[(int)type - 1] == nullptr) {
     _reqHandlers[(int)type - 1] = callback;
@@ -165,7 +165,7 @@ bool AgentsConfiguratorManager::addRequestHandler(RequestType type, Configurator
   return success;
 }
 
-bool AgentsConfiguratorManager::addReturnTimestampCallback(ReturnTimestamp callback) {
+bool AgentsManagerClass::addReturnTimestampCallback(ReturnTimestamp callback) {
   if (_returnTimestampCb == nullptr) {
     _returnTimestampCb = callback;
     return true;
@@ -174,7 +174,7 @@ bool AgentsConfiguratorManager::addReturnTimestampCallback(ReturnTimestamp callb
   return true;
 }
 
-bool AgentsConfiguratorManager::addReturnNetworkSettingsCallback(ReturnNetworkSettings callback) {
+bool AgentsManagerClass::addReturnNetworkSettingsCallback(ReturnNetworkSettings callback) {
   if (_returnNetworkSettingsCb == nullptr) {
     _returnNetworkSettingsCb = callback;
     return true;
@@ -182,8 +182,8 @@ bool AgentsConfiguratorManager::addReturnNetworkSettingsCallback(ReturnNetworkSe
   return false;
 }
 
-AgentsConfiguratorManagerStates AgentsConfiguratorManager::handleInit() {
-  AgentsConfiguratorManagerStates nextState = _state;
+AgentsManagerStates AgentsManagerClass::handleInit() {
+  AgentsManagerStates nextState = _state;
 
   for (std::list<ConfiguratorAgent *>::iterator agent = _agentsList.begin(); agent != _agentsList.end(); ++agent) {
     if ((*agent)->poll() == ConfiguratorAgent::AgentConfiguratorStates::PEER_CONNECTED) {
@@ -193,7 +193,7 @@ AgentsConfiguratorManagerStates AgentsConfiguratorManager::handleInit() {
 #else
       digitalWrite(LED_BUILTIN, HIGH);
 #endif
-      nextState = AgentsConfiguratorManagerStates::SEND_INITIAL_STATUS;
+      nextState = AgentsManagerStates::SEND_INITIAL_STATUS;
       break;
     }
   }
@@ -209,35 +209,35 @@ AgentsConfiguratorManagerStates AgentsConfiguratorManager::handleInit() {
   return nextState;
 }
 
-AgentsConfiguratorManagerStates AgentsConfiguratorManager::handleSendInitialStatus() {
-  AgentsConfiguratorManagerStates nextState = _state;
+AgentsManagerStates AgentsManagerClass::handleSendInitialStatus() {
+  AgentsManagerStates nextState = _state;
   if (_initStatusMsg != StatusMessage::NONE) {
     if (!sendStatus(_initStatusMsg)) {
-      DEBUG_WARNING("AgentsConfiguratorManager::%s failed to send initial status", __FUNCTION__);
+      DEBUG_WARNING("AgentsManagerClass::%s failed to send initial status", __FUNCTION__);
       return nextState;
     }
     _initStatusMsg = StatusMessage::NONE;
   }
-  nextState = AgentsConfiguratorManagerStates::SEND_NETWORK_OPTIONS;
+  nextState = AgentsManagerStates::SEND_NETWORK_OPTIONS;
   return nextState;
 }
 
-AgentsConfiguratorManagerStates AgentsConfiguratorManager::handleSendNetworkOptions() {
-  AgentsConfiguratorManagerStates nextState = _state;
+AgentsManagerStates AgentsManagerClass::handleSendNetworkOptions() {
+  AgentsManagerStates nextState = _state;
   ProvisioningOutputMessage networkOptionMsg = { MessageOutputType::NETWORK_OPTIONS };
   networkOptionMsg.m.netOptions = &_netOptions;
   if (_selectedAgent->sendMsg(networkOptionMsg)) {
-    nextState = AgentsConfiguratorManagerStates::CONFIG_IN_PROGRESS;
+    nextState = AgentsManagerStates::CONFIG_IN_PROGRESS;
   }
   return nextState;
 }
 
-AgentsConfiguratorManagerStates AgentsConfiguratorManager::handleConfInProgress() {
-  AgentsConfiguratorManagerStates nextState = _state;
+AgentsManagerStates AgentsManagerClass::handleConfInProgress() {
+  AgentsManagerStates nextState = _state;
 
   if (_selectedAgent == nullptr) {
-    DEBUG_WARNING("AgentsConfiguratorManager::%s selected agent is null", __FUNCTION__);
-    return AgentsConfiguratorManagerStates::INIT;
+    DEBUG_WARNING("AgentsManagerClass::%s selected agent is null", __FUNCTION__);
+    return AgentsManagerStates::INIT;
   }
 
   ConfiguratorAgent::AgentConfiguratorStates agentConfState = _selectedAgent->poll();
@@ -253,7 +253,7 @@ AgentsConfiguratorManagerStates AgentsConfiguratorManager::handleConfInProgress(
   return nextState;
 }
 
-void AgentsConfiguratorManager::handleReceivedCommands(RemoteCommands cmd) {
+void AgentsManagerClass::handleReceivedCommands(RemoteCommands cmd) {
   switch (cmd) {
     case RemoteCommands::CONNECT:             handleConnectCommand         (); break;
     case RemoteCommands::SCAN:                handleUpdateOptCommand       (); break;
@@ -263,13 +263,13 @@ void AgentsConfiguratorManager::handleReceivedCommands(RemoteCommands cmd) {
   }
 }
 
-void AgentsConfiguratorManager::handleReceivedData() {
+void AgentsManagerClass::handleReceivedData() {
   if (!_selectedAgent->receivedMsgAvailable()) {
     return;
   }
   ProvisioningInputMessage msg;
   if (!_selectedAgent->getReceivedMsg(msg)) {
-    DEBUG_WARNING("AgentsConfiguratorManager::%s failed to get received data", __FUNCTION__);
+    DEBUG_WARNING("AgentsManagerClass::%s failed to get received data", __FUNCTION__);
     return;
   }
 
@@ -292,9 +292,9 @@ void AgentsConfiguratorManager::handleReceivedData() {
   }
 }
 
-void AgentsConfiguratorManager::handleConnectCommand() {
+void AgentsManagerClass::handleConnectCommand() {
   if (_statusRequest.pending) {
-    DEBUG_DEBUG("AgentsConfiguratorManager::%s received a Connect request while executing another request", __FUNCTION__);
+    DEBUG_DEBUG("AgentsManagerClass::%s received a Connect request while executing another request", __FUNCTION__);
     sendStatus(StatusMessage::OTHER_REQUEST_IN_EXECUTION);
     return;
   }
@@ -304,9 +304,9 @@ void AgentsConfiguratorManager::handleConnectCommand() {
   callHandler(RequestType::CONNECT);
 }
 
-void AgentsConfiguratorManager::handleUpdateOptCommand() {
+void AgentsManagerClass::handleUpdateOptCommand() {
   if (_statusRequest.pending) {
-    DEBUG_DEBUG("AgentsConfiguratorManager::%s received a UpdateConnectivityOptions request while executing another request", __FUNCTION__);
+    DEBUG_DEBUG("AgentsManagerClass::%s received a UpdateConnectivityOptions request while executing another request", __FUNCTION__);
     sendStatus(StatusMessage::OTHER_REQUEST_IN_EXECUTION);
     return;
   }
@@ -316,9 +316,9 @@ void AgentsConfiguratorManager::handleUpdateOptCommand() {
   callHandler(RequestType::SCAN);
 }
 
-void AgentsConfiguratorManager::handleGetIDCommand() {
+void AgentsManagerClass::handleGetIDCommand() {
   if (_statusRequest.pending) {
-    DEBUG_DEBUG("AgentsConfiguratorManager::%s received a GetUnique request while executing another request", __FUNCTION__);
+    DEBUG_DEBUG("AgentsManagerClass::%s received a GetUnique request while executing another request", __FUNCTION__);
     sendStatus(StatusMessage::OTHER_REQUEST_IN_EXECUTION);
     return;
   }
@@ -328,9 +328,9 @@ void AgentsConfiguratorManager::handleGetIDCommand() {
   callHandler(RequestType::GET_ID);
 }
 
-void AgentsConfiguratorManager::handleGetBleMacAddressCommand() {
+void AgentsManagerClass::handleGetBleMacAddressCommand() {
   if (_statusRequest.pending) {
-    DEBUG_DEBUG("AgentsConfiguratorManager::%s received a GetBleMacAddress request while executing another request", __FUNCTION__);
+    DEBUG_DEBUG("AgentsManagerClass::%s received a GetBleMacAddress request while executing another request", __FUNCTION__);
     sendStatus(StatusMessage::OTHER_REQUEST_IN_EXECUTION);
     return;
   }
@@ -358,9 +358,9 @@ void AgentsConfiguratorManager::handleGetBleMacAddressCommand() {
 
 }
 
-void AgentsConfiguratorManager::handleResetCommand() {
+void AgentsManagerClass::handleResetCommand() {
   if (_statusRequest.pending) {
-    DEBUG_DEBUG("AgentsConfiguratorManager::%s received a GetUnique request while executing another request", __FUNCTION__);
+    DEBUG_DEBUG("AgentsManagerClass::%s received a GetUnique request while executing another request", __FUNCTION__);
     sendStatus(StatusMessage::OTHER_REQUEST_IN_EXECUTION);
     return;
   }
@@ -370,12 +370,12 @@ void AgentsConfiguratorManager::handleResetCommand() {
   callHandler(RequestType::RESET);
 }
 
-bool AgentsConfiguratorManager::sendStatus(StatusMessage msg) {
+bool AgentsManagerClass::sendStatus(StatusMessage msg) {
   ProvisioningOutputMessage outputMsg = { MessageOutputType::STATUS, { msg } };
   return _selectedAgent->sendMsg(outputMsg);
 }
 
-AgentsConfiguratorManagerStates AgentsConfiguratorManager::handlePeerDisconnected() {
+AgentsManagerStates AgentsManagerClass::handlePeerDisconnected() {
   //Peer disconnected, restore all stopped agents
   for (std::list<ConfiguratorAgent *>::iterator agent = _agentsList.begin(); agent != _agentsList.end(); ++agent) {
     if (*agent != _selectedAgent) {
@@ -391,10 +391,10 @@ AgentsConfiguratorManagerStates AgentsConfiguratorManager::handlePeerDisconnecte
   digitalWrite(LED_BUILTIN, LOW);
 #endif
   _selectedAgent = nullptr;
-  return AgentsConfiguratorManagerStates::INIT;
+  return AgentsManagerStates::INIT;
 }
 
-void AgentsConfiguratorManager::callHandler(RequestType type) {
+void AgentsManagerClass::callHandler(RequestType type) {
   int key = (int)type - 1;
   if (_reqHandlers[key] != nullptr) {
     _reqHandlers[key]();
@@ -408,16 +408,16 @@ void AgentsConfiguratorManager::callHandler(RequestType type) {
       err = "Connect ";
     }
 
-    DEBUG_WARNING("AgentsConfiguratorManager::%s %s request received, but handler function is not provided", __FUNCTION__, err.c_str());
+    DEBUG_WARNING("AgentsManagerClass::%s %s request received, but handler function is not provided", __FUNCTION__, err.c_str());
     _statusRequest.reset();
     sendStatus(StatusMessage::INVALID_REQUEST);
   }
 }
 
-void AgentsConfiguratorManager::stopBLEAgent() {
+void AgentsManagerClass::stopBLEAgent() {
   for (std::list<ConfiguratorAgent *>::iterator agent = _agentsList.begin(); agent != _agentsList.end(); ++agent) {
     if ((*agent)->getAgentType() == ConfiguratorAgent::AgentTypes::BLE) {
-      DEBUG_VERBOSE("AgentsConfiguratorManager::%s End ble agent", __FUNCTION__);
+      DEBUG_VERBOSE("AgentsManagerClass::%s End ble agent", __FUNCTION__);
       (*agent)->end();
       if (*agent == _selectedAgent) {
         _state = handlePeerDisconnected();
@@ -426,17 +426,17 @@ void AgentsConfiguratorManager::stopBLEAgent() {
   }
 }
 
-void AgentsConfiguratorManager::startBLEAgent() {
-  if (_state == AgentsConfiguratorManagerStates::END || !_bleAgentEnabled) {
+void AgentsManagerClass::startBLEAgent() {
+  if (_state == AgentsManagerStates::END || !_bleAgentEnabled) {
     return;
   }
   std::for_each(_agentsList.begin(), _agentsList.end(), [](ConfiguratorAgent *agent) {
     if (agent->getAgentType() == ConfiguratorAgent::AgentTypes::BLE) {
-      DEBUG_VERBOSE("AgentsConfiguratorManager::%s Restart ble agent", __FUNCTION__);
+      DEBUG_VERBOSE("AgentsManagerClass::%s Restart ble agent", __FUNCTION__);
       agent->begin();
     }
   });
 }
 
 
-AgentsConfiguratorManager ConfiguratorManager;
+AgentsManagerClass AgentsManager;
