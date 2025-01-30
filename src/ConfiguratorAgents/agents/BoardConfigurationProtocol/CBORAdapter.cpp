@@ -22,7 +22,9 @@ bool CBORAdapter::uhwidToCBOR(const char *uhwid, uint8_t *data, size_t *len) {
 
   ProvisioningUniqueHardwareIdMessage uhwidMsg;
   uhwidMsg.c.id = CommandId::ProvisioningUniqueHardwareId;
-  memcpy(uhwidMsg.params.uniqueHardwareId, uhwid, strlen(uhwid));
+  memset(uhwidMsg.params.uniqueHardwareId, 0x00, MAX_UHWID_SIZE);
+  //Since some bytes of UHWID could be 00 is not possible use strlen to copy the UHWID
+  memcpy(uhwidMsg.params.uniqueHardwareId, uhwid, MAX_UHWID_SIZE);
 
   Encoder::Status status = encoder.encode((Message *)&uhwidMsg, data, *len);
 
@@ -40,6 +42,7 @@ bool CBORAdapter::jwtToCBOR(const char *jwt, uint8_t *data, size_t *len) {
 
   ProvisioningJWTMessage provisioningMsg;
   provisioningMsg.c.id = CommandId::ProvisioningJWT;
+  memset(provisioningMsg.params.jwt, 0x00, MAX_JWT_SIZE);
   memcpy(provisioningMsg.params.jwt, jwt, strlen(jwt));
 
   Encoder::Status status = encoder.encode((Message *)&provisioningMsg, data, *len);
