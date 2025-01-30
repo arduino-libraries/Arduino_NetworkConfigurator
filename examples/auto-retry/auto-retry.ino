@@ -71,6 +71,7 @@ void setup() {
     NetworkConf.resetStoredConfiguration();
   }
   NetworkConf.startBLEIfConnectionFails(true);
+  NetworkConf.updateNetworkOptions();
   NetworkConf.begin();
   ProvisioningSystem.begin();
 

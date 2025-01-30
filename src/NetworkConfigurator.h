@@ -35,7 +35,7 @@ public:
   };
   bool resetStoredConfiguration();
   bool end();
-
+  bool updateNetworkOptions();
 private:
   NetworkConfiguratorStates _state = NetworkConfiguratorStates::END;
   AgentsConfiguratorManager *_agentManager;
@@ -74,7 +74,6 @@ private:
   String decodeConnectionErrorMessage(NetworkConnectionState err, int *errorCode);
   ConnectionResult connectToNetwork(StatusMessage *err);
   ConnectionResult disconnectFromNetwork();
-  bool updateNetworkOptions();
   bool sendStatus(StatusMessage msg);
   void printNetworkSettings();
 #ifdef BOARD_HAS_WIFI

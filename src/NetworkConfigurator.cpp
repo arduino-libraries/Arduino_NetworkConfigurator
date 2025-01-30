@@ -59,7 +59,6 @@ bool NetworkConfigurator::begin() {
     DEBUG_ERROR("NetworkConfigurator::%s Error registering \"network settings\" callback to AgentManager", __FUNCTION__);
   }
 
-  updateNetworkOptions(); //TODO MOVE
   if (!_agentManager->begin(SERVICE_ID_FOR_AGENTMANAGER)) {
     DEBUG_ERROR("NetworkConfigurator::%s Failed to initialize the AgentsConfiguratorManager", __FUNCTION__);
   }
@@ -408,8 +407,12 @@ NetworkConfiguratorStates NetworkConfigurator::handleReadStorage() {
   }
   _kvstore.end();
 #else
-  nextState = NetworkConfiguratorStates::CONFIGURED; //Fix when implement the check if the provided connectionhandler is already configured
+  nextState = NetworkConfiguratorStates::CONFIGURED;
 #endif
+
+  if (nextState == NetworkConfiguratorStates::WAITING_FOR_CONFIG && _lastOptionUpdate == 0) {
+    updateNetworkOptions();
+  }
   return nextState;
 }
 
@@ -424,6 +427,9 @@ NetworkConfiguratorStates NetworkConfigurator::handleTestStoredConfig() {
     _connectionLostStatus = true;
     if (_startBLEIfConnectionFails) {
       _agentManager->enableBLEAgent(true);
+    }
+    if(_lastOptionUpdate == 0) {
+      updateNetworkOptions();
     }
     nextState = NetworkConfiguratorStates::WAITING_FOR_CONFIG;
   }

@@ -113,7 +113,7 @@ void setup() {
 #if defined(ARDUINO_UNOR4_WIFI)
   WiFi.end();
 #endif
-clearStoredCredentials();
+
 #if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT) || defined(ARDUINO_PORTENTA_H7_M7)
   pinMode(RESETCRED_BUTTON, INPUT_PULLDOWN);
 #else
@@ -130,6 +130,7 @@ clearStoredCredentials();
   }
 
   NetworkConf.setCheckStoredCred(false);
+  NetworkConf.updateNetworkOptions();
   NetworkConf.begin();
   ClaimingHandler.begin(&secureElement, &uhwid, clearStoredCredentials);
 
