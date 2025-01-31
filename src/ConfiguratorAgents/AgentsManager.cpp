@@ -29,6 +29,11 @@ bool AgentsManagerClass::begin(uint8_t id) {
     pinMode(LED_BUILTIN, OUTPUT);
 
     for (std::list<ConfiguratorAgent *>::iterator agent = _agentsList.begin(); agent != _agentsList.end(); ++agent) {
+      if((*agent)->getAgentType() == ConfiguratorAgent::AgentTypes::BLE) {
+        if (!_bleAgentEnabled) {
+          continue;
+        }
+      }
       if ((*agent)->begin() == ConfiguratorAgent::AgentConfiguratorStates::ERROR) {
         DEBUG_ERROR("AgentsManagerClass::%s agent type %d fails", __FUNCTION__, (int)(*agent)->getAgentType());
         return false;
