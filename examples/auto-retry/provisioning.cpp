@@ -75,7 +75,7 @@ bool Provisioning::poll() {
       //Send UHWID
       ProvisioningOutputMessage idMsg;
       idMsg.type = MessageOutputType::UHWID;
-      idMsg.m.uhwid = UHWID;
+      idMsg.m.uhwid = (byte *) UHWID;
       _agentManager->sendMsg(idMsg);
       //Send JWT
       ProvisioningOutputMessage jwtMsg;

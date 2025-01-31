@@ -11,10 +11,10 @@
 #include "cbor/MessageDecoder.h"
 #include <settings/settings_default.h>
 
-bool CBORAdapter::uhwidToCBOR(const char *uhwid, uint8_t *data, size_t *len) {
+bool CBORAdapter::uhwidToCBOR(const byte *uhwid, uint8_t *data, size_t *len) {
   CBORMessageEncoder encoder;
 
-  if (*len < CBOR_DATA_UHWID_LEN || strlen(uhwid) > MAX_UHWID_SIZE) {
+  if (*len < CBOR_DATA_UHWID_LEN) {
     return false;
   }
 
@@ -35,6 +35,7 @@ bool CBORAdapter::jwtToCBOR(const char *jwt, uint8_t *data, size_t *len) {
   CBORMessageEncoder encoder;
 
   if (*len < CBOR_DATA_JWT_LEN || strlen(jwt) > MAX_JWT_SIZE) {
+    Serial.println("CBORAdapter jwtToCBOR: Invalid jwt size");
     return false;
   }
 

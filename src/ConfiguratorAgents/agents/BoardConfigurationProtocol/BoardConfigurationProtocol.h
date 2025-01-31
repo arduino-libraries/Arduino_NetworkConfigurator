@@ -40,7 +40,7 @@ private:
   bool sendStatus(StatusMessage msg);
   size_t calculateTotalOptionsLength(const NetworkOptions *netOptions);
   bool sendNetworkOptions(const NetworkOptions *netOptions);
-  bool sendUhwid(const char *uhwid, size_t len);
+  bool sendUhwid(const byte *uhwid);
   bool sendJwt(const char *jwt, size_t len);
   bool sendBleMacAddress(const uint8_t *mac, size_t len);
   TransmissionResult transmitStream();

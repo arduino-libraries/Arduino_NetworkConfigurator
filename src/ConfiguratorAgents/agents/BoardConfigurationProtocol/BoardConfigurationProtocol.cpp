@@ -76,7 +76,7 @@ bool BoardConfigurationProtocol::sendNewMsg(ProvisioningOutputMessage &msg) {
       res = sendNetworkOptions(msg.m.netOptions);
       break;
     case MessageOutputType::UHWID:
-      res = sendUhwid(msg.m.uhwid, strlen(msg.m.uhwid));
+      res = sendUhwid(msg.m.uhwid);
       break;
     case MessageOutputType::JWT:
       res = sendJwt(msg.m.jwt, strlen(msg.m.jwt));
@@ -256,12 +256,8 @@ bool BoardConfigurationProtocol::sendNetworkOptions(const NetworkOptions *netOpt
   return res;
 }
 
-bool BoardConfigurationProtocol::sendUhwid(const char *uhwid, size_t len) {
+bool BoardConfigurationProtocol::sendUhwid(const byte *uhwid) {
   bool res = false;
-  if (len > MAX_UHWID_SIZE) {
-    DEBUG_ERROR("BoardConfigurationProtocol::%s UHWID too long", __FUNCTION__);
-    return res;
-  }
 
   size_t cborDataLen = CBOR_DATA_UHWID_LEN;
   uint8_t data[cborDataLen];

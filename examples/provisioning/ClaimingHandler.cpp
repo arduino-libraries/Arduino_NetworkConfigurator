@@ -78,12 +78,11 @@ void ClaimingHandlerClass::getIdReqHandler() {
       sendStatus(StatusMessage::ERROR);
       return;
     }
-    byte _uhwidBytes[33];
+    byte _uhwidBytes[32];
     hexStringToBytes(*_uhwid, _uhwidBytes, _uhwid->length());
-    _uhwidBytes[32] = '\0';
     //Send UHWID
     ProvisioningOutputMessage idMsg = {MessageOutputType::UHWID};
-    idMsg.m.uhwid = (char *)_uhwidBytes;
+    idMsg.m.uhwid = _uhwidBytes;
     _agentManager->sendMsg(idMsg);
     //Send JWT
     ProvisioningOutputMessage jwtMsg = {MessageOutputType::JWT};

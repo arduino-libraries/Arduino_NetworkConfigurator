@@ -12,7 +12,7 @@
 #include <settings/settings.h>
 
 #define MAX_UHWID_SIZE 32
-#define MAX_JWT_SIZE  268
+#define MAX_JWT_SIZE  269
 
 enum class StatusMessage {
   NONE                       = 0,
@@ -60,7 +60,7 @@ struct ProvisioningOutputMessage {
   union {
     StatusMessage status;
     const NetworkOptions *netOptions;
-    const char *uhwid;
+    const byte *uhwid; // Must be a pointer to a byte array of MAX_UHWID_SIZE
     const char *jwt;
     const uint8_t *BLEMacAddress;
   } m;

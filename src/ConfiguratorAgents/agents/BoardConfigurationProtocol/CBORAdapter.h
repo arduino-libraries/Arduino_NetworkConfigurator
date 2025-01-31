@@ -21,7 +21,7 @@
 
 class CBORAdapter {
 public:
-  static bool uhwidToCBOR(const char *uhwid, uint8_t *data, size_t *len);
+  static bool uhwidToCBOR(const byte *uhwid, uint8_t *data, size_t *len);
   static bool jwtToCBOR(const char *jwt, uint8_t *data, size_t *len);
   static bool BLEMacAddressToCBOR(const uint8_t *mac, uint8_t *data, size_t *len);
   static bool statusToCBOR(StatusMessage msg, uint8_t *data, size_t *len);
