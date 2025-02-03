@@ -7,11 +7,15 @@
 */
 
 #pragma once
+#if defined(ARDUINO_SAMD_MKRGSM1400) || defined(ARDUINO_SAMD_MKRNB1500) || defined(ARDUINO_SAMD_MKRWAN1300) || defined(ARDUINO_SAMD_MKRWAN1310)
+#error "Board not supported"
+#endif
 #include "Arduino.h"
 #include "GenericConnectionHandler.h"
 #include "ConfiguratorAgents/AgentsManager.h"
 #include <settings/settings.h>
 #include <Arduino_TimedAttempt.h>
+#include <Arduino_KVStore.h>
 
 enum class NetworkConfiguratorStates { CHECK_ETH,
                                        READ_STORED_CONFIG,
@@ -29,6 +33,9 @@ public:
   bool resetStoredConfiguration();
   bool end();
   bool updateNetworkOptions();
+  void setStorage(KVStore &kvstore) {
+    _kvstore = &kvstore;
+  }
 private:
   NetworkConfiguratorStates _state = NetworkConfiguratorStates::END;
   ConnectionHandler *_connectionHandler;
@@ -48,6 +55,8 @@ private:
   enum class ConnectionResult { SUCCESS,
                                 FAILED,
                                 IN_PROGRESS };
+
+  KVStore *_kvstore = nullptr;
 
 #ifdef BOARD_HAS_ETHERNET
   NetworkConfiguratorStates handleCheckEth();

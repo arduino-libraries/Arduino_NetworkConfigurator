@@ -15,10 +15,6 @@
 #include "WiFiConnectionHandler.h"
 #endif
 #include "NetworkConfigurator.h"
-#if !defined(ARDUINO_SAMD_MKRGSM1400) && !defined(ARDUINO_SAMD_MKRNB1500) && !defined(ARDUINO_SAMD_MKRWAN1300) && !defined(ARDUINO_SAMD_MKRWAN1310)
-#define BOARD_HAS_KVSTORE
-#include <Arduino_KVStore.h>
-#endif
 
 #define SERVICE_ID_FOR_AGENTMANAGER 0xB0
 
@@ -26,9 +22,6 @@
 #define NC_CONNECTION_TIMEOUT_ms 15000
 #define NC_UPDATE_NETWORK_OPTIONS_TIMER_ms 120000
 
-#if defined(BOARD_HAS_KVSTORE)
-  KVStore _kvstore;
-#endif
 constexpr char *STORAGE_KEY{ "NETWORK_CONFIGS" };
 
 NetworkConfiguratorClass::NetworkConfiguratorClass(ConnectionHandler &connectionHandler)
@@ -120,22 +113,23 @@ NetworkConfiguratorStates NetworkConfiguratorClass::poll() {
 }
 
 bool NetworkConfiguratorClass::resetStoredConfiguration() {
-#if defined(BOARD_HAS_KVSTORE)
-  bool res = false;
-  if (_kvstore.begin()) {
-    if(_kvstore.exists(STORAGE_KEY)) {
-      res = _kvstore.remove(STORAGE_KEY);
-    } else{
-      res = true;
+
+  if(_kvstore != nullptr){
+    bool res = false;
+    if (_kvstore->begin()) {
+      if(_kvstore->exists(STORAGE_KEY)) {
+        res = _kvstore->remove(STORAGE_KEY);
+      } else{
+        res = true;
+      }
+      _kvstore->end();
+    } else {
+      DEBUG_DEBUG("Cannot initialize kvstore for deleting network settings");
     }
-    _kvstore.end();
-  } else {
-    DEBUG_DEBUG("Cannot initialize kvstore for deleting network settings");
+    if (!res) {
+      return false;
+    }
   }
-  if (!res) {
-    return false;
-  }
-#endif
 
   memset(&_networkSetting, 0x00, sizeof(models::NetworkSetting));
   if(_connectionHandlerIstantiated) {
@@ -324,22 +318,22 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleConnectRequest() {
 
   sendStatus(StatusMessage::CONNECTING);
 
-#if defined(BOARD_HAS_KVSTORE)
-  if (!_kvstore.begin()) {
-    DEBUG_ERROR("NetworkConfiguratorClass::%s error initializing kvstore", __FUNCTION__);
-    sendStatus(StatusMessage::ERROR_STORAGE_BEGIN);
-    LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::ERROR);
-    return nextState;
-  }
-  if (!_kvstore.putBytes(STORAGE_KEY, (uint8_t *)&_networkSetting, sizeof(models::NetworkSetting))) {
-    DEBUG_ERROR("NetworkConfiguratorClass::%s error saving network settings", __FUNCTION__);
-    sendStatus(StatusMessage::ERROR);
-    LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::ERROR);
-    return nextState;
-  }
+  if (_kvstore != nullptr) {
+    if (!_kvstore->begin()) {
+      DEBUG_ERROR("NetworkConfiguratorClass::%s error initializing kvstore", __FUNCTION__);
+      sendStatus(StatusMessage::ERROR_STORAGE_BEGIN);
+      LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::ERROR);
+      return nextState;
+    }
+    if (!_kvstore->putBytes(STORAGE_KEY, (uint8_t *)&_networkSetting, sizeof(models::NetworkSetting))) {
+      DEBUG_ERROR("NetworkConfiguratorClass::%s error saving network settings", __FUNCTION__);
+      sendStatus(StatusMessage::ERROR);
+      LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::ERROR);
+      return nextState;
+    }
 
-  _kvstore.end();
-#endif
+    _kvstore->end();
+  }
 
   if (_connectionHandlerIstantiated) {
     if(disconnectFromNetwork() == ConnectionResult::FAILED) {
@@ -417,32 +411,32 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleCheckEth() {
 
 NetworkConfiguratorStates NetworkConfiguratorClass::handleReadStorage() {
   NetworkConfiguratorStates nextState = _state;
-#if defined(BOARD_HAS_KVSTORE)
-  if (!_kvstore.begin()) {
-    DEBUG_ERROR("NetworkConfiguratorClass::%s error initializing kvstore", __FUNCTION__);
-    sendStatus(StatusMessage::ERROR_STORAGE_BEGIN);
-    LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::ERROR);
-    return nextState;
-  }
-
-  if (_kvstore.exists(STORAGE_KEY)) {
-    _kvstore.getBytes(STORAGE_KEY, (uint8_t *)&_networkSetting, sizeof(models::NetworkSetting));
-    printNetworkSettings();
-    if (!_connectionHandler->updateSetting(_networkSetting)) {
-      DEBUG_WARNING("NetworkConfiguratorClass::%s Network parameters found on storage are not supported.", __FUNCTION__);
-      nextState = NetworkConfiguratorStates::WAITING_FOR_CONFIG;
-    } else {
-      _connectionHandlerIstantiated = true;
-      nextState = NetworkConfiguratorStates::CONFIGURED;
+  if(_kvstore != nullptr){
+    if (!_kvstore->begin()) {
+      DEBUG_ERROR("NetworkConfiguratorClass::%s error initializing kvstore", __FUNCTION__);
+      sendStatus(StatusMessage::ERROR_STORAGE_BEGIN);
+      LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::ERROR);
+      return nextState;
     }
 
-  } else {
-    nextState = NetworkConfiguratorStates::WAITING_FOR_CONFIG;
+    if (_kvstore->exists(STORAGE_KEY)) {
+      _kvstore->getBytes(STORAGE_KEY, (uint8_t *)&_networkSetting, sizeof(models::NetworkSetting));
+      printNetworkSettings();
+      if (!_connectionHandler->updateSetting(_networkSetting)) {
+        DEBUG_WARNING("NetworkConfiguratorClass::%s Network parameters found on storage are not supported.", __FUNCTION__);
+        nextState = NetworkConfiguratorStates::WAITING_FOR_CONFIG;
+      } else {
+        _connectionHandlerIstantiated = true;
+        nextState = NetworkConfiguratorStates::CONFIGURED;
+      }
+
+    } else {
+      nextState = NetworkConfiguratorStates::WAITING_FOR_CONFIG;
+    }
+    _kvstore->end();
+  } else{
+    nextState = NetworkConfiguratorStates::CONFIGURED;
   }
-  _kvstore.end();
-#else
-  nextState = NetworkConfiguratorStates::CONFIGURED;
-#endif
 
   if (nextState == NetworkConfiguratorStates::WAITING_FOR_CONFIG && _optionUpdateTimer.getWaitTime() == 0) {
     updateNetworkOptions();
