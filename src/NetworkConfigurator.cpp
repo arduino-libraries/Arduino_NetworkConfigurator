@@ -31,8 +31,8 @@
 #endif
 constexpr char *STORAGE_KEY{ "NETWORK_CONFIGS" };
 
-NetworkConfiguratorClass::NetworkConfiguratorClass(AgentsManagerClass &agentManager, ConnectionHandler &connectionHandler)
-  : _agentManager{ &agentManager },
+NetworkConfiguratorClass::NetworkConfiguratorClass(ConnectionHandler &connectionHandler)
+  :
     _connectionHandler{ &connectionHandler },
     _connectionTimeout{ NC_CONNECTION_TIMEOUT_ms, NC_CONNECTION_TIMEOUT_ms },
     _connectionRetryTimer{ NC_CONNECTION_RETRY_TIMER_ms, NC_CONNECTION_RETRY_TIMER_ms },
@@ -54,24 +54,24 @@ bool NetworkConfiguratorClass::begin() {
     DEBUG_ERROR(F("The current WiFi firmware version is not the latest and it may cause compatibility issues. Please upgrade the WiFi firmware"));
   }
 #endif
-  if (!_agentManager->addRequestHandler(RequestType::SCAN, scanReqHandler)) {
+  if (!AgentsManager.addRequestHandler(RequestType::SCAN, scanReqHandler)) {
     DEBUG_ERROR("NetworkConfiguratorClass::%s Error registering \"scan request\" callback to AgentManager", __FUNCTION__);
   }
 #endif
 
-  if (!_agentManager->addRequestHandler(RequestType::CONNECT, connectReqHandler)) {
+  if (!AgentsManager.addRequestHandler(RequestType::CONNECT, connectReqHandler)) {
     DEBUG_ERROR("NetworkConfiguratorClass::%s Error registering \"connect request\" callback to AgentManager", __FUNCTION__);
   }
 
-  if (!_agentManager->addReturnNetworkSettingsCallback(setNetworkSettingsHandler)) {
+  if (!AgentsManager.addReturnNetworkSettingsCallback(setNetworkSettingsHandler)) {
     DEBUG_ERROR("NetworkConfiguratorClass::%s Error registering \"network settings\" callback to AgentManager", __FUNCTION__);
   }
-
-  if(!_agentManager->addRequestHandler(RequestType::GET_WIFI_FW_VERSION, getWiFiFWVersionHandler)) {
+  //TODO fix when rebasing
+  if(!AgentsManager.addRequestHandler(RequestType::GET_WIFI_FW_VERSION, getWiFiFWVersionHandler)) {
     DEBUG_ERROR("NetworkConfiguratorClass::%s Error registering \"get wifi firmware version request\" callback to AgentManager", __FUNCTION__);
   }
 
-  if (!_agentManager->begin(SERVICE_ID_FOR_AGENTMANAGER)) {
+  if (!AgentsManager.begin(SERVICE_ID_FOR_AGENTMANAGER)) {
     DEBUG_ERROR("NetworkConfiguratorClass::%s Failed to initialize the AgentsManagerClass", __FUNCTION__);
   }
 
@@ -151,11 +151,13 @@ bool NetworkConfiguratorClass::resetStoredConfiguration() {
 }
 
 bool NetworkConfiguratorClass::end() {
-  _agentManager->removeReturnNetworkSettingsCallback();
-  _agentManager->removeRequestHandler(RequestType::SCAN);
-  _agentManager->removeRequestHandler(RequestType::CONNECT);
+  _lastConnectionAttempt = 0;
+  _lastOptionUpdate = 0;
+  AgentsManager.removeReturnNetworkSettingsCallback();
+  AgentsManager.removeRequestHandler(RequestType::SCAN);
+  AgentsManager.removeRequestHandler(RequestType::CONNECT);
   _state = NetworkConfiguratorStates::END;
-  return _agentManager->end(SERVICE_ID_FOR_AGENTMANAGER);
+  return AgentsManager.end(SERVICE_ID_FOR_AGENTMANAGER);
 }
 
 
@@ -225,7 +227,7 @@ bool NetworkConfiguratorClass::updateNetworkOptions() {
 #endif
   ProvisioningOutputMessage netOptionMsg = { MessageOutputType::NETWORK_OPTIONS };
   netOptionMsg.m.netOptions = &netOption;
-  _agentManager->sendMsg(netOptionMsg);
+  AgentsManager.sendMsg(netOptionMsg);
 
   _optionUpdateTimer.reload();
   return true;
@@ -451,7 +453,7 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleReadStorage() {
 NetworkConfiguratorStates NetworkConfiguratorClass::handleWaitingForConf() {
   NetworkConfiguratorStates nextState = _state;
 
-  _agentManager->poll();
+  AgentsManager.poll();
 
   switch (_receivedEvent) {
     case NetworkConfiguratorEvents::SCAN_REQ:                updateNetworkOptions    (); break;
@@ -466,7 +468,7 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleWaitingForConf() {
       updateNetworkOptions();
     }
 
-    if (_connectionHandlerIstantiated && _agentManager->isConfigInProgress() != true && _connectionRetryTimer.isExpired()) {
+    if (_connectionHandlerIstantiated && AgentsManager.isConfigInProgress() != true && _connectionRetryTimer.isExpired()) {
       sendStatus(StatusMessage::CONNECTING);
       nextState = NetworkConfiguratorStates::CONNECTING;
     }
@@ -477,7 +479,7 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleWaitingForConf() {
 
 NetworkConfiguratorStates NetworkConfiguratorClass::handleConnecting() {
   NetworkConfiguratorStates nextState = _state;
-  _agentManager->poll();  //To keep alive the connection with the configurator
+  AgentsManager.poll();  //To keep alive the connection with the configurator
   StatusMessage err;
   ConnectionResult res = connectToNetwork(&err);
 
@@ -513,7 +515,7 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleConfigured() {
 
 NetworkConfiguratorStates NetworkConfiguratorClass::handleUpdatingConfig() {
   NetworkConfiguratorStates nextState = _state;
-  if (_agentManager->isConfigInProgress() == false) {
+  if (AgentsManager.isConfigInProgress() == false) {
     //If peer disconnects without updating the network settings, go to connecting state for check the connection
     sendStatus(StatusMessage::CONNECTING);
     nextState = NetworkConfiguratorStates::CONNECTING;
@@ -526,7 +528,7 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleUpdatingConfig() {
 
 bool NetworkConfiguratorClass::sendStatus(StatusMessage msg) {
   ProvisioningOutputMessage statusMsg = { MessageOutputType::STATUS, { msg } };
-  return _agentManager->sendMsg(statusMsg);
+  return AgentsManager.sendMsg(statusMsg);
 }
 
 #if defined(BOARD_HAS_ETHERNET)

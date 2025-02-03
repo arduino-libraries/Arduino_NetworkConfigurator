@@ -23,7 +23,7 @@ enum class NetworkConfiguratorStates { CHECK_ETH,
 
 class NetworkConfiguratorClass {
 public:
-  NetworkConfiguratorClass(AgentsManagerClass &agentManager, ConnectionHandler &connectionHandler);
+  NetworkConfiguratorClass(ConnectionHandler &connectionHandler);
   bool begin();
   NetworkConfiguratorStates poll();
   bool resetStoredConfiguration();
@@ -31,7 +31,6 @@ public:
   bool updateNetworkOptions();
 private:
   NetworkConfiguratorStates _state = NetworkConfiguratorStates::END;
-  AgentsManagerClass *_agentManager;
   ConnectionHandler *_connectionHandler;
   static inline models::NetworkSetting _networkSetting;
   bool _connectionHandlerIstantiated = false;
