@@ -146,7 +146,7 @@ uint32_t CSRHandlerClass::getTimestamp() {
     ts = TimeService.getTime();
     getTsAttempt++;
   }while(ts == 0 && getTsAttempt < 3);
-  
+
   return ts;
 }
 
@@ -174,7 +174,7 @@ CSRHandlerClass::CSRHandlerStates CSRHandlerClass::handleRequestSignature() {
   if(millis() < _nextRequestAt) {
     return nextState;
   }
-  
+
   NetworkConnectionState connectionRes = _connectionHandler->check();
   if (connectionRes != NetworkConnectionState::CONNECTED) {
     return nextState;
@@ -183,22 +183,22 @@ CSRHandlerClass::CSRHandlerStates CSRHandlerClass::handleRequestSignature() {
   if(!_certForCSR){
     return CSRHandlerStates::BUILD_CSR;
   }
-  
+
   String csr = _certForCSR->getCSRPEM();
   csr.replace("\n", "\\n");
 
   String PostData = "{\"csr\":\"";
   PostData += csr;
-  PostData += "\",\"ca\":\"Arduino\"}";
+  PostData += "\"}";
   Serial.println("Downloading certificate...");
-  
+
   if(postRequest("/provisioning/v1/onboarding/provision/csr", PostData)){
     nextState = CSRHandlerStates::WAITING_RESPONSE;
   } else {
     Serial.println("Error sending request");
     updateNextRequestAt();
   }
- 
+
   return nextState;
 }
 
@@ -228,7 +228,7 @@ CSRHandlerClass::CSRHandlerStates CSRHandlerClass::handleWaitingResponse() {
     updateNextRequestAt();
     nextState = CSRHandlerStates::REQUEST_SIGNATURE;
   }
-  
+
   return nextState;
 }
 
@@ -244,7 +244,7 @@ CSRHandlerClass::CSRHandlerStates CSRHandlerClass::handleParseResponse() {
   if (myObject.hasOwnProperty("device_id") && myObject["compressed"].hasOwnProperty("not_before") && \
   myObject["compressed"].hasOwnProperty("serial") && myObject["compressed"].hasOwnProperty("authority_key_identifier") && \
   myObject["compressed"].hasOwnProperty("signature_asn1_x") && myObject["compressed"].hasOwnProperty("signature_asn1_x")) {
-  
+
     _deviceId = (const char *)myObject["device_id"];
     _not_before = (const char *)myObject["compressed"]["not_before"];
     _serialNumber = (const char *)myObject["compressed"]["serial"];
@@ -323,7 +323,7 @@ CSRHandlerClass::CSRHandlerStates CSRHandlerClass::handleCertCreated() {
   if(millis() < _nextRequestAt) {
     return nextState;
   }
-  
+
   NetworkConnectionState connectionRes = _connectionHandler->check();
   if (connectionRes != NetworkConnectionState::CONNECTED) {
     return nextState;
