@@ -33,6 +33,7 @@ private:
   InputPacketBuffer _tempInputMessageHeader;
   InputPacketBuffer _tempInputMessagePayload;
   InputPacketBuffer _tempInputMessageEnd;
+  uint32_t _lastByteReceivedTs = 0;
 
   ReceivingState handle_WaitingHeader(uint8_t byte);
   ReceivingState handle_WaitingPayload(uint8_t byte);

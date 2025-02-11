@@ -35,6 +35,7 @@ protected:
   virtual int writeBytes(const uint8_t *data, size_t len) = 0;
   virtual void handleDisconnectRequest() = 0;
   virtual bool isPeerConnected() = 0;
+  virtual void clearInputBuffer() = 0;
 
 private:
   bool sendStatus(StatusMessage msg);

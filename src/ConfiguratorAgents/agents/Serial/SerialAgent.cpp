@@ -96,6 +96,7 @@ ConfiguratorAgent::AgentConfiguratorStates SerialAgentClass::handleInit() {
       } else if (res == PacketManager::ReceivingState::ERROR) {
         DEBUG_DEBUG("SerialAgentClass::%s Error receiving packet", __FUNCTION__);
         Packet.clear();
+        clearInputBuffer();
       }
     }
   }
@@ -141,6 +142,12 @@ int SerialAgentClass::writeBytes(const uint8_t *data, size_t len) {
 
 void SerialAgentClass::handleDisconnectRequest() {
   _disconnectRequest = true;
+}
+
+void SerialAgentClass::clearInputBuffer() {
+  while (Serial.available()) {
+    Serial.read();
+  }
 }
 
 SerialAgentClass SerialAgent;

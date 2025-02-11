@@ -115,6 +115,7 @@ BoardConfigurationProtocol::TransmissionResult BoardConfigurationProtocol::sendA
       if (res == PacketManager::ReceivingState::ERROR) {
         DEBUG_DEBUG("BoardConfigurationProtocol::%s Error receiving packet", __FUNCTION__);
         sendNak();
+        clearInputBuffer();
         transmissionRes = TransmissionResult::INVALID_DATA;
         break;
       } else if (res == PacketManager::ReceivingState::RECEIVED) {

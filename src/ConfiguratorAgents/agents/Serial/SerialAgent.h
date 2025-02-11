@@ -39,6 +39,7 @@ private:
   uint8_t readByte();
   int writeBytes(const uint8_t *data, size_t len);
   void handleDisconnectRequest();
+  void clearInputBuffer();
 };
 
 extern SerialAgentClass SerialAgent;

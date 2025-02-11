@@ -25,6 +25,7 @@ uint8_t PACKET_END[] = { 0xaa, 0x55 };
 #define CRC16_FINAL_XOR_VALUE 0xffff
 #define CRC16_REFLECT_DATA true
 #define CRC16_REFLECT_RESULT true
+#define BYTES_VALIDITY_MS 10000
 
 bool PacketManager::createPacket(OutputPacketBuffer &outputMsg, MessageType type, const uint8_t *data, size_t len) {
   uint16_t packetLen = len + PACKET_HEADERS_OVERHEAD;
@@ -61,6 +62,12 @@ PacketManager::ReceivingState PacketManager::handleReceivedByte(ReceivedData &re
     _state = ReceivingState::WAITING_HEADER;
   }
 
+  if (millis() - _lastByteReceivedTs > BYTES_VALIDITY_MS) {
+    clearInputBuffers();
+  }
+
+  _lastByteReceivedTs = millis();
+
   switch (_state) {
     case ReceivingState::WAITING_HEADER:  _state = handle_WaitingHeader (byte); break;
     case ReceivingState::WAITING_PAYLOAD: _state = handle_WaitingPayload(byte); break;
@@ -89,6 +96,7 @@ void PacketManager::clear() {
 }
 
 void PacketManager::clearInputBuffers() {
+  _lastByteReceivedTs = 0;
   _tempInputMessageHeader.clear();
   _tempInputMessagePayload.reset();
   _tempInputMessageEnd.clear();

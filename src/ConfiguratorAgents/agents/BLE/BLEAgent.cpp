@@ -110,7 +110,7 @@ ConfiguratorAgent::AgentConfiguratorStates BLEAgentClass::poll() {
       }
       break;
     case BLEEvent::DISCONNECTED:
-      _inputStreamCharacteristic.writeValue("");
+      clearInputBuffer();
       clear();
       _state = AgentConfiguratorStates::INIT;
       break;
@@ -190,15 +190,16 @@ int BLEAgentClass::writeBytes(const uint8_t *data, size_t len) {
 void BLEAgentClass::handleDisconnectRequest() {
 }
 
+void BLEAgentClass::clearInputBuffer() {
+  // clear the input buffer
+  _inputStreamCharacteristic.writeValue("");
+}
+
 ConfiguratorAgent::AgentConfiguratorStates BLEAgentClass::handlePeerConnected() {
   AgentConfiguratorStates nextState = _state;
 
   TransmissionResult res = sendAndReceive();
   switch (res) {
-    case TransmissionResult::INVALID_DATA:
-      // clear the input buffer
-      _inputStreamCharacteristic.writeValue("");
-      break;
     case TransmissionResult::PEER_NOT_AVAILABLE:
       disconnectPeer();
       nextState = AgentConfiguratorStates::INIT;
@@ -246,7 +247,7 @@ bool BLEAgentClass::setManufacturerData() {
 
 
 void BLEAgentClass::disconnectPeer() {
-  _inputStreamCharacteristic.writeValue("");
+  clearInputBuffer();
   uint32_t start = millis();
   BLE.disconnect();
   do {
