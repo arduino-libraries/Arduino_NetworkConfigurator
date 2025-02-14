@@ -79,9 +79,9 @@ void setup() {
 
 void loop() {
   if (provisioningCompleted && networkConfigured) {
-    AgentsManager.disconnect();
-    if (AgentsManager.isBLEAgentEnabled()) {
-      AgentsManager.enableBLEAgent(false);
+    NetworkConfigurator.configurationCompleted();
+    if (NetworkConfigurator.isBLEenabled()) {
+      NetworkConfigurator.enableBLE(false);
     }
   }
   if (provisioningCompleted == false && ProvisioningSystem.poll()) {
@@ -109,8 +109,8 @@ void loop() {
     if (digitalRead(RESETCRED_BUTTON) == HIGH) {
 #endif
       Serial.println("Update config");
-      if (!AgentsManager.isBLEAgentEnabled()) {
-        AgentsManager.enableBLEAgent(true);
+      if (!NetworkConfigurator.isBLEenabled()) {
+        NetworkConfigurator.enableBLE(true);
       }
 
       networkConfigured = false;

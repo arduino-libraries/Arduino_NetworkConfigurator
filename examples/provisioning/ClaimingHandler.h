@@ -11,10 +11,10 @@
 #include "ConfiguratorAgents/AgentsManager.h"
 #include <Arduino_SecureElement.h>
 
-typedef bool (*ClearStoredCredentialsHandler)(); 
+typedef bool (*ClearStoredCredentialsHandler)();
 class ClaimingHandlerClass {
 public:
-  ClaimingHandlerClass(AgentsManagerClass &agc);
+  ClaimingHandlerClass();
   bool begin(SecureElement *secureElement, String *uhwid, ClearStoredCredentialsHandler clearStoredCredentials);
   void end();
   void poll();
@@ -26,7 +26,8 @@ private:
   };
   enum class ClaimingReqEvents { NONE,
                                  GET_ID,
-                                 RESET };
+                                 RESET,
+                                 GET_BLE_MAC_ADDRESS };
   static inline ClaimingReqEvents _receivedEvent = ClaimingReqEvents::NONE;
   ClaimingHandlerStates _state = ClaimingHandlerStates::END;
   AgentsManagerClass *_agentManager = nullptr;
@@ -35,8 +36,10 @@ private:
   ClearStoredCredentialsHandler _clearStoredCredentials = nullptr;
   void getIdReqHandler();
   void resetStoredCredReqHandler();
+  void getBLEMacAddressReqHandler();
   bool sendStatus(StatusMessage msg);
   static void getIdRequestCb();
   static void setTimestamp(uint64_t ts);
   static void resetStoredCredRequestCb();
+  static void getBLEMacAddressRequestCb();
 };

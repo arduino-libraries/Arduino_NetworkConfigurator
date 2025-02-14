@@ -3,7 +3,6 @@
 #include <ArduinoIoTCloud.h>
 #include <GenericConnectionHandler.h>
 #include "NetworkConfigurator.h"
-#include "ConfiguratorAgents/AgentsManager.h"
 #include <Arduino_KVStore.h>
 #if !defined(ARDUINO_SAMD_MKRGSM1400) && !defined(ARDUINO_SAMD_MKRNB1500) && !defined(ARDUINO_SAMD_MKRWAN1300) && !defined(ARDUINO_SAMD_MKRWAN1310)
 #include "ConfiguratorAgents/agents/BLE/BLEAgent.h"
@@ -18,17 +17,22 @@ void onCounterChange();
 int counter;
 
 GenericConnectionHandler ArduinoIoTPreferredConnection;
-NetworkConfiguratorClass NetworkConfigurator(ArduinoIoTPreferredConnection);
 KVStore kvstore;
+
+#if !defined(ARDUINO_SAMD_MKRGSM1400) && !defined(ARDUINO_SAMD_MKRNB1500) && !defined(ARDUINO_SAMD_MKRWAN1300) && !defined(ARDUINO_SAMD_MKRWAN1310)
+BLEAgentClass BLEAgent;
+#endif
+SerialAgentClass SerialAgent;
+NetworkConfiguratorClass NetworkConfigurator(ArduinoIoTPreferredConnection);
 
 void initProperties(){
 
   ArduinoCloud.addProperty(counter, READWRITE, ON_CHANGE, onCounterChange);
   NetworkConfigurator.setStorage(kvstore);
 #if !defined(ARDUINO_SAMD_MKRGSM1400) && !defined(ARDUINO_SAMD_MKRNB1500) && !defined(ARDUINO_SAMD_MKRWAN1300) && !defined(ARDUINO_SAMD_MKRWAN1310)
-  AgentsManager.addAgent(BLEAgent);
+ NetworkConfigurator.addAgent(BLEAgent);
 #endif
-  AgentsManager.addAgent(SerialAgent);
+ NetworkConfigurator.addAgent(SerialAgent);
 }
 
 

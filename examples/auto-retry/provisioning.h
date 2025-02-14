@@ -4,7 +4,7 @@
 
 class Provisioning {
 public:
-  Provisioning(AgentsManagerClass &agc);
+  Provisioning();
   void begin();
   void end();
   bool poll();

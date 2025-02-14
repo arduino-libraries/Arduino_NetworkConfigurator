@@ -29,6 +29,10 @@ void display_freeram();
 #define RESETCRED_BUTTON 13
 #endif
 
+#define CLEAR_CREDENTIALS_ON_RESET true
+#define CLEAR_ON_RESET true
+
+
 enum class DeviceState { FIRST_CONFIG,
                          CSR,
                          BEGIN_CLOUD,
@@ -123,12 +127,15 @@ void setup() {
 #endif
 
 #if defined(ARDUINO_OPTA) 
-  if(digitalRead(RESETCRED_BUTTON) == LOW){
+  if(CLEAR_ON_RESET ||digitalRead(RESETCRED_BUTTON) == LOW){
 #else
-  if (digitalRead(RESETCRED_BUTTON) == HIGH) {
+  if (CLEAR_ON_RESET ||digitalRead(RESETCRED_BUTTON) == HIGH) {
 #endif
     Serial.println("Resetting cred");
     NetworkConfigurator.resetStoredConfiguration();
+    if (CLEAR_CREDENTIALS_ON_RESET) {
+      clearStoredCredentials();
+    }
   }
 
   NetworkConfigurator.updateNetworkOptions();
@@ -196,9 +203,9 @@ void cloudConnectedHandler(bool connected) {
 
 DeviceState handleBeginCloud() {
   // Close the connection to the peer (App mobile, FE, etc)
-  AgentsManager.disconnect();
-  if (AgentsManager.isBLEAgentEnabled()) {
-    AgentsManager.enableBLEAgent(false);
+  AgentsManagerClass::getInstance().disconnect();
+  if (AgentsManagerClass::getInstance().isBLEAgentEnabled()) {
+    AgentsManagerClass::getInstance().enableBLEAgent(false);
   }
   // Connect to Arduino IoT Cloud
   ArduinoCloud.begin(ArduinoIoTPreferredConnection, false, "mqtts-sa.iot.oniudra.cc");

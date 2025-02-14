@@ -79,7 +79,7 @@ PacketManager::ReceivingState PacketManager::handleReceivedByte(ReceivedData &re
     receivedData.type = (MessageType)getPacketType();
     if (receivedData.type != MessageType::TRANSMISSION_CONTROL && receivedData.type != MessageType::DATA) {
       //Packet type not recognized
-      DEBUG_DEBUG("PacketManager::%s Packet type not recognized: %d", __FUNCTION__, (int)receivedData.type);
+      //DEBUG_DEBUG("PacketManager::%s Packet type not recognized: %d", __FUNCTION__, (int)receivedData.type);
       _state = ReceivingState::WAITING_HEADER;
       return _state;
     }
@@ -159,7 +159,7 @@ PacketManager::ReceivingState PacketManager::handle_WaitingHeader(uint8_t byte) 
 
   if (_tempInputMessageHeader.receivedAll()) {
     if (!checkBeginPacket()) {
-      DEBUG_DEBUG("PacketManager::%s Begin packet not recognized", __FUNCTION__);
+      //DEBUG_DEBUG("PacketManager::%s Begin packet not recognized", __FUNCTION__);
       clearInputBuffers();
       return ReceivingState::ERROR;
     }
@@ -199,7 +199,7 @@ PacketManager::ReceivingState PacketManager::handle_WaitingEnd(uint8_t byte) {
     if (checkCRC() && checkEndPacket()) {
       nextState = ReceivingState::RECEIVED;
     } else {
-      DEBUG_DEBUG("PacketManager::%s CRC or end packet not recognized", __FUNCTION__);
+      //DEBUG_DEBUG("PacketManager::%s CRC or end packet not recognized", __FUNCTION__);
       //Error
       clearInputBuffers();
       nextState = ReceivingState::ERROR;
@@ -209,4 +209,4 @@ PacketManager::ReceivingState PacketManager::handle_WaitingEnd(uint8_t byte) {
   return nextState;
 }
 
-PacketManager Packet;
+//PacketManager Packet;

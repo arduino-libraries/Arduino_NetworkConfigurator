@@ -94,7 +94,7 @@ BoardConfigurationProtocol::TransmissionResult BoardConfigurationProtocol::sendA
 
     for (int i = 0; i < receivedDataLen; i++) {
       uint8_t val = readByte();
-      res = Packet.handleReceivedByte(receivedData, val);
+      res = PacketManager::getInstance().handleReceivedByte(receivedData, val);
       if (res == PacketManager::ReceivingState::ERROR) {
         DEBUG_DEBUG("BoardConfigurationProtocol::%s Error receiving packet", __FUNCTION__);
         sendNak();
@@ -105,8 +105,8 @@ BoardConfigurationProtocol::TransmissionResult BoardConfigurationProtocol::sendA
         switch (receivedData.type) {
           case PacketManager::MessageType::DATA:
             {
-              DEBUG_DEBUG("BoardConfigurationProtocol::%s Received data packet", __FUNCTION__);
-              printPacket("payload", receivedData.payload.get_ptr(), receivedData.payload.len());
+              //DEBUG_DEBUG("BoardConfigurationProtocol::%s Received data packet", __FUNCTION__);
+              //printPacket("payload", receivedData.payload.get_ptr(), receivedData.payload.len());
               _inputMessagesList.push_back(receivedData.payload);
               //Consider all sent data as received
               _outputMessagesList.clear();
@@ -117,12 +117,12 @@ BoardConfigurationProtocol::TransmissionResult BoardConfigurationProtocol::sendA
             {
               if (receivedData.payload.len() == 1 && receivedData.payload[0] == 0x03) {
 
-                DEBUG_DEBUG("BoardConfigurationProtocol::%s Received NACK packet", __FUNCTION__);
+                //DEBUG_DEBUG("BoardConfigurationProtocol::%s Received NACK packet", __FUNCTION__);
                 for (std::list<OutputPacketBuffer>::iterator packet = _outputMessagesList.begin(); packet != _outputMessagesList.end(); ++packet) {
                   packet->startProgress();
                 }
               } else if (receivedData.payload.len() == 1 && receivedData.payload[0] == 0x02) {
-                DEBUG_DEBUG("BoardConfigurationProtocol::%s Received disconnect request", __FUNCTION__);
+                //DEBUG_DEBUG("BoardConfigurationProtocol::%s Received disconnect request", __FUNCTION__);
                 handleDisconnectRequest();
               }
             }
@@ -152,11 +152,11 @@ bool BoardConfigurationProtocol::sendData(PacketManager::MessageType type, const
   outputMsg.setValidityTs(millis() + PACKET_VALIDITY_MS);
 
   if (!PacketManager::createPacket(outputMsg, type, data, len)) {
-    DEBUG_WARNING("BoardConfigurationProtocol::%s Failed to create packet", __FUNCTION__);
+    //DEBUG_WARNING("BoardConfigurationProtocol::%s Failed to create packet", __FUNCTION__);
     return false;
   }
 
-  printPacket("output message", outputMsg.get_ptr(), outputMsg.len());
+  //printPacket("output message", outputMsg.get_ptr(), outputMsg.len());
 
   _outputMessagesList.push_back(outputMsg);
 
@@ -172,7 +172,7 @@ bool BoardConfigurationProtocol::sendData(PacketManager::MessageType type, const
 }
 
 void BoardConfigurationProtocol::clear() {
-  Packet.clear();
+  PacketManager::getInstance().clear();
   _outputMessagesList.clear();
   _inputMessagesList.clear();
 }
@@ -198,7 +198,7 @@ bool BoardConfigurationProtocol::sendStatus(StatusMessage msg) {
   uint8_t data[len];
   res = CBORAdapter::statusToCBOR(msg, data, &len);
   if (!res) {
-    DEBUG_ERROR("BoardConfigurationProtocol::%s failed encode status: %d ", __FUNCTION__, (int)msg);
+    //DEBUG_ERROR("BoardConfigurationProtocol::%s failed encode status: %d ", __FUNCTION__, (int)msg);
     return res;
   }
 
@@ -249,7 +249,7 @@ bool BoardConfigurationProtocol::sendUhwid(const byte *uhwid) {
   res = CBORAdapter::uhwidToCBOR(uhwid, data, &cborDataLen);
 
   if (!res) {
-    DEBUG_ERROR("BoardConfigurationProtocol::%s failed to convert uhwid to CBOR", __FUNCTION__);
+    //DEBUG_ERROR("BoardConfigurationProtocol::%s failed to convert uhwid to CBOR", __FUNCTION__);
     return res;
   }
 
@@ -265,7 +265,7 @@ bool BoardConfigurationProtocol::sendUhwid(const byte *uhwid) {
 bool BoardConfigurationProtocol::sendJwt(const char *jwt, size_t len) {
   bool res = false;
   if (len > MAX_JWT_SIZE) {
-    DEBUG_ERROR("BoardConfigurationProtocol::%s JWT too long", __FUNCTION__);
+    //DEBUG_ERROR("BoardConfigurationProtocol::%s JWT too long", __FUNCTION__);
     return res;
   }
 
@@ -274,7 +274,7 @@ bool BoardConfigurationProtocol::sendJwt(const char *jwt, size_t len) {
 
   res = CBORAdapter::jwtToCBOR(jwt, data, &cborDataLen);
   if (!res) {
-    DEBUG_ERROR("BoardConfigurationProtocol::%s failed to convert JWT to CBOR", __FUNCTION__);
+    //DEBUG_ERROR("BoardConfigurationProtocol::%s failed to convert JWT to CBOR", __FUNCTION__);
     return res;
   }
 
@@ -291,7 +291,7 @@ bool BoardConfigurationProtocol::sendJwt(const char *jwt, size_t len) {
 bool BoardConfigurationProtocol::sendBleMacAddress(const uint8_t *mac, size_t len) {
   bool res = false;
   if (len != BLE_MAC_ADDRESS_SIZE) {
-    DEBUG_ERROR("BoardConfigurationProtocol::%s Invalid BLE MAC address", __FUNCTION__);
+    //DEBUG_ERROR("BoardConfigurationProtocol::%s Invalid BLE MAC address", __FUNCTION__);
     return res;
   }
 
@@ -300,7 +300,7 @@ bool BoardConfigurationProtocol::sendBleMacAddress(const uint8_t *mac, size_t le
 
   res = CBORAdapter::BLEMacAddressToCBOR(mac, data, &cborDataLen);
   if (!res) {
-    DEBUG_ERROR("BoardConfigurationProtocol::%s failed to convert BLE MAC address to CBOR", __FUNCTION__);
+    //DEBUG_ERROR("BoardConfigurationProtocol::%s failed to convert BLE MAC address to CBOR", __FUNCTION__);
     return res;
   }
 

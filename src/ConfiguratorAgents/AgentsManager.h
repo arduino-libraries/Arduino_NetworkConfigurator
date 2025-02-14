@@ -27,12 +27,12 @@ enum class RequestType { NONE,
                          SCAN,
                          GET_ID,
                          RESET,
-                         GET_WIFI_FW_VERSION}; //TODO fix when rebasing
+                         GET_WIFI_FW_VERSION,
+                         GET_BLE_MAC_ADDRESS };
 
 class AgentsManagerClass {
 public:
-  AgentsManagerClass()
-    : _netOptions{ .type = NetworkOptionsClass::NONE } {};
+  static AgentsManagerClass &getInstance();
   bool begin(uint8_t id);
   bool end(uint8_t id);
   void disconnect();
@@ -41,7 +41,7 @@ public:
   bool isBLEAgentEnabled() {
     return _bleAgentEnabled;
   };
-
+  ConfiguratorAgent *getConnectedAgent();
   bool sendMsg(ProvisioningOutputMessage &msg);
   bool addAgent(ConfiguratorAgent &agent);
   bool addRequestHandler(RequestType type, ConfiguratorRequestHandler callback);
@@ -60,10 +60,12 @@ public:
     return _state != AgentsManagerStates::INIT && _state != AgentsManagerStates::END;
   };
 private:
+  AgentsManagerClass()
+  : _netOptions{ .type = NetworkOptionsClass::NONE } {};
   AgentsManagerStates _state = AgentsManagerStates::END;
   std::list<ConfiguratorAgent *> _agentsList;
   std::list<uint8_t> _servicesList;
-  ConfiguratorRequestHandler _reqHandlers[5]; //TODO fix when rebasing
+  ConfiguratorRequestHandler _reqHandlers[6];
   ReturnTimestamp _returnTimestampCb = nullptr;
   ReturnNetworkSettings _returnNetworkSettingsCb = nullptr;
   ConfiguratorAgent *_selectedAgent = nullptr;
@@ -103,5 +105,3 @@ private:
   void stopBLEAgent();
   void startBLEAgent();
 };
-
-extern AgentsManagerClass AgentsManager;

@@ -12,18 +12,15 @@
 #include "AgentsManager.h"
 #include "NetworkOptionsDefinitions.h"
 #include "Utility/LEDFeedback/LEDFeedback.h"
-#if !defined(ARDUINO_SAMD_MKRGSM1400) && !defined(ARDUINO_SAMD_MKRNB1500) && !defined(ARDUINO_SAMD_MKRWAN1300) && !defined(ARDUINO_SAMD_MKRWAN1310)
-#define BOARD_HAS_BLE
-#endif
-
-#ifdef BOARD_HAS_BLE
-#include <ArduinoBLE.h>
-#include "utility/HCI.h"
-#endif
 
 bool AgentsManagerClass::addAgent(ConfiguratorAgent &agent) {
   _agentsList.push_back(&agent);
 }
+
+AgentsManagerClass &AgentsManagerClass::getInstance() {
+  static AgentsManagerClass instance;
+  return instance;
+};
 
 bool AgentsManagerClass::begin(uint8_t id) {
   if (_state == AgentsManagerStates::END) {
@@ -41,7 +38,7 @@ bool AgentsManagerClass::begin(uint8_t id) {
       }
     }
 
-    DEBUG_DEBUG("AgentsManagerClass begin completed");
+    //DEBUG_DEBUG("AgentsManagerClass begin completed");
     _state = AgentsManagerStates::INIT;
   }
 
@@ -106,6 +103,10 @@ void AgentsManagerClass::disconnect() {
   }
 }
 
+ConfiguratorAgent *AgentsManagerClass::getConnectedAgent() {
+  return _selectedAgent;
+}
+
 bool AgentsManagerClass::sendMsg(ProvisioningOutputMessage &msg) {
 
   switch (msg.type) {
@@ -141,6 +142,13 @@ bool AgentsManagerClass::sendMsg(ProvisioningOutputMessage &msg) {
       {
         _statusRequest.completion++;
         if (_statusRequest.pending && _statusRequest.key == RequestType::GET_ID && _statusRequest.completion == 2) {
+          _statusRequest.reset();
+        }
+      }
+      break;
+    case MessageOutputType::BLE_MAC_ADDRESS:
+      {
+        if (_statusRequest.pending && _statusRequest.key == RequestType::GET_BLE_MAC_ADDRESS) {
           _statusRequest.reset();
         }
       }
@@ -239,7 +247,7 @@ AgentsManagerStates AgentsManagerClass::handleConfInProgress() {
   AgentsManagerStates nextState = _state;
 
   if (_selectedAgent == nullptr) {
-    DEBUG_WARNING("AgentsManagerClass::%s selected agent is null", __FUNCTION__);
+    //DEBUG_WARNING("AgentsManagerClass::%s selected agent is null", __FUNCTION__);
     return AgentsManagerStates::INIT;
   }
 
@@ -298,7 +306,7 @@ void AgentsManagerClass::handleReceivedData() {
 
 void AgentsManagerClass::handleConnectCommand() {
   if (_statusRequest.pending) {
-    DEBUG_DEBUG("AgentsManagerClass::%s received a Connect request while executing another request", __FUNCTION__);
+    //DEBUG_DEBUG("AgentsManagerClass::%s received a Connect request while executing another request", __FUNCTION__);
     sendStatus(StatusMessage::OTHER_REQUEST_IN_EXECUTION);
     return;
   }
@@ -310,7 +318,7 @@ void AgentsManagerClass::handleConnectCommand() {
 
 void AgentsManagerClass::handleUpdateOptCommand() {
   if (_statusRequest.pending) {
-    DEBUG_DEBUG("AgentsManagerClass::%s received a UpdateConnectivityOptions request while executing another request", __FUNCTION__);
+    //DEBUG_DEBUG("AgentsManagerClass::%s received a UpdateConnectivityOptions request while executing another request", __FUNCTION__);
     sendStatus(StatusMessage::OTHER_REQUEST_IN_EXECUTION);
     return;
   }
@@ -322,7 +330,7 @@ void AgentsManagerClass::handleUpdateOptCommand() {
 
 void AgentsManagerClass::handleGetIDCommand() {
   if (_statusRequest.pending) {
-    DEBUG_DEBUG("AgentsManagerClass::%s received a GetUnique request while executing another request", __FUNCTION__);
+    //DEBUG_DEBUG("AgentsManagerClass::%s received a GetUnique request while executing another request", __FUNCTION__);
     sendStatus(StatusMessage::OTHER_REQUEST_IN_EXECUTION);
     return;
   }
@@ -334,43 +342,19 @@ void AgentsManagerClass::handleGetIDCommand() {
 
 void AgentsManagerClass::handleGetBleMacAddressCommand() {
   if (_statusRequest.pending) {
-    DEBUG_DEBUG("AgentsManagerClass::%s received a GetBleMacAddress request while executing another request", __FUNCTION__);
+    //DEBUG_DEBUG("AgentsManagerClass::%s received a GetBleMacAddress request while executing another request", __FUNCTION__);
     sendStatus(StatusMessage::OTHER_REQUEST_IN_EXECUTION);
     return;
   }
 
-  uint8_t mac[6] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-
-#ifdef BOARD_HAS_BLE
- bool activated = false;
-  if(!isBLEAgentEnabled() || (_selectedAgent != nullptr &&
-    _selectedAgent->getAgentType() != ConfiguratorAgent::AgentTypes::BLE)) {
-    activated = true;
-    BLE.begin();
-  }
-
-  HCI.readBdAddr(mac);
-
-  for(int i = 0; i < 3; i++){
-    uint8_t byte = mac[i];
-    mac[i] = mac[5-i];
-    mac[5-i] = byte;
-  }
-  if (activated) {
-    BLE.end();
-  }
-#endif
-
-  ProvisioningOutputMessage outputMsg;
-  outputMsg.type = MessageOutputType::BLE_MAC_ADDRESS;
-  outputMsg.m.BLEMacAddress = mac;
-  _selectedAgent->sendMsg(outputMsg);
-
+  _statusRequest.pending = true;
+  _statusRequest.key = RequestType::GET_BLE_MAC_ADDRESS;
+  callHandler(RequestType::GET_BLE_MAC_ADDRESS);
 }
 
 void AgentsManagerClass::handleResetCommand() {
   if (_statusRequest.pending) {
-    DEBUG_DEBUG("AgentsManagerClass::%s received a Reset request while executing another request", __FUNCTION__);
+    //DEBUG_DEBUG("AgentsManagerClass::%s received a Reset request while executing another request", __FUNCTION__);
     sendStatus(StatusMessage::OTHER_REQUEST_IN_EXECUTION);
     return;
   }
@@ -434,7 +418,7 @@ void AgentsManagerClass::callHandler(RequestType type) {
 void AgentsManagerClass::stopBLEAgent() {
   for (std::list<ConfiguratorAgent *>::iterator agent = _agentsList.begin(); agent != _agentsList.end(); ++agent) {
     if ((*agent)->getAgentType() == ConfiguratorAgent::AgentTypes::BLE) {
-      DEBUG_VERBOSE("AgentsManagerClass::%s End ble agent", __FUNCTION__);
+      //DEBUG_VERBOSE("AgentsManagerClass::%s End ble agent", __FUNCTION__);
       (*agent)->end();
       if (*agent == _selectedAgent) {
         _state = handlePeerDisconnected();
@@ -449,11 +433,8 @@ void AgentsManagerClass::startBLEAgent() {
   }
   std::for_each(_agentsList.begin(), _agentsList.end(), [](ConfiguratorAgent *agent) {
     if (agent->getAgentType() == ConfiguratorAgent::AgentTypes::BLE) {
-      DEBUG_VERBOSE("AgentsManagerClass::%s Restart ble agent", __FUNCTION__);
+      //DEBUG_VERBOSE("AgentsManagerClass::%s Restart ble agent", __FUNCTION__);
       agent->begin();
     }
   });
 }
-
-
-AgentsManagerClass AgentsManager;

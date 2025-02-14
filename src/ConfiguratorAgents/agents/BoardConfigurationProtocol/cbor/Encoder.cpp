@@ -132,10 +132,3 @@ MessageEncoder::Status WiFiFWVersionProvisioningMessageEncoder::encode(CborEncod
 
   return MessageEncoder::Status::Complete;
 }
-
-static StatusProvisioningMessageEncoder             statusProvisioningMessageEncoder;
-static ListWifiNetworksProvisioningMessageEncoder   listWifiNetworksProvisioningMessageEncoder;
-static UniqueHardwareIdProvisioningMessageEncoder   uniqueHardwareIdProvisioningMessageEncoder;
-static JWTProvisioningMessageEncoder                jWTProvisioningMessageEncoder;
-static BLEMacAddressProvisioningMessageEncoder      bLEMacAddressProvisioningMessageEncoder;
-static WiFiFWVersionProvisioningMessageEncoder      wiFiFWVersionProvisioningMessageEncoder;

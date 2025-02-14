@@ -31,6 +31,7 @@ NetworkConfiguratorClass::NetworkConfiguratorClass(ConnectionHandler &connection
     _connectionRetryTimer{ NC_CONNECTION_RETRY_TIMER_ms, NC_CONNECTION_RETRY_TIMER_ms },
     _optionUpdateTimer{ NC_UPDATE_NETWORK_OPTIONS_TIMER_ms, NC_UPDATE_NETWORK_OPTIONS_TIMER_ms } {
       _optionUpdateTimer.begin(NC_UPDATE_NETWORK_OPTIONS_TIMER_ms); //initialize the timer before calling begin
+      _agentsManager = &AgentsManagerClass::getInstance();
 }
 
 bool NetworkConfiguratorClass::begin() {
@@ -47,24 +48,24 @@ bool NetworkConfiguratorClass::begin() {
     DEBUG_ERROR(F("The current WiFi firmware version is not the latest and it may cause compatibility issues. Please upgrade the WiFi firmware"));
   }
 #endif
-  if (!AgentsManager.addRequestHandler(RequestType::SCAN, scanReqHandler)) {
-    DEBUG_ERROR("NetworkConfiguratorClass::%s Error registering \"scan request\" callback to AgentManager", __FUNCTION__);
+  if (!_agentsManager->addRequestHandler(RequestType::SCAN, scanReqHandler)) {
+    //DEBUG_ERROR("NetworkConfiguratorClass::%s Error registering \"scan request\" callback to AgentManager", __FUNCTION__);
   }
 #endif
 
-  if (!AgentsManager.addRequestHandler(RequestType::CONNECT, connectReqHandler)) {
-    DEBUG_ERROR("NetworkConfiguratorClass::%s Error registering \"connect request\" callback to AgentManager", __FUNCTION__);
+  if (!_agentsManager->addRequestHandler(RequestType::CONNECT, connectReqHandler)) {
+    //DEBUG_ERROR("NetworkConfiguratorClass::%s Error registering \"connect request\" callback to AgentManager", __FUNCTION__);
   }
 
-  if (!AgentsManager.addReturnNetworkSettingsCallback(setNetworkSettingsHandler)) {
-    DEBUG_ERROR("NetworkConfiguratorClass::%s Error registering \"network settings\" callback to AgentManager", __FUNCTION__);
+  if (!_agentsManager->addReturnNetworkSettingsCallback(setNetworkSettingsHandler)) {
+    //DEBUG_ERROR("NetworkConfiguratorClass::%s Error registering \"network settings\" callback to AgentManager", __FUNCTION__);
   }
-  //TODO fix when rebasing
-  if(!AgentsManager.addRequestHandler(RequestType::GET_WIFI_FW_VERSION, getWiFiFWVersionHandler)) {
+
+  if(!_agentsManager->addRequestHandler(RequestType::GET_WIFI_FW_VERSION, getWiFiFWVersionHandler)) {
     DEBUG_ERROR("NetworkConfiguratorClass::%s Error registering \"get wifi firmware version request\" callback to AgentManager", __FUNCTION__);
   }
 
-  if (!AgentsManager.begin(SERVICE_ID_FOR_AGENTMANAGER)) {
+  if (!_agentsManager->begin(SERVICE_ID_FOR_AGENTMANAGER)) {
     DEBUG_ERROR("NetworkConfiguratorClass::%s Failed to initialize the AgentsManagerClass", __FUNCTION__);
   }
 
@@ -76,7 +77,7 @@ bool NetworkConfiguratorClass::begin() {
   _networkSetting.eth.timeout = 250;
   _networkSetting.eth.response_timeout = 500;
   if (!_connectionHandler->updateSetting(_networkSetting)) {
-    DEBUG_WARNING("NetworkConfiguratorClass::%s Is not possible check the eth connectivity", __FUNCTION__);
+    //DEBUG_WARNING("NetworkConfiguratorClass::%s Is not possible check the eth connectivity", __FUNCTION__);
     return true;
   }
   _connectionHandlerIstantiated = true;
@@ -124,7 +125,7 @@ bool NetworkConfiguratorClass::resetStoredConfiguration() {
       }
       _kvstore->end();
     } else {
-      DEBUG_DEBUG("Cannot initialize kvstore for deleting network settings");
+      //DEBUG_DEBUG("Cannot initialize kvstore for deleting network settings");
     }
     if (!res) {
       return false;
@@ -145,15 +146,28 @@ bool NetworkConfiguratorClass::resetStoredConfiguration() {
 }
 
 bool NetworkConfiguratorClass::end() {
-  _lastConnectionAttempt = 0;
-  _lastOptionUpdate = 0;
-  AgentsManager.removeReturnNetworkSettingsCallback();
-  AgentsManager.removeRequestHandler(RequestType::SCAN);
-  AgentsManager.removeRequestHandler(RequestType::CONNECT);
+  _agentsManager->removeReturnNetworkSettingsCallback();
+  _agentsManager->removeRequestHandler(RequestType::SCAN);
+  _agentsManager->removeRequestHandler(RequestType::CONNECT);
   _state = NetworkConfiguratorStates::END;
-  return AgentsManager.end(SERVICE_ID_FOR_AGENTMANAGER);
+  return _agentsManager->end(SERVICE_ID_FOR_AGENTMANAGER);
 }
 
+bool NetworkConfiguratorClass::isBLEenabled() {
+  return _agentsManager->isBLEAgentEnabled();
+}
+
+void NetworkConfiguratorClass::enableBLE(bool enable) {
+  _agentsManager->enableBLEAgent(enable);
+}
+
+void NetworkConfiguratorClass::configurationCompleted() {
+  _agentsManager->disconnect();
+}
+
+bool NetworkConfiguratorClass::addAgent(ConfiguratorAgent &agent) {
+  return _agentsManager->addAgent(agent);
+}
 
 NetworkConfiguratorClass::ConnectionResult NetworkConfiguratorClass::connectToNetwork(StatusMessage *err) {
   ConnectionResult res = ConnectionResult::IN_PROGRESS;
@@ -201,27 +215,27 @@ NetworkConfiguratorClass::ConnectionResult NetworkConfiguratorClass::disconnectF
 
 bool NetworkConfiguratorClass::updateNetworkOptions() {
 #ifdef BOARD_HAS_WIFI
-  DEBUG_DEBUG("Scanning");
+  //DEBUG_DEBUG("Scanning");
   sendStatus(StatusMessage::SCANNING);  //Notify before scan
 
   WiFiOption wifiOptObj;
 
   if (!scanWiFiNetworks(wifiOptObj)) {
-    DEBUG_WARNING("NetworkConfiguratorClass::%s Error during scan for wifi networks", __FUNCTION__);
+    //DEBUG_WARNING("NetworkConfiguratorClass::%s Error during scan for wifi networks", __FUNCTION__);
 
     sendStatus(StatusMessage::HW_ERROR_CONN_MODULE);
 
     return false;
   }
 
-  DEBUG_DEBUG("Scan completed");
+  //DEBUG_DEBUG("Scan completed");
   NetworkOptions netOption = { NetworkOptionsClass::WIFI, wifiOptObj };
 #else
   NetworkOptions netOption = { NetworkOptionsClass::NONE };
 #endif
   ProvisioningOutputMessage netOptionMsg = { MessageOutputType::NETWORK_OPTIONS };
   netOptionMsg.m.netOptions = &netOption;
-  AgentsManager.sendMsg(netOptionMsg);
+  _agentsManager->sendMsg(netOptionMsg);
 
   _optionUpdateTimer.reload();
   return true;
@@ -274,14 +288,14 @@ bool NetworkConfiguratorClass::scanWiFiNetworks(WiFiOption &wifiOptObj) {
   }
 
   // print the list of networks seen:
-  DEBUG_VERBOSE("NetworkConfiguratorClass::%s number of available networks: %d", __FUNCTION__, numSsid);
+  //DEBUG_VERBOSE("NetworkConfiguratorClass::%s number of available networks: %d", __FUNCTION__, numSsid);
 
   // insert the networks in the list
   for (int thisNet = 0; thisNet < numSsid && thisNet < MAX_WIFI_NETWORKS; thisNet++) {
-    DEBUG_VERBOSE("NetworkConfiguratorClass::%s found network %d) %s \tSignal %d dbm", __FUNCTION__, thisNet, WiFi.SSID(thisNet), WiFi.RSSI(thisNet));
+    //DEBUG_VERBOSE("NetworkConfiguratorClass::%s found network %d) %s \tSignal %d dbm", __FUNCTION__, thisNet, WiFi.SSID(thisNet), WiFi.RSSI(thisNet));
 
     if (!insertWiFiAP(wifiOptObj, const_cast<char *>(WiFi.SSID(thisNet)), WiFi.RSSI(thisNet))) {
-      DEBUG_WARNING("NetworkConfiguratorClass::%s The maximum number of WiFi networks has been reached", __FUNCTION__);
+      //DEBUG_WARNING("NetworkConfiguratorClass::%s The maximum number of WiFi networks has been reached", __FUNCTION__);
       break;
     }
   }
@@ -311,7 +325,7 @@ void NetworkConfiguratorClass::getWiFiFWVersionHandler() {
 NetworkConfiguratorStates NetworkConfiguratorClass::handleConnectRequest() {
   NetworkConfiguratorStates nextState = _state;
   if (_networkSetting.type == NetworkAdapter::NONE) {
-    DEBUG_DEBUG("NetworkConfiguratorClass::%s Connect request received but network settings not received yet", __FUNCTION__);
+    //DEBUG_DEBUG("NetworkConfiguratorClass::%s Connect request received but network settings not received yet", __FUNCTION__);
     sendStatus(StatusMessage::PARAMS_NOT_FOUND);
     return nextState;
   }
@@ -337,7 +351,7 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleConnectRequest() {
 
   if (_connectionHandlerIstantiated) {
     if(disconnectFromNetwork() == ConnectionResult::FAILED) {
-      DEBUG_ERROR("NetworkConfiguratorClass::%s Impossible to disconnect the network", __FUNCTION__);
+      //DEBUG_ERROR("NetworkConfiguratorClass::%s Impossible to disconnect the network", __FUNCTION__);
       sendStatus(StatusMessage::ERROR);
       LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::ERROR);
       return nextState;
@@ -345,7 +359,7 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleConnectRequest() {
   }
 
   if (!_connectionHandler->updateSetting(_networkSetting)) {
-    DEBUG_WARNING("NetworkConfiguratorClass::%s The received network parameters are not supported", __FUNCTION__);
+    //DEBUG_WARNING("NetworkConfiguratorClass::%s The received network parameters are not supported", __FUNCTION__);
     sendStatus(StatusMessage::INVALID_PARAMS);
     return nextState;
   }
@@ -387,7 +401,7 @@ void NetworkConfiguratorClass::handleGetWiFiFWVersion() {
   String fwVersion = WiFi.firmwareVersion();
   ProvisioningOutputMessage fwVersionMsg = { MessageOutputType::WIFI_FW_VERSION };
   fwVersionMsg.m.wifiFwVersion = fwVersion.c_str();
-  _agentManager->sendMsg(fwVersionMsg);
+  _agentsManager->sendMsg(fwVersionMsg);
 }
 
 #ifdef BOARD_HAS_ETHERNET
@@ -447,7 +461,7 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleReadStorage() {
 NetworkConfiguratorStates NetworkConfiguratorClass::handleWaitingForConf() {
   NetworkConfiguratorStates nextState = _state;
 
-  AgentsManager.poll();
+  _agentsManager->poll();
 
   switch (_receivedEvent) {
     case NetworkConfiguratorEvents::SCAN_REQ:                updateNetworkOptions    (); break;
@@ -462,7 +476,7 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleWaitingForConf() {
       updateNetworkOptions();
     }
 
-    if (_connectionHandlerIstantiated && AgentsManager.isConfigInProgress() != true && _connectionRetryTimer.isExpired()) {
+    if (_connectionHandlerIstantiated && _agentsManager->isConfigInProgress() != true && _connectionRetryTimer.isExpired()) {
       sendStatus(StatusMessage::CONNECTING);
       nextState = NetworkConfiguratorStates::CONNECTING;
     }
@@ -473,7 +487,7 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleWaitingForConf() {
 
 NetworkConfiguratorStates NetworkConfiguratorClass::handleConnecting() {
   NetworkConfiguratorStates nextState = _state;
-  AgentsManager.poll();  //To keep alive the connection with the configurator
+  _agentsManager->poll();  //To keep alive the connection with the configurator
   StatusMessage err;
   ConnectionResult res = connectToNetwork(&err);
 
@@ -490,13 +504,13 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleConnecting() {
 NetworkConfiguratorStates NetworkConfiguratorClass::handleConfigured() {
   NetworkConfiguratorStates nextState = _state;
   //Return if the user is still connected to the agent, but has just finished configuring the network
-  if (_agentManager->isConfigInProgress()) {
+  if (_agentsManager->isConfigInProgress()) {
     return nextState;
   }
 
-  _agentManager->poll();
+  _agentsManager->poll();
   // If the agent manager changes state, it means that user is trying to configure the network, so the network configurator should change state
-  if (_agentManager->isConfigInProgress()) {
+  if (_agentsManager->isConfigInProgress()) {
     nextState = NetworkConfiguratorStates::UPDATING_CONFIG;
 
 #ifdef BOARD_HAS_WIFI
@@ -509,7 +523,7 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleConfigured() {
 
 NetworkConfiguratorStates NetworkConfiguratorClass::handleUpdatingConfig() {
   NetworkConfiguratorStates nextState = _state;
-  if (AgentsManager.isConfigInProgress() == false) {
+  if (_agentsManager->isConfigInProgress() == false) {
     //If peer disconnects without updating the network settings, go to connecting state for check the connection
     sendStatus(StatusMessage::CONNECTING);
     nextState = NetworkConfiguratorStates::CONNECTING;
@@ -522,7 +536,7 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleUpdatingConfig() {
 
 bool NetworkConfiguratorClass::sendStatus(StatusMessage msg) {
   ProvisioningOutputMessage statusMsg = { MessageOutputType::STATUS, { msg } };
-  return AgentsManager.sendMsg(statusMsg);
+  return _agentsManager->sendMsg(statusMsg);
 }
 
 #if defined(BOARD_HAS_ETHERNET)

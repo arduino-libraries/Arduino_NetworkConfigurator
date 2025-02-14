@@ -36,6 +36,12 @@ public:
   void setStorage(KVStore &kvstore) {
     _kvstore = &kvstore;
   }
+
+  bool isBLEenabled();
+  void enableBLE(bool enable);
+  void configurationCompleted();
+  bool addAgent(ConfiguratorAgent &agent);
+
 private:
   NetworkConfiguratorStates _state = NetworkConfiguratorStates::END;
   ConnectionHandler *_connectionHandler;
@@ -57,6 +63,7 @@ private:
                                 IN_PROGRESS };
 
   KVStore *_kvstore = nullptr;
+  AgentsManagerClass *_agentsManager;
 
 #ifdef BOARD_HAS_ETHERNET
   NetworkConfiguratorStates handleCheckEth();

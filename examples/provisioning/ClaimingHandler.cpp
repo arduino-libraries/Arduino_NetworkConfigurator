@@ -10,10 +10,18 @@
 #include "SecretsHelper.h"
 #include "Arduino_DebugUtils.h"
 #include "Utility/LEDFeedback/LEDFeedback.h"
+#if !defined(ARDUINO_SAMD_MKRGSM1400) && !defined(ARDUINO_SAMD_MKRNB1500) && !defined(ARDUINO_SAMD_MKRWAN1300) && !defined(ARDUINO_SAMD_MKRWAN1310)
+#define BOARD_HAS_BLE
+#endif
+#ifdef BOARD_HAS_BLE
+#include <ArduinoBLE.h>
+#include "utility/HCI.h"
+#endif
+
 #define PROVISIONING_SERVICEID_FOR_AGENTMANAGER 0xB1
 
-ClaimingHandlerClass::ClaimingHandlerClass(AgentsManagerClass &agc) {
-  _agentManager = &agc;
+ClaimingHandlerClass::ClaimingHandlerClass() {
+  _agentManager = &AgentsManagerClass::getInstance();
 }
 
 bool ClaimingHandlerClass::begin(SecureElement *secureElement, String *uhwid, ClearStoredCredentialsHandler clearStoredCredentials) {
@@ -26,6 +34,10 @@ bool ClaimingHandlerClass::begin(SecureElement *secureElement, String *uhwid, Cl
   }
 
   if (!_agentManager->addRequestHandler(RequestType::RESET, resetStoredCredRequestCb)) {
+    return false;
+  }
+
+  if(!_agentManager->addRequestHandler(RequestType::GET_BLE_MAC_ADDRESS, getBLEMacAddressRequestCb)) {
     return false;
   }
 
@@ -55,8 +67,9 @@ void ClaimingHandlerClass::poll() {
   _agentManager->poll();
 
   switch (_receivedEvent) {
-    case ClaimingReqEvents::GET_ID: getIdReqHandler          (); break;
-    case ClaimingReqEvents::RESET:  resetStoredCredReqHandler(); break;
+    case ClaimingReqEvents::GET_ID:              getIdReqHandler           (); break;
+    case ClaimingReqEvents::RESET:               resetStoredCredReqHandler (); break;
+    case ClaimingReqEvents::GET_BLE_MAC_ADDRESS: getBLEMacAddressReqHandler(); break;
   }
   _receivedEvent = ClaimingReqEvents::NONE;
   return;
@@ -117,6 +130,35 @@ void ClaimingHandlerClass::resetStoredCredReqHandler() {
 
 }
 
+void ClaimingHandlerClass::getBLEMacAddressReqHandler() {
+  uint8_t mac[6] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+#ifdef BOARD_HAS_BLE
+  bool activated = false;
+  ConfiguratorAgent * connectedAgent = _agentManager->getConnectedAgent();
+  if(!_agentManager->isBLEAgentEnabled() || (connectedAgent != nullptr &&
+    connectedAgent->getAgentType() != ConfiguratorAgent::AgentTypes::BLE)) {
+      activated = true;
+      BLE.begin();
+  }
+
+  HCI.readBdAddr(mac);
+
+  for(int i = 0; i < 3; i++){
+    uint8_t byte = mac[i];
+    mac[i] = mac[5-i];
+    mac[5-i] = byte;
+  }
+  if (activated) {
+    BLE.end();
+  }
+#endif
+
+  ProvisioningOutputMessage outputMsg;
+  outputMsg.type = MessageOutputType::BLE_MAC_ADDRESS;
+  outputMsg.m.BLEMacAddress = mac;
+  _agentManager->sendMsg(outputMsg);
+}
+
 void ClaimingHandlerClass::getIdRequestCb() {
   _receivedEvent = ClaimingReqEvents::GET_ID;
 }
@@ -127,6 +169,10 @@ void ClaimingHandlerClass::setTimestamp(uint64_t ts) {
 void ClaimingHandlerClass::resetStoredCredRequestCb() {
   DEBUG_DEBUG("ClaimingHandlerClass::%s Reset stored credentials request received", __FUNCTION__);
   _receivedEvent = ClaimingReqEvents::RESET;
+}
+
+void ClaimingHandlerClass::getBLEMacAddressRequestCb() {
+  _receivedEvent = ClaimingReqEvents::GET_BLE_MAC_ADDRESS;
 }
 
 bool ClaimingHandlerClass::sendStatus(StatusMessage msg) {

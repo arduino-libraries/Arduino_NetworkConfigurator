@@ -23,12 +23,19 @@ public:
     MessageType type;
     InputPacketBuffer payload;
   } ReceivedData;
-  PacketManager()
-    : _tempInputMessageHeader{ 5 }, _tempInputMessageEnd{ 4 } {};
+  
   static bool createPacket(OutputPacketBuffer &msg, MessageType type, const uint8_t *data, size_t len);
+
+  static PacketManager &getInstance() {
+    static PacketManager instance;
+    return instance;
+  }
+
   ReceivingState handleReceivedByte(ReceivedData &receivedData, uint8_t byte);
   void clear();
 private:
+  PacketManager()
+    : _tempInputMessageHeader{ 5 }, _tempInputMessageEnd{ 4 } {};
   ReceivingState _state = ReceivingState::WAITING_HEADER;
   InputPacketBuffer _tempInputMessageHeader;
   InputPacketBuffer _tempInputMessagePayload;
@@ -46,4 +53,4 @@ private:
   uint16_t getPacketLen();
 };
 
-extern PacketManager Packet;
+//extern PacketManager Packet;

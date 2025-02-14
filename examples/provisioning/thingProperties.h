@@ -4,7 +4,6 @@
 #include <GenericConnectionHandler.h>
 #include <Arduino_KVStore.h>
 #include "NetworkConfigurator.h"
-#include "ConfiguratorAgents/AgentsManager.h"
 #include "ConfiguratorAgents/agents/BLE/BLEAgent.h"
 #include "ConfiguratorAgents/agents/Serial/SerialAgent.h"
 #include "ClaimingHandler.h"
@@ -14,14 +13,16 @@ void onCounterChange();
 int counter;
 KVStore kvstore;
 GenericConnectionHandler ArduinoIoTPreferredConnection;
+BLEAgentClass BLEAgent;
+SerialAgentClass SerialAgent;
 NetworkConfiguratorClass NetworkConfigurator(ArduinoIoTPreferredConnection);
-ClaimingHandlerClass ClaimingHandler(AgentsManager);
+ClaimingHandlerClass ClaimingHandler;
 
 void initProperties() {
 
   ArduinoCloud.addProperty(counter, READWRITE, ON_CHANGE, onCounterChange);
-  AgentsManager.addAgent(BLEAgent);
-  AgentsManager.addAgent(SerialAgent);
+  AgentsManagerClass::getInstance().addAgent(BLEAgent);
+  AgentsManagerClass::getInstance().addAgent(SerialAgent);
   NetworkConfigurator.setStorage(kvstore);
 }
 

@@ -43,8 +43,8 @@ void display_freeram(){
   Serial.println(freeRam());
 }
 #define PROVISIONING_SERVICEID_FOR_AGENTMANAGER 0xB1
-Provisioning::Provisioning(AgentsManagerClass &agc)
-  : _agentManager{ &agc } {
+Provisioning::Provisioning() {
+  _agentManager = &AgentsManagerClass::getInstance();
 }
 
 void Provisioning::begin() {
