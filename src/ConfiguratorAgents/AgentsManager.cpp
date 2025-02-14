@@ -343,7 +343,10 @@ void AgentsManagerClass::handleGetBleMacAddressCommand() {
   uint8_t mac[6] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
 #ifdef BOARD_HAS_BLE
-  if(!isBLEAgentEnabled()){
+ bool activated = false;
+  if(!isBLEAgentEnabled() || (_selectedAgent != nullptr &&
+    _selectedAgent->getAgentType() != ConfiguratorAgent::AgentTypes::BLE)) {
+    activated = true;
     BLE.begin();
   }
 
@@ -353,6 +356,9 @@ void AgentsManagerClass::handleGetBleMacAddressCommand() {
     uint8_t byte = mac[i];
     mac[i] = mac[5-i];
     mac[5-i] = byte;
+  }
+  if (activated) {
+    BLE.end();
   }
 #endif
 
