@@ -70,6 +70,13 @@ void ClaimingHandlerClass::getIdReqHandler() {
       return;
     }
 
+    byte _uhwidBytes[32];
+    hexStringToBytes(*_uhwid, _uhwidBytes, _uhwid->length());
+    //Send UHWID
+    ProvisioningOutputMessage idMsg = {MessageOutputType::UHWID};
+    idMsg.m.uhwid = _uhwidBytes;
+    _agentManager->sendMsg(idMsg);
+
     String token = CreateJWTToken(*_uhwid, _ts, _secureElement);
     Serial.print("Token: ");//TODO REMOVE
     Serial.println(token);
@@ -78,12 +85,7 @@ void ClaimingHandlerClass::getIdReqHandler() {
       sendStatus(StatusMessage::ERROR);
       return;
     }
-    byte _uhwidBytes[32];
-    hexStringToBytes(*_uhwid, _uhwidBytes, _uhwid->length());
-    //Send UHWID
-    ProvisioningOutputMessage idMsg = {MessageOutputType::UHWID};
-    idMsg.m.uhwid = _uhwidBytes;
-    _agentManager->sendMsg(idMsg);
+
     //Send JWT
     ProvisioningOutputMessage jwtMsg = {MessageOutputType::JWT};
     jwtMsg.m.jwt = token.c_str();
