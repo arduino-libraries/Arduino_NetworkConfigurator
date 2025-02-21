@@ -59,6 +59,10 @@ bool NetworkConfiguratorClass::begin() {
     DEBUG_ERROR("NetworkConfiguratorClass::%s Error registering \"network settings\" callback to AgentManager", __FUNCTION__);
   }
 
+  if(!_agentManager->addRequestHandler(RequestType::GET_WIFI_FW_VERSION, getWiFiFWVersionHandler)) {
+    DEBUG_ERROR("NetworkConfiguratorClass::%s Error registering \"get wifi firmware version request\" callback to AgentManager", __FUNCTION__);
+  }
+
   if (!_agentManager->begin(SERVICE_ID_FOR_AGENTMANAGER)) {
     DEBUG_ERROR("NetworkConfiguratorClass::%s Failed to initialize the AgentsManagerClass", __FUNCTION__);
   }
@@ -285,6 +289,10 @@ void NetworkConfiguratorClass::setNetworkSettingsHandler(models::NetworkSetting 
   _receivedEvent = NetworkConfiguratorEvents::NEW_NETWORK_SETTINGS;
 }
 
+void NetworkConfiguratorClass::getWiFiFWVersionHandler() {
+  _receivedEvent = NetworkConfiguratorEvents::GET_WIFI_FW_VERSION;
+}
+
 NetworkConfiguratorStates NetworkConfiguratorClass::handleConnectRequest() {
   NetworkConfiguratorStates nextState = _state;
   if (_networkSetting.type == NetworkAdapter::NONE) {
@@ -357,6 +365,13 @@ String NetworkConfiguratorClass::decodeConnectionErrorMessage(NetworkConnectionS
       *errorCode = (int)StatusMessage::ERROR;
       return "generic error";
   }
+}
+
+void NetworkConfiguratorClass::handleGetWiFiFWVersion() {
+  String fwVersion = WiFi.firmwareVersion();
+  ProvisioningOutputMessage fwVersionMsg = { MessageOutputType::WIFI_FW_VERSION };
+  fwVersionMsg.m.wifiFwVersion = fwVersion.c_str();
+  _agentManager->sendMsg(fwVersionMsg);
 }
 
 #ifdef BOARD_HAS_ETHERNET
@@ -445,6 +460,7 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleWaitingForConf() {
     case NetworkConfiguratorEvents::SCAN_REQ:                updateNetworkOptions    (); break;
     case NetworkConfiguratorEvents::CONNECT_REQ: nextState = handleConnectRequest    (); break;
     case NetworkConfiguratorEvents::NEW_NETWORK_SETTINGS:    handleNewNetworkSettings(); break;
+    case NetworkConfiguratorEvents::GET_WIFI_FW_VERSION:     handleGetWiFiFWVersion  (); break;
   }
   _receivedEvent = NetworkConfiguratorEvents::NONE;
   if (nextState == _state) {

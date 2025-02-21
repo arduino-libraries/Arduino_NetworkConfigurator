@@ -44,6 +44,7 @@ private:
   bool sendUhwid(const byte *uhwid);
   bool sendJwt(const char *jwt, size_t len);
   bool sendBleMacAddress(const uint8_t *mac, size_t len);
+  bool sendWifiFWVersion(const char *wifiFWVersion);
   TransmissionResult transmitStream();
   void printPacket(const char *label, const uint8_t *data, size_t len);
   std::list<OutputPacketBuffer> _outputMessagesList;

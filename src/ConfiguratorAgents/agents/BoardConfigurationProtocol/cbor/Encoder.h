@@ -52,3 +52,11 @@ public:
 protected:
   Encoder::Status encode(CborEncoder* encoder, Message *msg) override;
 };
+
+class WiFiFWVersionProvisioningMessageEncoder: public CBORMessageEncoderInterface {
+public:
+  WiFiFWVersionProvisioningMessageEncoder()
+  : CBORMessageEncoderInterface(CBORWiFiFWVersionProvisioningMessage, WiFiFWVersionProvisioningMessageId) {}
+protected:
+  Encoder::Status encode(CborEncoder* encoder, Message *msg) override;
+};

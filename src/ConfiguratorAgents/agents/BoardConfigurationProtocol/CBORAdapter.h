@@ -18,13 +18,14 @@
 #define CBOR_DATA_JWT_LEN MAX_JWT_SIZE + 3 + CBOR_DATA_HEADER_LEN      //Signature size + 2 bytes for CBOR array of bytes identifier + CBOR header size
 #define CBOR_DATA_STATUS_LEN 4 + CBOR_DATA_HEADER_LEN
 #define CBOR_DATA_BLE_MAC_LEN BLE_MAC_ADDRESS_SIZE + 2 + CBOR_DATA_HEADER_LEN
-
+#define CBOR_MIN_WIFI_FW_VERSION_LEN CBOR_DATA_HEADER_LEN + 1 // CBOR_DATA_HEADER_LEN + 1 byte for the length of the string
 
 class CBORAdapter {
 public:
   static bool uhwidToCBOR(const byte *uhwid, uint8_t *data, size_t *len);
   static bool jwtToCBOR(const char *jwt, uint8_t *data, size_t *len);
   static bool BLEMacAddressToCBOR(const uint8_t *mac, uint8_t *data, size_t *len);
+  static bool wifiFWVersionToCBOR(const char *wifiFWVersion, uint8_t *data, size_t *len);
   static bool statusToCBOR(StatusMessage msg, uint8_t *data, size_t *len);
   static bool networkOptionsToCBOR(const NetworkOptions *netOptions, uint8_t *data, size_t *len);
   static bool getMsgFromCBOR(const uint8_t *data, size_t len, ProvisioningMessageDown *msg);

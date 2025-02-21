@@ -207,4 +207,30 @@
     }
    }
 
+   WHEN("Encode a message with provisioning wifi fw version ")
+   {
+    WiFiFWVersionProvisioningMessage command;
+    command.c.id = ProvisioningMessageId::WiFiFWVersionProvisioningMessageId;
+    command.wifiFwVersion = "1.6.0";
+    uint8_t buffer[512];
+    size_t bytes_encoded = sizeof(buffer);
+
+    CBORMessageEncoder encoder;
+    Encoder::Status err = encoder.encode((Message*)&command, buffer, bytes_encoded);
+
+    uint8_t expected_result[] = {
+    0xda, 0x00, 0x01, 0x20, 0x14, 0x81, 0x65, 0x31, 0x2E, 0x36, 0x2E, 0x30
+    };
+
+    // Test the encoding is
+    //DA 00012014     # tag(73748)
+    // 81             # array(1)
+    //   65           # text(5)
+    //     312E362E30 # "1.6.0"
+    THEN("The encoding is successful") {
+        REQUIRE(err == Encoder::Status::Complete);
+        REQUIRE(bytes_encoded == sizeof(expected_result));
+        REQUIRE(memcmp(buffer, expected_result, sizeof(expected_result)) == 0);
+    }
+   }
  }

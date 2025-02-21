@@ -114,8 +114,28 @@ Encoder::Status BLEMacAddressProvisioningMessageEncoder::encode(CborEncoder* enc
   return Encoder::Status::Complete;
 }
 
+Encoder::Status WiFiFWVersionProvisioningMessageEncoder::encode(CborEncoder* encoder, Message *msg) {
+  WiFiFWVersionProvisioningMessage * provisioningWiFiFWVersion = (WiFiFWVersionProvisioningMessage*) msg;
+  CborEncoder array_encoder;
+
+  if(cbor_encoder_create_array(encoder, &array_encoder, 1) != CborNoError) {
+    return Encoder::Status::Error;
+  }
+
+  if(cbor_encode_text_stringz(&array_encoder, provisioningWiFiFWVersion->wifiFwVersion) != CborNoError) {
+    return Encoder::Status::Error;
+  }
+
+  if(cbor_encoder_close_container(encoder, &array_encoder) != CborNoError) {
+    return Encoder::Status::Error;
+  }
+
+  return Encoder::Status::Complete;
+}
+
 static StatusProvisioningMessageEncoder             statusProvisioningMessageEncoder;
 static ListWifiNetworksProvisioningMessageEncoder   listWifiNetworksProvisioningMessageEncoder;
 static UniqueHardwareIdProvisioningMessageEncoder   uniqueHardwareIdProvisioningMessageEncoder;
 static JWTProvisioningMessageEncoder                jWTProvisioningMessageEncoder;
 static BLEMacAddressProvisioningMessageEncoder      bLEMacAddressProvisioningMessageEncoder;
+static WiFiFWVersionProvisioningMessageEncoder      wiFiFWVersionProvisioningMessageEncoder;

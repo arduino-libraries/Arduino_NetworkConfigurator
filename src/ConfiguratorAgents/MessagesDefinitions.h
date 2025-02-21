@@ -39,14 +39,16 @@ enum class RemoteCommands { CONNECT             = 1,
                             GET_ID              = 2,
                             GET_BLE_MAC_ADDRESS = 3,
                             RESET               = 4,
-                            SCAN                = 100
+                            SCAN                = 100,
+                            GET_WIFI_FW_VERSION = 101
 };
 
 enum class MessageOutputType { STATUS,
                                NETWORK_OPTIONS,
                                UHWID,
                                JWT,
-                               BLE_MAC_ADDRESS
+                               BLE_MAC_ADDRESS,
+                               WIFI_FW_VERSION
 };
 
 enum class MessageInputType {
@@ -63,6 +65,7 @@ struct ProvisioningOutputMessage {
     const byte *uhwid; // Must be a pointer to a byte array of MAX_UHWID_SIZE
     const char *jwt;
     const uint8_t *BLEMacAddress;
+    const char *wifiFwVersion;
   } m;
 };
 

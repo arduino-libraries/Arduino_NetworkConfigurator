@@ -50,7 +50,7 @@ enum CBORProvisioningMessageTag: CBORTag {
   CBORUniqueHardwareIdProvisioningMessage   = 0x012010,
   CBORJWTProvisioningMessage                = 0x012011,
   CBORBLEMacAddressProvisioningMessage      = 0x012013,
-
+  CBORWiFiFWVersionProvisioningMessage      = 0x012014,
 };
 
 // FIXME naming a little bit redundant
@@ -60,6 +60,7 @@ enum ProvisioningMessageId: MessageId {
   ListWifiNetworksProvisioningMessageId,
   UniqueHardwareIdProvisioningMessageId,
   BLEMacAddressProvisioningMessageId,
+  WiFiFWVersionProvisioningMessageId,
   JWTProvisioningMessageId,
   TimestampProvisioningMessageId,
   CommandsProvisioningMessageId,
@@ -112,6 +113,13 @@ struct BLEMacAddressProvisioningMessage {
   ProvisioningMessage c;
   struct {
     uint8_t macAddress[BLE_MAC_ADDRESS_SIZE];
+  };
+};
+
+struct WiFiFWVersionProvisioningMessage {
+  ProvisioningMessage c;
+  struct {
+    const char *wifiFwVersion; //The payload is a string.
   };
 };
 

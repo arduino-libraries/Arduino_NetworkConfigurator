@@ -150,6 +150,13 @@ bool AgentsManagerClass::sendMsg(ProvisioningOutputMessage &msg) {
         }
       }
       break;
+    case MessageOutputType::WIFI_FW_VERSION:
+      {
+        if (_statusRequest.pending && _statusRequest.key == RequestType::GET_WIFI_FW_VERSION) {
+          _statusRequest.reset();
+        }
+      }
+      break;
     default:
       break;
   }
@@ -265,6 +272,7 @@ void AgentsManagerClass::handleReceivedCommands(RemoteCommands cmd) {
     case RemoteCommands::GET_ID:              handleGetIDCommand           (); break;
     case RemoteCommands::GET_BLE_MAC_ADDRESS: handleGetBleMacAddressCommand(); break;
     case RemoteCommands::RESET:               handleResetCommand           (); break;
+    case RemoteCommands::GET_WIFI_FW_VERSION: handleGetWiFiFWVersionCommand(); break;
   }
 }
 
@@ -379,6 +387,18 @@ void AgentsManagerClass::handleResetCommand() {
   _statusRequest.pending = true;
   _statusRequest.key = RequestType::RESET;
   callHandler(RequestType::RESET);
+}
+
+void AgentsManagerClass::handleGetWiFiFWVersionCommand() {
+  if (_statusRequest.pending) {
+    DEBUG_DEBUG("AgentsManagerClass::%s received a GetWiFiFWVersion request while executing another request", __FUNCTION__);
+    sendStatus(StatusMessage::OTHER_REQUEST_IN_EXECUTION);
+    return;
+  }
+
+  _statusRequest.pending = true;
+  _statusRequest.key = RequestType::GET_WIFI_FW_VERSION;
+  callHandler(RequestType::GET_WIFI_FW_VERSION);
 }
 
 bool AgentsManagerClass::sendStatus(StatusMessage msg) {

@@ -26,7 +26,8 @@ enum class RequestType { NONE,
                          CONNECT,
                          SCAN,
                          GET_ID,
-                         RESET };
+                         RESET,
+                         GET_WIFI_FW_VERSION}; //TODO fix when rebasing
 
 class AgentsManagerClass {
 public:
@@ -62,7 +63,7 @@ private:
   AgentsManagerStates _state = AgentsManagerStates::END;
   std::list<ConfiguratorAgent *> _agentsList;
   std::list<uint8_t> _servicesList;
-  ConfiguratorRequestHandler _reqHandlers[4];
+  ConfiguratorRequestHandler _reqHandlers[5]; //TODO fix when rebasing
   ReturnTimestamp _returnTimestampCb = nullptr;
   ReturnNetworkSettings _returnNetworkSettingsCb = nullptr;
   ConfiguratorAgent *_selectedAgent = nullptr;
@@ -94,6 +95,7 @@ private:
   void handleGetIDCommand();
   void handleGetBleMacAddressCommand();
   void handleResetCommand();
+  void handleGetWiFiFWVersionCommand();
   bool sendStatus(StatusMessage msg);
 
   AgentsManagerStates handlePeerDisconnected();

@@ -62,6 +62,10 @@ bool BoardConfigurationProtocol::sendNewMsg(ProvisioningOutputMessage &msg) {
       break;
     case MessageOutputType::BLE_MAC_ADDRESS:
       res = sendBleMacAddress(msg.m.BLEMacAddress, BLE_MAC_ADDRESS_SIZE);
+      break;
+    case MessageOutputType::WIFI_FW_VERSION:
+      res = sendWifiFWVersion(msg.m.wifiFwVersion);
+      break;
     default:
       break;
   }
@@ -305,6 +309,27 @@ bool BoardConfigurationProtocol::sendBleMacAddress(const uint8_t *mac, size_t le
     DEBUG_ERROR("BoardConfigurationProtocol::%s failed to send BLE MAC address", __FUNCTION__);
     return res;
   }
+  return res;
+}
+
+bool BoardConfigurationProtocol::sendWifiFWVersion(const char *wifiFWVersion) {
+  bool res = false;
+
+  size_t cborDataLen = CBOR_MIN_WIFI_FW_VERSION_LEN + strlen(wifiFWVersion);
+  uint8_t data[cborDataLen];
+
+  res = CBORAdapter::wifiFWVersionToCBOR(wifiFWVersion, data, &cborDataLen);
+  if (!res) {
+    DEBUG_ERROR("BoardConfigurationProtocol::%s failed to convert WiFi FW version to CBOR", __FUNCTION__);
+    return res;
+  }
+
+  res = sendData(PacketManager::MessageType::DATA, data, cborDataLen);
+  if (!res) {
+    DEBUG_ERROR("BoardConfigurationProtocol::%s failed to send WiFi FW version", __FUNCTION__);
+    return res;
+  }
+
   return res;
 }
 

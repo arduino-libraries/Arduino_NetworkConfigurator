@@ -82,6 +82,20 @@ bool CBORAdapter::statusToCBOR(StatusMessage msg, uint8_t *data, size_t *len) {
   return result;
 }
 
+bool CBORAdapter::wifiFWVersionToCBOR(const char *wifiFWVersion, uint8_t *data, size_t *len) {
+  CBORMessageEncoder encoder;
+  if(*len < CBOR_MIN_WIFI_FW_VERSION_LEN + strlen(wifiFWVersion)) {
+    return false;
+  }
+  WiFiFWVersionProvisioningMessage wifiFWVersionMsg;
+  wifiFWVersionMsg.c.id = ProvisioningMessageId::WiFiFWVersionProvisioningMessageId;
+  wifiFWVersionMsg.wifiFwVersion = wifiFWVersion;
+
+  Encoder::Status status = encoder.encode((Message *)&wifiFWVersionMsg, data, *len);
+
+  return status == Encoder::Status::Complete ? true : false;
+}
+
 bool CBORAdapter::networkOptionsToCBOR(const NetworkOptions *netOptions, uint8_t *data, size_t *len) {
   bool result = false;
   switch (netOptions->type) {

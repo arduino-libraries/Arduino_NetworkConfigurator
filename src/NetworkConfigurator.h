@@ -51,7 +51,8 @@ private:
   enum class NetworkConfiguratorEvents { NONE,
                                          SCAN_REQ,
                                          CONNECT_REQ,
-                                         NEW_NETWORK_SETTINGS };
+                                         NEW_NETWORK_SETTINGS,
+                                         GET_WIFI_FW_VERSION };
   static inline NetworkConfiguratorEvents _receivedEvent = NetworkConfiguratorEvents::NONE;
 
   enum class ConnectionResult { SUCCESS,
@@ -70,6 +71,7 @@ private:
 
   NetworkConfiguratorStates handleConnectRequest();
   void handleNewNetworkSettings();
+  void handleGetWiFiFWVersion();
 
   String decodeConnectionErrorMessage(NetworkConnectionState err, int *errorCode);
   ConnectionResult connectToNetwork(StatusMessage *err);
@@ -83,4 +85,5 @@ private:
   static void scanReqHandler();
   static void connectReqHandler();
   static void setNetworkSettingsHandler(models::NetworkSetting *netSetting);
+  static void getWiFiFWVersionHandler();
 };
