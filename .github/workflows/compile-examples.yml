@@ -29,11 +29,20 @@ jobs:
         # Install the NetworkConfigurator library from the repository
         - source-path: ./
         - name: Arduino_DebugUtils
-        - name: Arduino_ConnectionHandler
-        - name: ArduinoBLE
-        - name: ArduinoIoTCloud
+        - source-url: https://github.com/andreagilardoni/Arduino_ConnectionHandler.git
+          version: 0ca6d61eb538c5a21983e582ee1c8794442f8c75
+        - source-url: https://github.com/fabik111/ArduinoBLE.git
+          version: 82e2a28f871e97b313846cee6d9efed8943dca53
+        - source-url: https://github.com/andreagilardoni/ArduinoIoTCloud.git
+          version: e778f3a8e416801102ab38931ac0540ea9b82d80
         - name: Arduino_SecureElement
-        - name: Arduino_CloudUtils
+        - source-url: https://github.com/andreagilardoni/Arduino_CloudUtils.git
+          version: a5642c1d6abe770df290f0e17331683b3d479fb7
+        - source-url: https://github.com/andreagilardoni/ArduinoStorage.git
+          version: 39f0bd138103967aaafcaa7f5c0e1e237b4ccb4d
+        - name: ArduinoJson
+        - source-url: https://github.com/arduino-libraries/Arduino_UniqueHWId.git
+          version: 8977827eed86dbd25292f861ee8de2b19c16b3a0
       SKETCH_PATHS: |
         - examples/auto-retry
       SKETCHES_REPORTS_PATH: sketches-reports
@@ -42,33 +51,15 @@ jobs:
 
       matrix:
         board:
-          - fqbn: arduino:samd:mkr1000
-            type: mkr1000
-            artifact-name-suffix: arduino-samd-mkr1000
           - fqbn: arduino:samd:mkrwifi1010
             type: nina
             artifact-name-suffix: arduino-samd-mkrwifi1010
           - fqbn: arduino:samd:nano_33_iot
             type: nina
             artifact-name-suffix: arduino-samd-nano_33_iot
-          - fqbn: arduino:samd:mkrwan1300
-            type: wan
-            artifact-name-suffix: arduino-samd-mkrwan1300
-          - fqbn: arduino:samd:mkrgsm1400
-            type: gsm
-            artifact-name-suffix: arduino-samd-mkrgsm1400
-          - fqbn: arduino:samd:mkrnb1500
-            type: nb
-            artifact-name-suffix: arduino-samd-mkrnb1500
           - fqbn: arduino:mbed_portenta:envie_m7
             type: mbed_portenta
             artifact-name-suffix: arduino-mbed_portenta-envie_m7
-          - fqbn: esp8266:esp8266:huzzah
-            type: esp8266
-            artifact-name-suffix: esp8266-esp8266-huzzah
-          - fqbn: esp32:esp32:esp32
-            type: esp32
-            artifact-name-suffix: esp32-esp32-esp32
           - fqbn: arduino:mbed_nano:nanorp2040connect
             type: nina
             artifact-name-suffix: arduino-mbed_nano-nanorp2040connect
@@ -87,30 +78,10 @@ jobs:
           - fqbn: arduino:renesas_uno:unor4wifi
             type: renesas_uno
             artifact-name-suffix: arduino-renesas_uno-unor4wifi
-          - fqbn: arduino:esp32:nano_nora
-            type: arduino_esp32
-            artifact-name-suffix: arduino-esp32-nano_nora
-          - fqbn: arduino:mbed_edge:edge_control
-            type: mbed_edge
-            artifact-name-suffix: arduino-mbed_edge-edge_control
 
 
         # make board type-specific customizations to the matrix jobs
         include:
-          # MKR 1000
-          - board:
-              type: mkr1000
-            platforms: |
-              # Install samd platform via Boards Manager
-              - name: arduino:samd
-            libraries: |
-              - name: ArduinoECCX08
-              - name: Blues Wireless Notecard
-              - name: RTCZero
-              - name: WiFi101
-              - name: ArduinoHttpClient
-              - name: ArduinoMqttClient
-              - source-url: https://github.com/adafruit/Adafruit_SleepyDog.git
           # MKR WiFi 1010, Nano 33 IoT, Nano RP2040 Connect
           - board:
               type: nina
@@ -122,47 +93,9 @@ jobs:
               - name: ArduinoECCX08
               - name: Blues Wireless Notecard
               - name: RTCZero
-              - name: WiFiNINA
+              - source-url: https://github.com/andreagilardoni/WiFiNINA.git
+                version: ca7a9224f86b9aaf00de4f7feccea583a23b3d53
               - name: Arduino_JSON
-              - name: ArduinoHttpClient
-              - name: ArduinoMqttClient
-              - source-url: https://github.com/adafruit/Adafruit_SleepyDog.git
-          - board:
-              type: wan
-            platforms: |
-              # Install samd platform via Boards Manager
-              - name: arduino:samd
-            libraries: |
-              - name: ArduinoECCX08
-              - name: Blues Wireless Notecard
-              - name: RTCZero
-              - name: MKRWAN
-              - source-url: https://github.com/adafruit/Adafruit_SleepyDog.git
-          # GSM boards
-          - board:
-              type: gsm
-            platforms: |
-              # Install samd platform via Boards Manager
-              - name: arduino:samd
-            libraries: |
-              - name: ArduinoECCX08
-              - name: Blues Wireless Notecard
-              - name: RTCZero
-              - name: MKRGSM
-              - name: ArduinoHttpClient
-              - name: ArduinoMqttClient
-              - source-url: https://github.com/adafruit/Adafruit_SleepyDog.git
-          # NB boards
-          - board:
-              type: nb
-            platforms: |
-              # Install samd platform via Boards Manager
-              - name: arduino:samd
-            libraries: |
-              - name: ArduinoECCX08
-              - name: Blues Wireless Notecard
-              - name: RTCZero
-              - name: MKRNB
               - name: ArduinoHttpClient
               - name: ArduinoMqttClient
               - source-url: https://github.com/adafruit/Adafruit_SleepyDog.git
@@ -231,45 +164,6 @@ jobs:
               - name: Blues Wireless Notecard
               - name: ArduinoHttpClient
               - name: ArduinoMqttClient
-          # Nano ESP32
-          - board:
-              type: arduino_esp32
-            platforms: |
-              # Install arduino_esp32 platform via Boards Manager
-              - name: arduino:esp32
-            libraries: |
-              - name: Blues Wireless Notecard
-              - name: ArduinoHttpClient
-              - name: ArduinoMqttClient
-          # Edge Control
-          - board:
-              type: mbed_edge
-            platforms: |
-              # Install mbed_edge platform via Boards Manager
-              - name: arduino:mbed_edge
-            libraries: |
-              - name: Blues Wireless Notecard
-              - name: ArduinoHttpClient
-              - name: ArduinoMqttClient
-          # ESP8266 boards
-          - board:
-              type: esp8266
-            platforms: |
-              # Install ESP8266 platform via Boards Manager
-              - name: esp8266:esp8266
-                source-url: https://arduino.esp8266.com/stable/package_esp8266com_index.json
-                # Use the version currently installed in Arduino Cloud
-                version: 2.5.0
-            libraries:
-          # ESP32 boards
-          - board:
-              type: esp32
-            platforms: |
-              # Install ESP32 platform via Boards Manager
-              - name: esp32:esp32
-                source-url: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
-            libraries: |
-              - name: Blues Wireless Notecard
 
     steps:
       - name: Checkout

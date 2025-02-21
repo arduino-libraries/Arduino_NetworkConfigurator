@@ -20,49 +20,28 @@ bool BoardConfigurationProtocol::getMsg(ProvisioningInputMessage &msg) {
     return false;
   }
   InputPacketBuffer *buf = &_inputMessagesList.front();
-  size_t len = buf->len();
-  uint8_t data[len];
-  memset(data, 0x00, len);
-  memcpy(data, &(*buf)[0], len);
+  ProvisioningMessageDown cborMsg;
+
+  bool decodeRes = CBORAdapter::getMsgFromCBOR(buf->get_ptr(), buf->len(), &cborMsg);
   _inputMessagesList.pop_front();
 
-  ProvisioningCommandDown cborMsg;
-  if (!CBORAdapter::getMsgFromCBOR(data, len, &cborMsg)) {
+  if (!decodeRes) {
     DEBUG_DEBUG("BoardConfigurationProtocol::%s Invalid message", __FUNCTION__);
     sendStatus(StatusMessage::INVALID_PARAMS);
     return false;
   }
 
-  if (cborMsg.c.id == CommandId::ProvisioningTimestamp) {
-    uint64_t ts;
-    if (!CBORAdapter::extractTimestamp(&cborMsg, &ts)) {
-      DEBUG_DEBUG("BoardConfigurationProtocol::%s Invalid timestamp", __FUNCTION__);
-      sendStatus(StatusMessage::INVALID_PARAMS);
-      return false;
-    }
-
+  if (cborMsg.c.id == ProvisioningMessageId::TimestampProvisioningMessageId) {
     msg.type = MessageInputType::TIMESTAMP;
-    msg.m.timestamp = ts;
-
-  } else if (cborMsg.c.id == CommandId::ProvisioningCommands) {
-    RemoteCommands cmd;
-    if (!CBORAdapter::extractCommand(&cborMsg, &cmd)) {
-      DEBUG_DEBUG("BoardConfigurationProtocol::%s Invalid command", __FUNCTION__);
-      sendStatus(StatusMessage::INVALID_PARAMS);
-      return false;
-    }
-
+    msg.m.timestamp = cborMsg.provisioningTimestamp.timestamp;
+  } else if (cborMsg.c.id == ProvisioningMessageId::CommandsProvisioningMessageId) {
     msg.type = MessageInputType::COMMANDS;
-    msg.m.cmd = cmd;
+    msg.m.cmd = (RemoteCommands)cborMsg.provisioningCommands.cmd;
   } else {
     msg.type = MessageInputType::NETWORK_SETTINGS;
-    if (!CBORAdapter::extractNetworkSetting(&cborMsg, &msg.m.netSetting)) {
-      DEBUG_DEBUG("BoardConfigurationProtocol::%s Invalid network Setting", __FUNCTION__);
-      sendStatus(StatusMessage::INVALID_PARAMS);
-      return false;
-    }
+    msg.m.netSetting.type = NetworkAdapter::NONE;
+    memcpy(&msg.m.netSetting, &cborMsg.provisioningNetworkConfig.networkSetting, sizeof(models::NetworkSetting));
   }
-
   return true;
 }
 
@@ -123,7 +102,7 @@ BoardConfigurationProtocol::TransmissionResult BoardConfigurationProtocol::sendA
           case PacketManager::MessageType::DATA:
             {
               DEBUG_DEBUG("BoardConfigurationProtocol::%s Received data packet", __FUNCTION__);
-              printPacket("payload", &receivedData.payload[0], receivedData.payload.len());
+              printPacket("payload", receivedData.payload.get_ptr(), receivedData.payload.len());
               _inputMessagesList.push_back(receivedData.payload);
               //Consider all sent data as received
               _outputMessagesList.clear();
@@ -173,7 +152,7 @@ bool BoardConfigurationProtocol::sendData(PacketManager::MessageType type, const
     return false;
   }
 
-  printPacket("output message", &outputMsg[0], outputMsg.len());
+  printPacket("output message", outputMsg.get_ptr(), outputMsg.len());
 
   _outputMessagesList.push_back(outputMsg);
 
@@ -343,7 +322,7 @@ BoardConfigurationProtocol::TransmissionResult BoardConfigurationProtocol::trans
   for (std::list<OutputPacketBuffer>::iterator packet = _outputMessagesList.begin(); packet != _outputMessagesList.end(); ++packet) {
     if (packet->hasBytesToSend()) {
       res = TransmissionResult::NOT_COMPLETED;
-      packet->incrementBytesSent(writeBytes(&(*packet)[packet->bytesSent()], packet->bytesToSend()));
+      packet->incrementBytesSent(writeBytes(packet->get_ptrAt(packet->bytesSent()), packet->bytesToSend()));
       DEBUG_DEBUG("BoardConfigurationProtocol::%s  transferred: %d of %d", __FUNCTION__, packet->bytesSent(), packet->len());
       break;
     }

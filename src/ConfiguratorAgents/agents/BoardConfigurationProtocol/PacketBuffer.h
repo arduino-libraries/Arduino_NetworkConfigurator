@@ -20,12 +20,22 @@ public:
     allocate(obj._size);
     memcpy(_buffer.get(), obj._buffer.get(), obj._size);
   };
+  virtual ~PacketBuffer(){};
   void setValidityTs(uint32_t ts) {
     _validityTs = ts;
   };
   uint32_t getValidityTs() {
     return _validityTs;
   };
+  //Return the pointer to the internal buffer at specified index. Do not use this method to modify the buffer, only for reading
+  const uint8_t *get_ptrAt(size_t idx){
+    return idx < _size ? &get_ptr()[idx] : get_ptr();
+  }
+  //Return the pointer to the internal buffer. Do not use this method to modify the buffer, only for reading
+  const uint8_t *get_ptr(){
+    return _buffer.get();
+  }
+  //Operator overloaded for reading and updating the value a single byte of the buffer
   uint8_t &operator[](size_t idx) {
     return idx < _size ? _buffer[idx] : _buffer[0];
   };
