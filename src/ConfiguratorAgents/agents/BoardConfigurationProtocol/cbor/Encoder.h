@@ -18,7 +18,7 @@ public:
   StatusProvisioningMessageEncoder()
   : CBORMessageEncoderInterface(CBORStatusProvisioningMessage, StatusProvisioningMessageId) {}
 protected:
-  Encoder::Status encode(CborEncoder* encoder, Message *msg) override;
+  MessageEncoder::Status encode(CborEncoder* encoder, Message *msg) override;
 };
 
 class ListWifiNetworksProvisioningMessageEncoder: public CBORMessageEncoderInterface {
@@ -26,7 +26,7 @@ public:
   ListWifiNetworksProvisioningMessageEncoder()
   : CBORMessageEncoderInterface(CBORListWifiNetworksProvisioningMessage, ListWifiNetworksProvisioningMessageId) {}
 protected:
-  Encoder::Status encode(CborEncoder* encoder, Message *msg) override;
+  MessageEncoder::Status encode(CborEncoder* encoder, Message *msg) override;
 };
 
 class UniqueHardwareIdProvisioningMessageEncoder: public CBORMessageEncoderInterface {
@@ -34,7 +34,7 @@ public:
   UniqueHardwareIdProvisioningMessageEncoder()
   : CBORMessageEncoderInterface(CBORUniqueHardwareIdProvisioningMessage, UniqueHardwareIdProvisioningMessageId) {}
 protected:
-  Encoder::Status encode(CborEncoder* encoder, Message *msg) override;
+  MessageEncoder::Status encode(CborEncoder* encoder, Message *msg) override;
 };
 
 class JWTProvisioningMessageEncoder: public CBORMessageEncoderInterface {
@@ -42,7 +42,7 @@ public:
   JWTProvisioningMessageEncoder()
   : CBORMessageEncoderInterface(CBORJWTProvisioningMessage, JWTProvisioningMessageId) {}
 protected:
-  Encoder::Status encode(CborEncoder* encoder, Message *msg) override;
+  MessageEncoder::Status encode(CborEncoder* encoder, Message *msg) override;
 };
 
 class BLEMacAddressProvisioningMessageEncoder: public CBORMessageEncoderInterface {
@@ -50,7 +50,7 @@ public:
   BLEMacAddressProvisioningMessageEncoder()
   : CBORMessageEncoderInterface(CBORBLEMacAddressProvisioningMessage, BLEMacAddressProvisioningMessageId) {}
 protected:
-  Encoder::Status encode(CborEncoder* encoder, Message *msg) override;
+  MessageEncoder::Status encode(CborEncoder* encoder, Message *msg) override;
 };
 
 class WiFiFWVersionProvisioningMessageEncoder: public CBORMessageEncoderInterface {
@@ -58,5 +58,5 @@ public:
   WiFiFWVersionProvisioningMessageEncoder()
   : CBORMessageEncoderInterface(CBORWiFiFWVersionProvisioningMessage, WiFiFWVersionProvisioningMessageId) {}
 protected:
-  Encoder::Status encode(CborEncoder* encoder, Message *msg) override;
+  MessageEncoder::Status encode(CborEncoder* encoder, Message *msg) override;
 };

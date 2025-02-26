@@ -34,10 +34,10 @@ jobs:
         - source-url: https://github.com/fabik111/ArduinoBLE.git
           version: 82e2a28f871e97b313846cee6d9efed8943dca53
         - source-url: https://github.com/andreagilardoni/ArduinoIoTCloud.git
-          version: e778f3a8e416801102ab38931ac0540ea9b82d80
+          version: a51de0e7bfb68b18aea5fbac753f0414991fac7f
         - name: Arduino_SecureElement
         - source-url: https://github.com/andreagilardoni/Arduino_CloudUtils.git
-          version: a5642c1d6abe770df290f0e17331683b3d479fb7
+          version: 5fd19ba84d34ffbc3def4d1035d5a21fd9e2f06b
         - source-url: https://github.com/andreagilardoni/ArduinoStorage.git
           version: 39f0bd138103967aaafcaa7f5c0e1e237b4ccb4d
         - name: ArduinoJson

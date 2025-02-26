@@ -10,7 +10,7 @@
 
  #include <memory>
  #include <Encoder.h>
- #include <CborEncoder.h>
+ #include <cbor/MessageEncoder.h>
  #include "../../src/ConfiguratorAgents/agents/BoardConfigurationProtocol/cbor/CBOR.h"
 
  /******************************************************************************
@@ -29,7 +29,7 @@
     size_t bytes_encoded = sizeof(buffer);
 
     CBORMessageEncoder encoder;
-    Encoder::Status err = encoder.encode((Message*)&command, buffer, bytes_encoded);
+    MessageEncoder::Status err = encoder.encode((Message*)&command, buffer, bytes_encoded);
 
     uint8_t expected_result[] = {
     0xda, 0x00, 0x01, 0x20, 0x00, 0x81, 0x38, 0x63
@@ -41,7 +41,7 @@
     //  38 63 # negative(99)
 
     THEN("The encoding is successful") {
-        REQUIRE(err == Encoder::Status::Complete);
+        REQUIRE(err == MessageEncoder::Status::Complete);
         REQUIRE(bytes_encoded == sizeof(expected_result));
         REQUIRE(memcmp(buffer, expected_result, sizeof(expected_result)) == 0);
     }
@@ -65,7 +65,7 @@
     size_t bytes_encoded = sizeof(buffer);
 
     CBORMessageEncoder encoder;
-    Encoder::Status err = encoder.encode((Message*)&command, buffer, bytes_encoded);
+    MessageEncoder::Status err = encoder.encode((Message*)&command, buffer, bytes_encoded);
 
     uint8_t expected_result[] = {
     0xda, 0x00, 0x01, 0x20, 0x01, 0x84, 0x65, 0x53, 0x53, 0x49, 0x44, 0x31, 0x38, 0x4B, 0x65, 0x53, 0x53, 0x49, 0x44, 0x32, 0x38, 0x37
@@ -81,7 +81,7 @@
     //        5353494432 # "SSID2"
     //     38 37         # negative(55)
     THEN("The encoding is successful") {
-        REQUIRE(err == Encoder::Status::Complete);
+        REQUIRE(err == MessageEncoder::Status::Complete);
         REQUIRE(bytes_encoded == sizeof(expected_result));
         REQUIRE(memcmp(buffer, expected_result, sizeof(expected_result)) == 0);
     }
@@ -96,7 +96,7 @@
     size_t bytes_encoded = sizeof(buffer);
 
     CBORMessageEncoder encoder;
-    Encoder::Status err = encoder.encode((Message*)&command, buffer, bytes_encoded);
+    MessageEncoder::Status err = encoder.encode((Message*)&command, buffer, bytes_encoded);
 
     uint8_t expected_result[] = {
     0xda, 0x00, 0x01, 0x20, 0x10, 0x81, 0x58, 0x20,
@@ -112,7 +112,7 @@
     //    58 20            # bytes(32)
     //      CA.... omissis # values
     THEN("The encoding is successful") {
-        REQUIRE(err == Encoder::Status::Complete);
+        REQUIRE(err == MessageEncoder::Status::Complete);
         REQUIRE(bytes_encoded == sizeof(expected_result));
         REQUIRE(memcmp(buffer, expected_result, sizeof(expected_result)) == 0);
     }
@@ -127,7 +127,7 @@
     size_t bytes_encoded = sizeof(buffer);
 
     CBORMessageEncoder encoder;
-    Encoder::Status err = encoder.encode((Message*)&command, buffer, bytes_encoded);
+    MessageEncoder::Status err = encoder.encode((Message*)&command, buffer, bytes_encoded);
 
     uint8_t expected_result[] = {
     0xda, 0x00, 0x01, 0x20, 0x11, 0x81, 0x59, 0x01, 0x0C,
@@ -173,7 +173,7 @@
     //    58 F6            # bytes(32)
     //      CA.... omissis # values
     THEN("The encoding is successful") {
-        REQUIRE(err == Encoder::Status::Complete);
+        REQUIRE(err == MessageEncoder::Status::Complete);
         REQUIRE(bytes_encoded == sizeof(expected_result));
         REQUIRE(memcmp(buffer, expected_result, sizeof(expected_result)) == 0);
     }
@@ -188,7 +188,7 @@
     size_t bytes_encoded = sizeof(buffer);
 
     CBORMessageEncoder encoder;
-    Encoder::Status err = encoder.encode((Message*)&command, buffer, bytes_encoded);
+    MessageEncoder::Status err = encoder.encode((Message*)&command, buffer, bytes_encoded);
 
     uint8_t expected_result[] = {
     0xda, 0x00, 0x01, 0x20, 0x13, 0x81, 0x46,
@@ -201,7 +201,7 @@
     //  46              # bytes(6)
     //     AFAFAFAFAFA
     THEN("The encoding is successful") {
-        REQUIRE(err == Encoder::Status::Complete);
+        REQUIRE(err == MessageEncoder::Status::Complete);
         REQUIRE(bytes_encoded == sizeof(expected_result));
         REQUIRE(memcmp(buffer, expected_result, sizeof(expected_result)) == 0);
     }
@@ -216,7 +216,7 @@
     size_t bytes_encoded = sizeof(buffer);
 
     CBORMessageEncoder encoder;
-    Encoder::Status err = encoder.encode((Message*)&command, buffer, bytes_encoded);
+    MessageEncoder::Status err = encoder.encode((Message*)&command, buffer, bytes_encoded);
 
     uint8_t expected_result[] = {
     0xda, 0x00, 0x01, 0x20, 0x14, 0x81, 0x65, 0x31, 0x2E, 0x36, 0x2E, 0x30
@@ -228,7 +228,7 @@
     //   65           # text(5)
     //     312E362E30 # "1.6.0"
     THEN("The encoding is successful") {
-        REQUIRE(err == Encoder::Status::Complete);
+        REQUIRE(err == MessageEncoder::Status::Complete);
         REQUIRE(bytes_encoded == sizeof(expected_result));
         REQUIRE(memcmp(buffer, expected_result, sizeof(expected_result)) == 0);
     }

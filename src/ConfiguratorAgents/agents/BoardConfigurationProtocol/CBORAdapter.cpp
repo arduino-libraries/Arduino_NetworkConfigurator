@@ -26,9 +26,9 @@ bool CBORAdapter::uhwidToCBOR(const byte *uhwid, uint8_t *data, size_t *len) {
   //Since some bytes of UHWID could be 00 is not possible use strlen to copy the UHWID
   memcpy(uhwidMsg.uniqueHardwareId, uhwid, MAX_UHWID_SIZE);
 
-  Encoder::Status status = encoder.encode((Message *)&uhwidMsg, data, *len);
+  MessageEncoder::Status status = encoder.encode((Message *)&uhwidMsg, data, *len);
 
-  return status == Encoder::Status::Complete ? true : false;
+  return status == MessageEncoder::Status::Complete ? true : false;
 }
 
 bool CBORAdapter::jwtToCBOR(const char *jwt, uint8_t *data, size_t *len) {
@@ -46,9 +46,9 @@ bool CBORAdapter::jwtToCBOR(const char *jwt, uint8_t *data, size_t *len) {
   memset(provisioningMsg.jwt, 0x00, MAX_JWT_SIZE);
   memcpy(provisioningMsg.jwt, jwt, strlen(jwt));
 
-  Encoder::Status status = encoder.encode((Message *)&provisioningMsg, data, *len);
+  MessageEncoder::Status status = encoder.encode((Message *)&provisioningMsg, data, *len);
 
-  return status == Encoder::Status::Complete ? true : false;
+  return status == MessageEncoder::Status::Complete ? true : false;
 }
 
 bool CBORAdapter::BLEMacAddressToCBOR(const uint8_t *mac, uint8_t *data, size_t *len) {
@@ -63,9 +63,9 @@ bool CBORAdapter::BLEMacAddressToCBOR(const uint8_t *mac, uint8_t *data, size_t 
   bleMacMsg.c.id = ProvisioningMessageId::BLEMacAddressProvisioningMessageId;
   memcpy(bleMacMsg.macAddress, mac, BLE_MAC_ADDRESS_SIZE);
 
-  Encoder::Status status = encoder.encode((Message *)&bleMacMsg, data, *len);
+  MessageEncoder::Status status = encoder.encode((Message *)&bleMacMsg, data, *len);
 
-  return status == Encoder::Status::Complete ? true : false;
+  return status == MessageEncoder::Status::Complete ? true : false;
 }
 
 bool CBORAdapter::statusToCBOR(StatusMessage msg, uint8_t *data, size_t *len) {
@@ -91,9 +91,9 @@ bool CBORAdapter::wifiFWVersionToCBOR(const char *wifiFWVersion, uint8_t *data, 
   wifiFWVersionMsg.c.id = ProvisioningMessageId::WiFiFWVersionProvisioningMessageId;
   wifiFWVersionMsg.wifiFwVersion = wifiFWVersion;
 
-  Encoder::Status status = encoder.encode((Message *)&wifiFWVersionMsg, data, *len);
+  MessageEncoder::Status status = encoder.encode((Message *)&wifiFWVersionMsg, data, *len);
 
-  return status == Encoder::Status::Complete ? true : false;
+  return status == MessageEncoder::Status::Complete ? true : false;
 }
 
 bool CBORAdapter::networkOptionsToCBOR(const NetworkOptions *netOptions, uint8_t *data, size_t *len) {
@@ -113,8 +113,8 @@ bool CBORAdapter::networkOptionsToCBOR(const NetworkOptions *netOptions, uint8_t
 
 bool CBORAdapter::getMsgFromCBOR(const uint8_t *data, size_t len, ProvisioningMessageDown *msg) {
   CBORMessageDecoder decoder;
-  Decoder::Status status = decoder.decode((Message *)msg, data, len);
-  return status == Decoder::Status::Complete ? true : false;
+  MessageDecoder::Status status = decoder.decode((Message *)msg, data, len);
+  return status == MessageDecoder::Status::Complete ? true : false;
 }
 
 bool CBORAdapter::adaptStatus(StatusMessage msg, uint8_t *data, size_t *len) {
@@ -128,9 +128,9 @@ bool CBORAdapter::adaptStatus(StatusMessage msg, uint8_t *data, size_t *len) {
   statusMsg.c.id = ProvisioningMessageId::StatusProvisioningMessageId;
   statusMsg.status = (int)msg;
 
-  Encoder::Status status = encoder.encode((Message *)&statusMsg, data, *len);
+  MessageEncoder::Status status = encoder.encode((Message *)&statusMsg, data, *len);
 
-  return status == Encoder::Status::Complete ? true : false;
+  return status == MessageEncoder::Status::Complete ? true : false;
 }
 
 bool CBORAdapter::adaptWiFiOptions(const WiFiOption *wifiOptions, uint8_t *data, size_t *len) {
@@ -144,7 +144,7 @@ bool CBORAdapter::adaptWiFiOptions(const WiFiOption *wifiOptions, uint8_t *data,
     wifiMsg.discoveredWifiNetworks[i].RSSI = const_cast<int *>(&wifiOptions->discoveredWifiNetworks[i].RSSI);
   }
 
-  Encoder::Status status = encoder.encode((Message *)&wifiMsg, data, *len);
+  MessageEncoder::Status status = encoder.encode((Message *)&wifiMsg, data, *len);
 
-  return status == Encoder::Status::Complete ? true : false;
+  return status == MessageEncoder::Status::Complete ? true : false;
 }

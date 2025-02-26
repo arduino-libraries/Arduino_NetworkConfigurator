@@ -111,8 +111,8 @@ set(TEST_DUT_SRCS
   ${cloudutils_SOURCE_DIR}/src/cbor/tinycbor/src/cbortojson.c
   ${cloudutils_SOURCE_DIR}/src/cbor/tinycbor/src/cborvalidation.c
   ${cloudutils_SOURCE_DIR}/src/cbor/tinycbor/src/open_memstream.c
-  ${cloudutils_SOURCE_DIR}/src/cbor/CborDecoder.cpp
-  ${cloudutils_SOURCE_DIR}/src/cbor/CborEncoder.cpp
+  ${cloudutils_SOURCE_DIR}/src/cbor/MessageDecoder.cpp
+  ${cloudutils_SOURCE_DIR}/src/cbor/MessageEncoder.cpp
 )
 ##########################################################################
 

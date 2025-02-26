@@ -37,7 +37,7 @@ static bool copyCBORByteToArray(CborValue * param, uint8_t * dest, size_t dest_s
   return false;
 }
 
-Decoder::Status TimestampProvisioningMessageDecoder::decode(CborValue* param, Message* message) {
+MessageDecoder::Status TimestampProvisioningMessageDecoder::decode(CborValue* param, Message* message) {
   TimestampProvisioningMessage* ts = (TimestampProvisioningMessage*) message;
 
   // Message is composed of a single parameter: a 64-bit unsigned integer
@@ -48,31 +48,31 @@ Decoder::Status TimestampProvisioningMessageDecoder::decode(CborValue* param, Me
     }
   }
 
-  return Decoder::Status::Complete;
+  return MessageDecoder::Status::Complete;
 }
 #if defined(BOARD_HAS_WIFI)
-Decoder::Status WifiConfigProvisioningMessageDecoder::decode(CborValue* param, Message* message) {
+MessageDecoder::Status WifiConfigProvisioningMessageDecoder::decode(CborValue* param, Message* message) {
   NetworkConfigProvisioningMessage* provisioningNetworkConfig = (NetworkConfigProvisioningMessage*) message;
   memset(&provisioningNetworkConfig->networkSetting, 0x00, sizeof(models::NetworkSetting));
   // Message is composed of 2 parameters: ssid and password
   if (!copyCBORStringToArray(param, provisioningNetworkConfig->networkSetting.wifi.ssid, sizeof(provisioningNetworkConfig->networkSetting.wifi.ssid))) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
   // Next
   if (cbor_value_advance(param) != CborNoError) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
   if (!copyCBORStringToArray(param, provisioningNetworkConfig->networkSetting.wifi.pwd, sizeof(provisioningNetworkConfig->networkSetting.wifi.pwd))) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
   provisioningNetworkConfig->networkSetting.type = NetworkAdapter::WIFI;
-  return Decoder::Status::Complete;
+  return MessageDecoder::Status::Complete;
 }
 #endif
 
-Decoder::Status CommandsProvisioningMessageDecoder::decode(CborValue* param, Message* message) {
+MessageDecoder::Status CommandsProvisioningMessageDecoder::decode(CborValue* param, Message* message) {
   CommandsProvisioningMessage* provisioningCommands = (CommandsProvisioningMessage*) message;
 
   // Message is composed of a single parameter: a 32-bit signed integer
@@ -83,30 +83,30 @@ Decoder::Status CommandsProvisioningMessageDecoder::decode(CborValue* param, Mes
     }
   }
 
-  return Decoder::Status::Complete;
+  return MessageDecoder::Status::Complete;
 }
 
 #if defined(BOARD_HAS_LORA)
-Decoder::Status LoRaConfigProvisioningMessageDecoder::decode(CborValue* param, Message* message) {
+MessageDecoder::Status LoRaConfigProvisioningMessageDecoder::decode(CborValue* param, Message* message) {
   NetworkConfigProvisioningMessage* provisioningNetworkConfig = (NetworkConfigProvisioningMessage*) message;
   memset(&provisioningNetworkConfig->networkSetting, 0x00, sizeof(models::NetworkSetting));
   // Message is composed of 5 parameters: app_eui, app_key, band, channel_mask, device_class
   if (!copyCBORStringToArray(param, provisioningNetworkConfig->networkSetting.lora.appeui, sizeof(provisioningNetworkConfig->networkSetting.lora.appeui))) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
   // Next
   if (cbor_value_advance(param) != CborNoError) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
   if (!copyCBORStringToArray(param, provisioningNetworkConfig->networkSetting.lora.appkey, sizeof(provisioningNetworkConfig->networkSetting.lora.appkey))) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
   // Next
   if (cbor_value_advance(param) != CborNoError) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
   provisioningNetworkConfig->networkSetting.lora.band = models::settingsDefault(NetworkAdapter::LORA).lora.band;
@@ -122,22 +122,22 @@ Decoder::Status LoRaConfigProvisioningMessageDecoder::decode(CborValue* param, M
 
   // Next
   if (cbor_value_advance(param) != CborNoError) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
   if(!copyCBORStringToArray(param, provisioningNetworkConfig->networkSetting.lora.channelMask, sizeof(provisioningNetworkConfig->networkSetting.lora.channelMask))) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
   // Next
   if (cbor_value_advance(param) != CborNoError) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
   char deviceClass[LORA_DEVICE_CLASS_SIZE];
   memset(deviceClass, 0x00, sizeof(deviceClass));
   if (!copyCBORStringToArray(param, deviceClass, sizeof(deviceClass))) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
   if (deviceClass[0] == '\0') {
@@ -146,12 +146,12 @@ Decoder::Status LoRaConfigProvisioningMessageDecoder::decode(CborValue* param, M
     provisioningNetworkConfig->networkSetting.lora.deviceClass = (uint8_t)deviceClass[0];
   }
   provisioningNetworkConfig->networkSetting.type = NetworkAdapter::LORA;
-  return Decoder::Status::Complete;
+  return MessageDecoder::Status::Complete;
 }
 #endif
 
 #if defined(BOARD_HAS_CATM1_NBIOT)
-Decoder::Status CATM1ConfigProvisioningMessageDecoder::decode(CborValue* param, Message* message) {
+MessageDecoder::Status CATM1ConfigProvisioningMessageDecoder::decode(CborValue* param, Message* message) {
   NetworkConfigProvisioningMessage* provisioningNetworkConfig = (NetworkConfigProvisioningMessage*) message;
   memset(&provisioningNetworkConfig->networkSetting, 0x00, sizeof(models::NetworkSetting));
   CborValue array_iter;
@@ -159,22 +159,22 @@ Decoder::Status CATM1ConfigProvisioningMessageDecoder::decode(CborValue* param, 
 
   // Message is composed of 5 parameters: pin, band, apn, login and password
   if (!copyCBORStringToArray(param, provisioningNetworkConfig->networkSetting.catm1.pin, sizeof(provisioningNetworkConfig->networkSetting.catm1.pin))) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
   // Next
   if (cbor_value_advance(param) != CborNoError) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
   if (cbor_value_get_type(param) != CborArrayType) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
   cbor_value_get_array_length(param, &arrayLength);
 
   if(arrayLength > BAND_SIZE) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
   provisioningNetworkConfig->networkSetting.catm1.band = 0;
   if (arrayLength == 0) {
@@ -182,56 +182,56 @@ Decoder::Status CATM1ConfigProvisioningMessageDecoder::decode(CborValue* param, 
   }
 
   if (cbor_value_enter_container(param, &array_iter) != CborNoError) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
   for(size_t i = 0; i < arrayLength; i++) {
     if (!cbor_value_is_unsigned_integer(&array_iter)) {
-      return Decoder::Status::Error;
+      return MessageDecoder::Status::Error;
     }
 
     int val = 0;
     if (cbor_value_get_int(&array_iter, &val) != CborNoError) {
-      return Decoder::Status::Error;
+      return MessageDecoder::Status::Error;
     }
 
     provisioningNetworkConfig->networkSetting.catm1.band |= val;
 
     if (cbor_value_advance(&array_iter) != CborNoError) {
-      return Decoder::Status::Error;
+      return MessageDecoder::Status::Error;
     }
   }
 
   if (cbor_value_leave_container(param, &array_iter) != CborNoError){
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
   if (!copyCBORStringToArray(param, provisioningNetworkConfig->networkSetting.catm1.apn, sizeof(provisioningNetworkConfig->networkSetting.catm1.apn))) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
   // Next
   if (cbor_value_advance(param) != CborNoError) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
   if (!copyCBORStringToArray(param, provisioningNetworkConfig->networkSetting.catm1.login, sizeof(provisioningNetworkConfig->networkSetting.catm1.login))) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
   // Next
   if (cbor_value_advance(param) != CborNoError) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
   if (!copyCBORStringToArray(param, provisioningNetworkConfig->networkSetting.catm1.pass, sizeof(provisioningNetworkConfig->networkSetting.catm1.pass))) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
   provisioningNetworkConfig->networkSetting.catm1.rat = models::settingsDefault(NetworkAdapter::CATM1).catm1.rat;
   provisioningNetworkConfig->networkSetting.type = NetworkAdapter::CATM1;
 
-  return Decoder::Status::Complete;
+  return MessageDecoder::Status::Complete;
 }
 #endif
 
@@ -266,45 +266,45 @@ static inline bool getProvisioningIPStructFromMessage(CborValue*param, models::i
   return true;
 }
 
-Decoder::Status EthernetConfigProvisioningMessageDecoder::decode(CborValue* param, Message* message){
+MessageDecoder::Status EthernetConfigProvisioningMessageDecoder::decode(CborValue* param, Message* message){
   NetworkConfigProvisioningMessage* provisioningNetworkConfig  = (NetworkConfigProvisioningMessage*) message;
 
   memset(&provisioningNetworkConfig->networkSetting, 0x00, sizeof(models::NetworkSetting));
   // Message is composed of 2 parameters: static ip, dns, default gateway, netmask, timeout and response timeout
   if (!getProvisioningIPStructFromMessage(param, &provisioningNetworkConfig->networkSetting.eth.ip)) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
   // Next
   if (cbor_value_advance(param) != CborNoError) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
   if (!getProvisioningIPStructFromMessage(param, &provisioningNetworkConfig->networkSetting.eth.dns)) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
   // Next
   if (cbor_value_advance(param) != CborNoError) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
   if (!getProvisioningIPStructFromMessage(param, &provisioningNetworkConfig->networkSetting.eth.gateway)) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
   // Next
   if (cbor_value_advance(param) != CborNoError) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
   if (!getProvisioningIPStructFromMessage(param, &provisioningNetworkConfig->networkSetting.eth.netmask)) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
   // Next
   if (cbor_value_advance(param) != CborNoError) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
   provisioningNetworkConfig->networkSetting.eth.timeout = models::settingsDefault(NetworkAdapter::ETHERNET).eth.timeout;
@@ -320,7 +320,7 @@ Decoder::Status EthernetConfigProvisioningMessageDecoder::decode(CborValue* para
 
   // Next
   if (cbor_value_advance(param) != CborNoError) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
   provisioningNetworkConfig->networkSetting.eth.response_timeout = models::settingsDefault(NetworkAdapter::ETHERNET).eth.response_timeout;
@@ -334,51 +334,51 @@ Decoder::Status EthernetConfigProvisioningMessageDecoder::decode(CborValue* para
     }
   }
   provisioningNetworkConfig->networkSetting.type = NetworkAdapter::ETHERNET;
-  return Decoder::Status::Complete;
+  return MessageDecoder::Status::Complete;
 }
 #endif
 
 #if defined(BOARD_HAS_NB) || defined(BOARD_HAS_GSM) ||defined(BOARD_HAS_CELLULAR)
-static inline Decoder::Status extractCellularFields(CborValue* param, models::CellularSetting* cellSetting) {
+static inline MessageDecoder::Status extractCellularFields(CborValue* param, models::CellularSetting* cellSetting) {
 
   // Message is composed of 4 parameters: pin, apn, login and password
   if (!copyCBORStringToArray(param, cellSetting->pin, sizeof(cellSetting->pin))) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
   // Next
   if (cbor_value_advance(param) != CborNoError) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
   if (!copyCBORStringToArray(param, cellSetting->apn, sizeof(cellSetting->apn))) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
   // Next
   if (cbor_value_advance(param) != CborNoError) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
   if (!copyCBORStringToArray(param, cellSetting->login, sizeof(cellSetting->login))) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
   // Next
   if (cbor_value_advance(param) != CborNoError) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
   if (!copyCBORStringToArray(param, cellSetting->pass, sizeof(cellSetting->pass))) {
-    return Decoder::Status::Error;
+    return MessageDecoder::Status::Error;
   }
 
-  return Decoder::Status::Complete;
+  return MessageDecoder::Status::Complete;
 }
 #endif
 
 #if defined(BOARD_HAS_CELLULAR)
-Decoder::Status CellularConfigProvisioningMessageDecoder::decode(CborValue* param, Message* message){
+MessageDecoder::Status CellularConfigProvisioningMessageDecoder::decode(CborValue* param, Message* message){
   NetworkConfigProvisioningMessage* provisioningNetworkConfig = (NetworkConfigProvisioningMessage*) message;
   memset(&provisioningNetworkConfig->networkSetting, 0x00, sizeof(models::NetworkSetting));
   provisioningNetworkConfig->networkSetting.type = NetworkAdapter::CELL;
@@ -387,7 +387,7 @@ Decoder::Status CellularConfigProvisioningMessageDecoder::decode(CborValue* para
 #endif
 
 #if defined(BOARD_HAS_NB)
-Decoder::Status NBIOTConfigProvisioningMessageDecoder::decode(CborValue* iter, Message* msg) {
+MessageDecoder::Status NBIOTConfigProvisioningMessageDecoder::decode(CborValue* iter, Message* msg) {
   NetworkConfigProvisioningMessage* provisioningNetworkConfig = (NetworkConfigProvisioningMessage*) msg;
   memset(&provisioningNetworkConfig->networkSetting, 0x00, sizeof(models::NetworkSetting));
   provisioningNetworkConfig->networkSetting.type = NetworkAdapter::NB;
@@ -396,7 +396,7 @@ Decoder::Status NBIOTConfigProvisioningMessageDecoder::decode(CborValue* iter, M
 #endif
 
 #if defined(BOARD_HAS_GSM)
-Decoder::Status GSMConfigProvisioningMessageDecoder::decode(CborValue* iter, Message* msg) {
+MessageDecoder::Status GSMConfigProvisioningMessageDecoder::decode(CborValue* iter, Message* msg) {
   NetworkConfigProvisioningMessage* provisioningNetworkConfig = (NetworkConfigProvisioningMessage*) msg;
   memset(&provisioningNetworkConfig->networkSetting, 0x00, sizeof(models::NetworkSetting));
   provisioningNetworkConfig->networkSetting.type = NetworkAdapter::GSM;

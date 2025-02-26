@@ -19,7 +19,7 @@ public:
   TimestampProvisioningMessageDecoder()
   : CBORMessageDecoderInterface(CBORTimestampProvisioningMessage, TimestampProvisioningMessageId) {}
 protected:
-  Decoder::Status decode(CborValue* iter, Message *msg) override;
+  MessageDecoder::Status decode(CborValue* iter, Message *msg) override;
 };
 
 class CommandsProvisioningMessageDecoder: public CBORMessageDecoderInterface {
@@ -27,7 +27,7 @@ public:
   CommandsProvisioningMessageDecoder()
   : CBORMessageDecoderInterface(CBORCommandsProvisioningMessage, CommandsProvisioningMessageId) {}
 protected:
-  Decoder::Status decode(CborValue* iter, Message *msg) override;
+  MessageDecoder::Status decode(CborValue* iter, Message *msg) override;
 };
 #if defined(BOARD_HAS_WIFI)
 class WifiConfigProvisioningMessageDecoder: public CBORMessageDecoderInterface {
@@ -35,7 +35,7 @@ public:
   WifiConfigProvisioningMessageDecoder()
   : CBORMessageDecoderInterface(CBORWifiConfigProvisioningMessage, WifiConfigProvisioningMessageId) {}
 protected:
-  Decoder::Status decode(CborValue* iter, Message *msg) override;
+  MessageDecoder::Status decode(CborValue* iter, Message *msg) override;
 };
 #endif
 
@@ -45,7 +45,7 @@ public:
   LoRaConfigProvisioningMessageDecoder()
   : CBORMessageDecoderInterface(CBORLoRaConfigProvisioningMessage, LoRaConfigProvisioningMessageId) {}
 protected:
-  Decoder::Status decode(CborValue* iter, Message *msg) override;
+  MessageDecoder::Status decode(CborValue* iter, Message *msg) override;
 };
 #endif
 
@@ -55,7 +55,7 @@ public:
   CATM1ConfigProvisioningMessageDecoder()
   : CBORMessageDecoderInterface(CBORCATM1ConfigProvisioningMessage, CATM1ConfigProvisioningMessageId) {}
 protected:
-  Decoder::Status decode(CborValue* iter, Message *msg) override;
+  MessageDecoder::Status decode(CborValue* iter, Message *msg) override;
 };
 #endif
 
@@ -65,7 +65,7 @@ public:
   EthernetConfigProvisioningMessageDecoder()
   : CBORMessageDecoderInterface(CBOREthernetConfigProvisioningMessage, EthernetConfigProvisioningMessageId) {}
 protected:
-  Decoder::Status decode(CborValue* iter, Message *msg) override;
+  MessageDecoder::Status decode(CborValue* iter, Message *msg) override;
 };
 #endif
 
@@ -75,7 +75,7 @@ public:
   CellularConfigProvisioningMessageDecoder()
   : CBORMessageDecoderInterface(CBORCellularConfigProvisioningMessage, CellularConfigProvisioningMessageId) {}
 protected:
-  Decoder::Status decode(CborValue* iter, Message *msg) override;
+  MessageDecoder::Status decode(CborValue* iter, Message *msg) override;
 };
 #endif
 
@@ -85,7 +85,7 @@ public:
   NBIOTConfigProvisioningMessageDecoder()
   : CBORMessageDecoderInterface(CBORNBIOTConfigProvisioningMessage, NBIOTConfigProvisioningMessageId) {}
 protected:
-  Decoder::Status decode(CborValue* iter, Message *msg) override;
+  MessageDecoder::Status decode(CborValue* iter, Message *msg) override;
 };
 #endif
 
@@ -95,6 +95,6 @@ public:
   GSMConfigProvisioningMessageDecoder()
   : CBORMessageDecoderInterface(CBORGSMConfigProvisioningMessage, GSMConfigProvisioningMessageId) {}
 protected:
-  Decoder::Status decode(CborValue* iter, Message *msg) override;
+  MessageDecoder::Status decode(CborValue* iter, Message *msg) override;
 };
 #endif

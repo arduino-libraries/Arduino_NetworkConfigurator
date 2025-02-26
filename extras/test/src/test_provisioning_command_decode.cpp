@@ -12,7 +12,7 @@
  #include <memory>
 
  #include <Decoder.h>
- #include <CborDecoder.h>
+ #include <cbor/MessageDecoder.h>
  #include "../../src/ConfiguratorAgents/agents/BoardConfigurationProtocol/cbor/CBOR.h"
  #include <IPAddress.h>
 
@@ -37,10 +37,10 @@
      uint64_t ts = 1728475108;
      size_t payload_length = sizeof(payload) / sizeof(uint8_t);
      CBORMessageDecoder decoder;
-     Decoder::Status err =  decoder.decode((Message*)&command, payload, payload_length);
+     MessageDecoder::Status err =  decoder.decode((Message*)&command, payload, payload_length);
 
      THEN("The decode is successful") {
-       REQUIRE(err == Decoder::Status::Complete);
+       REQUIRE(err == MessageDecoder::Status::Complete);
        REQUIRE(command.c.id == ProvisioningMessageId::TimestampProvisioningMessageId);
        REQUIRE(command.provisioningTimestamp.timestamp == ts);
      }
@@ -60,10 +60,10 @@
      uint8_t commandId = 100;
      size_t payload_length = sizeof(payload) / sizeof(uint8_t);
      CBORMessageDecoder decoder;
-     Decoder::Status err =  decoder.decode((Message*)&command, payload, payload_length);
+     MessageDecoder::Status err =  decoder.decode((Message*)&command, payload, payload_length);
 
      THEN("The decode is successful") {
-       REQUIRE(err == Decoder::Status::Complete);
+       REQUIRE(err == MessageDecoder::Status::Complete);
        REQUIRE(command.c.id == ProvisioningMessageId::CommandsProvisioningMessageId);
        REQUIRE(command.provisioningCommands.cmd == commandId);
      }
@@ -90,9 +90,9 @@
      char password[] = "PASSWORDSSID1";
      size_t payload_length = sizeof(payload) / sizeof(uint8_t);
      CBORMessageDecoder decoder;
-     Decoder::Status err =  decoder.decode((Message*)&command, payload, payload_length);
+     MessageDecoder::Status err =  decoder.decode((Message*)&command, payload, payload_length);
      THEN("The decode is successful") {
-       REQUIRE(err == Decoder::Status::Complete);
+       REQUIRE(err == MessageDecoder::Status::Complete);
        REQUIRE(command.c.id == ProvisioningMessageId::WifiConfigProvisioningMessageId);
        REQUIRE(command.provisioningNetworkConfig.networkSetting.type == NetworkAdapter::WIFI);
        REQUIRE(strcmp(command.provisioningNetworkConfig.networkSetting.wifi.ssid, ssid) == 0);
@@ -129,10 +129,10 @@
      uint8_t band = 5;
      size_t payload_length = sizeof(payload) / sizeof(uint8_t);
      CBORMessageDecoder decoder;
-     Decoder::Status err =  decoder.decode((Message*)&command, payload, payload_length);
+     MessageDecoder::Status err =  decoder.decode((Message*)&command, payload, payload_length);
 
      THEN("The decode is successful") {
-       REQUIRE(err == Decoder::Status::Complete);
+       REQUIRE(err == MessageDecoder::Status::Complete);
        REQUIRE(command.c.id == ProvisioningMessageId::LoRaConfigProvisioningMessageId);
        REQUIRE(command.provisioningNetworkConfig.networkSetting.type == NetworkAdapter::LORA);
        REQUIRE(strcmp(command.provisioningNetworkConfig.networkSetting.lora.appeui, appeui) == 0);
@@ -170,10 +170,10 @@
     uint8_t band = models::settingsDefault(NetworkAdapter::LORA).lora.band;
     size_t payload_length = sizeof(payload) / sizeof(uint8_t);
     CBORMessageDecoder decoder;
-    Decoder::Status err =  decoder.decode((Message*)&command, payload, payload_length);
+    MessageDecoder::Status err =  decoder.decode((Message*)&command, payload, payload_length);
 
     THEN("The decode is successful") {
-      REQUIRE(err == Decoder::Status::Complete);
+      REQUIRE(err == MessageDecoder::Status::Complete);
       REQUIRE(command.c.id == ProvisioningMessageId::LoRaConfigProvisioningMessageId);
       REQUIRE(command.provisioningNetworkConfig.networkSetting.type == NetworkAdapter::LORA);
       REQUIRE(strcmp(command.provisioningNetworkConfig.networkSetting.lora.appeui, appeui) == 0);
@@ -215,10 +215,10 @@
 
      size_t payload_length = sizeof(payload) / sizeof(uint8_t);
      CBORMessageDecoder decoder;
-     Decoder::Status err =  decoder.decode((Message*)&command, payload, payload_length);
+     MessageDecoder::Status err =  decoder.decode((Message*)&command, payload, payload_length);
 
      THEN("The decode is successful") {
-       REQUIRE(err == Decoder::Status::Complete);
+       REQUIRE(err == MessageDecoder::Status::Complete);
        REQUIRE(command.c.id == ProvisioningMessageId::GSMConfigProvisioningMessageId);
        REQUIRE(command.provisioningNetworkConfig.networkSetting.type == NetworkAdapter::GSM);
        REQUIRE(strcmp(command.provisioningNetworkConfig.networkSetting.gsm.pin, pin) == 0);
@@ -258,10 +258,10 @@
 
      size_t payload_length = sizeof(payload) / sizeof(uint8_t);
      CBORMessageDecoder decoder;
-     Decoder::Status err =  decoder.decode((Message*)&command, payload, payload_length);
+     MessageDecoder::Status err =  decoder.decode((Message*)&command, payload, payload_length);
 
      THEN("The decode is successful") {
-      REQUIRE(err == Decoder::Status::Complete);
+      REQUIRE(err == MessageDecoder::Status::Complete);
       REQUIRE(command.c.id == ProvisioningMessageId::GSMConfigProvisioningMessageId);
       REQUIRE(command.provisioningNetworkConfig.networkSetting.type == NetworkAdapter::GSM);
       REQUIRE(strcmp(command.provisioningNetworkConfig.networkSetting.gsm.pin, pin) == 0);
@@ -299,10 +299,10 @@
 
      size_t payload_length = sizeof(payload) / sizeof(uint8_t);
      CBORMessageDecoder decoder;
-     Decoder::Status err =  decoder.decode((Message*)&command, payload, payload_length);
+     MessageDecoder::Status err =  decoder.decode((Message*)&command, payload, payload_length);
 
      THEN("The decode is successful") {
-      REQUIRE(err == Decoder::Status::Complete);
+      REQUIRE(err == MessageDecoder::Status::Complete);
       REQUIRE(command.c.id == ProvisioningMessageId::GSMConfigProvisioningMessageId);
       REQUIRE(command.provisioningNetworkConfig.networkSetting.type == NetworkAdapter::GSM);
       REQUIRE(strcmp(command.provisioningNetworkConfig.networkSetting.gsm.pin, pin) == 0);
@@ -343,10 +343,10 @@
 
      size_t payload_length = sizeof(payload) / sizeof(uint8_t);
      CBORMessageDecoder decoder;
-     Decoder::Status err =  decoder.decode((Message*)&command, payload, payload_length);
+     MessageDecoder::Status err =  decoder.decode((Message*)&command, payload, payload_length);
 
      THEN("The decode is successful") {
-       REQUIRE(err == Decoder::Status::Complete);
+       REQUIRE(err == MessageDecoder::Status::Complete);
        REQUIRE(command.c.id == ProvisioningMessageId::NBIOTConfigProvisioningMessageId);
        REQUIRE(command.provisioningNetworkConfig.networkSetting.type == NetworkAdapter::NB);
        REQUIRE(strcmp(command.provisioningNetworkConfig.networkSetting.nb.pin, pin) == 0);
@@ -396,10 +396,10 @@
 
     size_t payload_length = sizeof(payload) / sizeof(uint8_t);
     CBORMessageDecoder decoder;
-    Decoder::Status err =  decoder.decode((Message*)&command, payload, payload_length);
+    MessageDecoder::Status err =  decoder.decode((Message*)&command, payload, payload_length);
 
     THEN("The decode is successful") {
-      REQUIRE(err == Decoder::Status::Complete);
+      REQUIRE(err == MessageDecoder::Status::Complete);
       REQUIRE(command.c.id == ProvisioningMessageId::CATM1ConfigProvisioningMessageId);
       REQUIRE(command.provisioningNetworkConfig.networkSetting.type == NetworkAdapter::CATM1);
       REQUIRE(command.provisioningNetworkConfig.networkSetting.catm1.rat == rat);
@@ -446,10 +446,10 @@
 
     size_t payload_length = sizeof(payload) / sizeof(uint8_t);
     CBORMessageDecoder decoder;
-    Decoder::Status err =  decoder.decode((Message*)&command, payload, payload_length);
+    MessageDecoder::Status err =  decoder.decode((Message*)&command, payload, payload_length);
 
     THEN("The decode is successful") {
-      REQUIRE(err == Decoder::Status::Complete);
+      REQUIRE(err == MessageDecoder::Status::Complete);
       REQUIRE(command.c.id == ProvisioningMessageId::CATM1ConfigProvisioningMessageId);
       REQUIRE(command.provisioningNetworkConfig.networkSetting.type == NetworkAdapter::CATM1);
       REQUIRE(command.provisioningNetworkConfig.networkSetting.catm1.rat == rat);
@@ -492,10 +492,10 @@
     uint8_t rat = models::settingsDefault(NetworkAdapter::CATM1).catm1.rat;
     size_t payload_length = sizeof(payload) / sizeof(uint8_t);
     CBORMessageDecoder decoder;
-    Decoder::Status err =  decoder.decode((Message*)&command, payload, payload_length);
+    MessageDecoder::Status err =  decoder.decode((Message*)&command, payload, payload_length);
 
     THEN("The decode is successful") {
-      REQUIRE(err == Decoder::Status::Complete);
+      REQUIRE(err == MessageDecoder::Status::Complete);
       REQUIRE(command.c.id == ProvisioningMessageId::CATM1ConfigProvisioningMessageId);
       REQUIRE(command.provisioningNetworkConfig.networkSetting.type == NetworkAdapter::CATM1);
       REQUIRE(command.provisioningNetworkConfig.networkSetting.catm1.rat == rat);
@@ -540,10 +540,10 @@
 
      size_t payload_length = sizeof(payload) / sizeof(uint8_t);
      CBORMessageDecoder decoder;
-     Decoder::Status err =  decoder.decode((Message*)&command, payload, payload_length);
+     MessageDecoder::Status err =  decoder.decode((Message*)&command, payload, payload_length);
 
      THEN("The decode is error") {
-       REQUIRE(err == Decoder::Status::Error);
+       REQUIRE(err == MessageDecoder::Status::Error);
      }
    }
 
@@ -581,10 +581,10 @@
 
      size_t payload_length = sizeof(payload) / sizeof(uint8_t);
      CBORMessageDecoder decoder;
-     Decoder::Status err =  decoder.decode((Message*)&command, payload, payload_length);
+     MessageDecoder::Status err =  decoder.decode((Message*)&command, payload, payload_length);
 
      THEN("The decode is successful") {
-       REQUIRE(err == Decoder::Status::Complete);
+       REQUIRE(err == MessageDecoder::Status::Complete);
        REQUIRE(command.c.id == ProvisioningMessageId::EthernetConfigProvisioningMessageId);
        REQUIRE(command.provisioningNetworkConfig.networkSetting.type == NetworkAdapter::ETHERNET);
        REQUIRE(command.provisioningNetworkConfig.networkSetting.eth.ip.type == IPType::IPv4);
@@ -641,10 +641,10 @@
 
      size_t payload_length = sizeof(payload) / sizeof(uint8_t);
      CBORMessageDecoder decoder;
-     Decoder::Status err =  decoder.decode((Message*)&command, payload, payload_length);
+     MessageDecoder::Status err =  decoder.decode((Message*)&command, payload, payload_length);
 
      THEN("The decode is successful") {
-      REQUIRE(err == Decoder::Status::Complete);
+      REQUIRE(err == MessageDecoder::Status::Complete);
       REQUIRE(command.c.id == ProvisioningMessageId::EthernetConfigProvisioningMessageId);
       REQUIRE(command.provisioningNetworkConfig.networkSetting.type == NetworkAdapter::ETHERNET);
       REQUIRE(command.provisioningNetworkConfig.networkSetting.eth.ip.type == IPType::IPv6);
@@ -690,10 +690,10 @@ WHEN("Decode a provisioning Ethernet with defaults and DHCP")
 
   size_t payload_length = sizeof(payload) / sizeof(uint8_t);
   CBORMessageDecoder decoder;
-  Decoder::Status err =  decoder.decode((Message*)&command, payload, payload_length);
+  MessageDecoder::Status err =  decoder.decode((Message*)&command, payload, payload_length);
 
   THEN("The decode is successful") {
-    REQUIRE(err == Decoder::Status::Complete);
+    REQUIRE(err == MessageDecoder::Status::Complete);
     REQUIRE(command.c.id == ProvisioningMessageId::EthernetConfigProvisioningMessageId);
     REQUIRE(command.provisioningNetworkConfig.networkSetting.type == NetworkAdapter::ETHERNET);
     REQUIRE(command.provisioningNetworkConfig.networkSetting.eth.ip.type == IPType::IPv4);
@@ -740,10 +740,10 @@ WHEN("Decode a provisioning Ethernet with defaults and DHCP")
 
      size_t payload_length = sizeof(payload) / sizeof(uint8_t);
      CBORMessageDecoder decoder;
-     Decoder::Status err =  decoder.decode((Message*)&command, payload, payload_length);
+     MessageDecoder::Status err =  decoder.decode((Message*)&command, payload, payload_length);
 
      THEN("The decode is successful") {
-      REQUIRE(err == Decoder::Status::Complete);
+      REQUIRE(err == MessageDecoder::Status::Complete);
       REQUIRE(command.c.id == ProvisioningMessageId::CellularConfigProvisioningMessageId);
       REQUIRE(command.provisioningNetworkConfig.networkSetting.type == NetworkAdapter::CELL);
       REQUIRE(strcmp(command.provisioningNetworkConfig.networkSetting.cell.pin, pin) == 0);

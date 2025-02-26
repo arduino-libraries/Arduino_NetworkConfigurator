@@ -8,93 +8,93 @@
 
 #include "Encoder.h"
 
-Encoder::Status StatusProvisioningMessageEncoder::encode(CborEncoder* encoder, Message *msg) {
+MessageEncoder::Status StatusProvisioningMessageEncoder::encode(CborEncoder* encoder, Message *msg) {
   StatusProvisioningMessage * provisioningStatus = (StatusProvisioningMessage*) msg;
   CborEncoder array_encoder;
 
   if(cbor_encoder_create_array(encoder, &array_encoder, 1) != CborNoError) {
-    return Encoder::Status::Error;
+    return MessageEncoder::Status::Error;
   }
 
   if(cbor_encode_int(&array_encoder, provisioningStatus->status) != CborNoError) {
-    return Encoder::Status::Error;
+    return MessageEncoder::Status::Error;
   }
 
   if(cbor_encoder_close_container(encoder, &array_encoder) != CborNoError) {
-    return Encoder::Status::Error;
+    return MessageEncoder::Status::Error;
   }
 
-  return Encoder::Status::Complete;
+  return MessageEncoder::Status::Complete;
 }
 
-Encoder::Status ListWifiNetworksProvisioningMessageEncoder::encode(CborEncoder* encoder, Message *msg) {
+MessageEncoder::Status ListWifiNetworksProvisioningMessageEncoder::encode(CborEncoder* encoder, Message *msg) {
   ListWifiNetworksProvisioningMessage * provisioningListWifiNetworks = (ListWifiNetworksProvisioningMessage*) msg;
   CborEncoder array_encoder;
 
   if(cbor_encoder_create_array(encoder,
       &array_encoder,
       2 * provisioningListWifiNetworks->numDiscoveredWiFiNetworks) != CborNoError) {
-    return Encoder::Status::Error;
+    return MessageEncoder::Status::Error;
   }
 
   for (int i = 0; i < provisioningListWifiNetworks->numDiscoveredWiFiNetworks; i++) {
     if(cbor_encode_text_stringz(&array_encoder, provisioningListWifiNetworks->discoveredWifiNetworks[i].SSID) != CborNoError ||
         cbor_encode_int(&array_encoder, *provisioningListWifiNetworks->discoveredWifiNetworks[i].RSSI) != CborNoError) {
-      return Encoder::Status::Error;
+      return MessageEncoder::Status::Error;
     }
   }
 
   if(cbor_encoder_close_container(encoder, &array_encoder) != CborNoError) {
-    return Encoder::Status::Error;
+    return MessageEncoder::Status::Error;
   }
 
-  return Encoder::Status::Complete;
+  return MessageEncoder::Status::Complete;
 }
 
-Encoder::Status UniqueHardwareIdProvisioningMessageEncoder::encode(CborEncoder* encoder, Message *msg) {
+MessageEncoder::Status UniqueHardwareIdProvisioningMessageEncoder::encode(CborEncoder* encoder, Message *msg) {
   UniqueHardwareIdProvisioningMessage * provisioningUniqueHardwareId = (UniqueHardwareIdProvisioningMessage*) msg;
   CborEncoder array_encoder;
 
   if(cbor_encoder_create_array(encoder, &array_encoder, 1) != CborNoError) {
-    return Encoder::Status::Error;
+    return MessageEncoder::Status::Error;
   }
 
   if(cbor_encode_byte_string(&array_encoder, (uint8_t *) provisioningUniqueHardwareId->uniqueHardwareId, UHWID_SIZE)) {
-    return Encoder::Status::Error;
+    return MessageEncoder::Status::Error;
   }
 
   if(cbor_encoder_close_container(encoder, &array_encoder) != CborNoError) {
-    return Encoder::Status::Error;
+    return MessageEncoder::Status::Error;
   }
 
-  return Encoder::Status::Complete;
+  return MessageEncoder::Status::Complete;
 }
 
-Encoder::Status JWTProvisioningMessageEncoder::encode(CborEncoder* encoder, Message *msg) {
+MessageEncoder::Status JWTProvisioningMessageEncoder::encode(CborEncoder* encoder, Message *msg) {
   JWTProvisioningMessage * provisioningJWT = (JWTProvisioningMessage*) msg;
   CborEncoder array_encoder;
 
   if(cbor_encoder_create_array(encoder, &array_encoder, 1) != CborNoError) {
-    return Encoder::Status::Error;
+    return MessageEncoder::Status::Error;
   }
 
   if(cbor_encode_byte_string(&array_encoder, (uint8_t *) provisioningJWT->jwt, strlen(provisioningJWT->jwt))) {
-    return Encoder::Status::Error;
+    return MessageEncoder::Status::Error;
   }
 
   if(cbor_encoder_close_container(encoder, &array_encoder) != CborNoError) {
-    return Encoder::Status::Error;
+    return MessageEncoder::Status::Error;
   }
 
-  return Encoder::Status::Complete;
+  return MessageEncoder::Status::Complete;
 }
 
-Encoder::Status BLEMacAddressProvisioningMessageEncoder::encode(CborEncoder* encoder, Message *msg) {
+MessageEncoder::Status BLEMacAddressProvisioningMessageEncoder::encode(CborEncoder* encoder, Message *msg) {
   BLEMacAddressProvisioningMessage * provisioningBLEMacAddress = (BLEMacAddressProvisioningMessage*) msg;
   CborEncoder array_encoder;
 
   if(cbor_encoder_create_array(encoder, &array_encoder, 1) != CborNoError) {
-    return Encoder::Status::Error;
+    return MessageEncoder::Status::Error;
   }
 
   uint8_t size = 0;
@@ -104,33 +104,33 @@ Encoder::Status BLEMacAddressProvisioningMessageEncoder::encode(CborEncoder* enc
   }
 
   if(cbor_encode_byte_string(&array_encoder, provisioningBLEMacAddress->macAddress, size)) {
-    return Encoder::Status::Error;
+    return MessageEncoder::Status::Error;
   }
 
   if(cbor_encoder_close_container(encoder, &array_encoder) != CborNoError) {
-    return Encoder::Status::Error;
+    return MessageEncoder::Status::Error;
   }
 
-  return Encoder::Status::Complete;
+  return MessageEncoder::Status::Complete;
 }
 
-Encoder::Status WiFiFWVersionProvisioningMessageEncoder::encode(CborEncoder* encoder, Message *msg) {
+MessageEncoder::Status WiFiFWVersionProvisioningMessageEncoder::encode(CborEncoder* encoder, Message *msg) {
   WiFiFWVersionProvisioningMessage * provisioningWiFiFWVersion = (WiFiFWVersionProvisioningMessage*) msg;
   CborEncoder array_encoder;
 
   if(cbor_encoder_create_array(encoder, &array_encoder, 1) != CborNoError) {
-    return Encoder::Status::Error;
+    return MessageEncoder::Status::Error;
   }
 
   if(cbor_encode_text_stringz(&array_encoder, provisioningWiFiFWVersion->wifiFwVersion) != CborNoError) {
-    return Encoder::Status::Error;
+    return MessageEncoder::Status::Error;
   }
 
   if(cbor_encoder_close_container(encoder, &array_encoder) != CborNoError) {
-    return Encoder::Status::Error;
+    return MessageEncoder::Status::Error;
   }
 
-  return Encoder::Status::Complete;
+  return MessageEncoder::Status::Complete;
 }
 
 static StatusProvisioningMessageEncoder             statusProvisioningMessageEncoder;
