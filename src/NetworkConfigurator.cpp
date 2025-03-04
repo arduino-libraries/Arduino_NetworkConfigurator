@@ -21,6 +21,9 @@
 
 #define SERVICE_ID_FOR_AGENTMANAGER 0xB0
 
+#define NC_CONNECTION_RETRY_TIMER_ms 120000
+#define NC_CONNECTION_TIMEOUT_ms 15000
+#define NC_UPDATE_NETWORK_OPTIONS_TIMER_ms 120000
 
 #if defined(BOARD_HAS_KVSTORE)
   KVStore _kvstore;
@@ -30,13 +33,16 @@ constexpr char *STORAGE_KEY{ "NETWORK_CONFIGS" };
 NetworkConfiguratorClass::NetworkConfiguratorClass(AgentsManagerClass &agentManager, ConnectionHandler &connectionHandler, bool startConfigurationIfConnectionFails)
   : _agentManager{ &agentManager },
     _connectionHandler{ &connectionHandler },
-    _startBLEIfConnectionFails{ startConfigurationIfConnectionFails } {
+    _startBLEIfConnectionFails{ startConfigurationIfConnectionFails },
+    _connectionTimeout{ NC_CONNECTION_TIMEOUT_ms, NC_CONNECTION_TIMEOUT_ms },
+    _connectionRetryTimer{ NC_CONNECTION_RETRY_TIMER_ms, NC_CONNECTION_RETRY_TIMER_ms },
+    _optionUpdateTimer{ NC_UPDATE_NETWORK_OPTIONS_TIMER_ms, NC_UPDATE_NETWORK_OPTIONS_TIMER_ms } {
+      _optionUpdateTimer.begin(NC_UPDATE_NETWORK_OPTIONS_TIMER_ms); //initialize the timer before calling begin
 }
 
 bool NetworkConfiguratorClass::begin() {
   _connectionLostStatus = false;
   _state = NetworkConfiguratorStates::READ_STORED_CONFIG;
-  _startConnectionAttempt = 0;
   memset(&_networkSetting, 0x00, sizeof(models::NetworkSetting));
 
 #ifdef BOARD_HAS_WIFI
@@ -67,6 +73,9 @@ bool NetworkConfiguratorClass::begin() {
     DEBUG_ERROR("NetworkConfiguratorClass::%s Failed to initialize the AgentsManagerClass", __FUNCTION__);
   }
 
+  _connectionTimeout.begin(NC_CONNECTION_TIMEOUT_ms);
+  _connectionRetryTimer.begin(NC_CONNECTION_RETRY_TIMER_ms);
+
 #ifdef BOARD_HAS_ETHERNET
   _networkSetting.type = NetworkAdapter::ETHERNET;
   _networkSetting.eth.timeout = 250;
@@ -76,24 +85,32 @@ bool NetworkConfiguratorClass::begin() {
     return true;
   }
   _connectionHandlerIstantiated = true;
+  _connectionTimeout.reload();
   _state = NetworkConfiguratorStates::CHECK_ETH;
 #endif
   return true;
 }
 
 NetworkConfiguratorStates NetworkConfiguratorClass::poll() {
-
+  NetworkConfiguratorStates nextState = _state;
   switch (_state) {
 #ifdef BOARD_HAS_ETHERNET
-    case NetworkConfiguratorStates::CHECK_ETH:           _state = handleCheckEth       (); break;
+    case NetworkConfiguratorStates::CHECK_ETH:           nextState = handleCheckEth       (); break;
 #endif
-    case NetworkConfiguratorStates::READ_STORED_CONFIG: _state = handleReadStorage     (); break;
-    case NetworkConfiguratorStates::TEST_STORED_CONFIG: _state = handleTestStoredConfig(); break;
-    case NetworkConfiguratorStates::WAITING_FOR_CONFIG: _state = handleWaitingForConf  (); break;
-    case NetworkConfiguratorStates::CONNECTING:         _state = handleConnecting      (); break;
-    case NetworkConfiguratorStates::CONFIGURED:         _state = handleConfigured      (); break;
-    case NetworkConfiguratorStates::UPDATING_CONFIG:    _state = handleUpdatingConfig  (); break;
-    case NetworkConfiguratorStates::END:                                                   break;
+    case NetworkConfiguratorStates::READ_STORED_CONFIG: nextState = handleReadStorage     (); break;
+    case NetworkConfiguratorStates::TEST_STORED_CONFIG: nextState = handleTestStoredConfig(); break;
+    case NetworkConfiguratorStates::WAITING_FOR_CONFIG: nextState = handleWaitingForConf  (); break;
+    case NetworkConfiguratorStates::CONNECTING:         nextState = handleConnecting      (); break;
+    case NetworkConfiguratorStates::CONFIGURED:         nextState = handleConfigured      (); break;
+    case NetworkConfiguratorStates::UPDATING_CONFIG:    nextState = handleUpdatingConfig  (); break;
+    case NetworkConfiguratorStates::END:                                                      break;
+  }
+
+  if(_state != nextState){
+    if(nextState == NetworkConfiguratorStates::CONNECTING){
+      _connectionTimeout.reload();
+    }
+    _state = nextState;
   }
 
   return _state;
@@ -126,8 +143,6 @@ bool NetworkConfiguratorClass::resetStoredConfiguration() {
 }
 
 bool NetworkConfiguratorClass::end() {
-  _lastConnectionAttempt = 0;
-  _lastOptionUpdate = 0;
   _agentManager->removeReturnNetworkSettingsCallback();
   _agentManager->removeRequestHandler(RequestType::SCAN);
   _agentManager->removeRequestHandler(RequestType::CONNECT);
@@ -139,18 +154,13 @@ bool NetworkConfiguratorClass::end() {
 NetworkConfiguratorClass::ConnectionResult NetworkConfiguratorClass::connectToNetwork(StatusMessage *err) {
   ConnectionResult res = ConnectionResult::IN_PROGRESS;
 
-  if (_startConnectionAttempt == 0) {
-    _startConnectionAttempt = millis();
-  }
-
   NetworkConnectionState connectionRes = NetworkConnectionState::DISCONNECTED;
   connectionRes = _connectionHandler->check();
   if (connectionRes == NetworkConnectionState::CONNECTED) {
-    _startConnectionAttempt = 0;
     DEBUG_INFO("Connected to network");
     sendStatus(StatusMessage::CONNECTED);
     res = ConnectionResult::SUCCESS;
-  } else if (connectionRes != NetworkConnectionState::CONNECTED && millis() - _startConnectionAttempt > NC_CONNECTION_TIMEOUT)  //connection attempt failed
+  } else if (connectionRes != NetworkConnectionState::CONNECTED && _connectionTimeout.isExpired())  //connection attempt failed
   {
 #ifdef BOARD_HAS_WIFI
 // Need for restoring the scan after a failed connection attempt
@@ -158,13 +168,11 @@ NetworkConfiguratorClass::ConnectionResult NetworkConfiguratorClass::connectToNe
     WiFi.end();
 #endif
 #endif
-    _startConnectionAttempt = 0;
     int errorCode;
     String errorMsg = decodeConnectionErrorMessage(connectionRes, &errorCode);
     DEBUG_INFO("Connection fail: %s", errorMsg.c_str());
     *err = (StatusMessage)errorCode;
-
-    _lastConnectionAttempt = millis();
+    _connectionRetryTimer.reload();
     res = ConnectionResult::FAILED;
   }
 
@@ -212,8 +220,7 @@ bool NetworkConfiguratorClass::updateNetworkOptions() {
   netOptionMsg.m.netOptions = &netOption;
   _agentManager->sendMsg(netOptionMsg);
 
-  _lastOptionUpdate = millis();
-
+  _optionUpdateTimer.reload();
   return true;
 }
 
@@ -425,7 +432,7 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleReadStorage() {
   nextState = NetworkConfiguratorStates::CONFIGURED;
 #endif
 
-  if (nextState == NetworkConfiguratorStates::WAITING_FOR_CONFIG && _lastOptionUpdate == 0) {
+  if (nextState == NetworkConfiguratorStates::WAITING_FOR_CONFIG && _optionUpdateTimer.getWaitTime() == 0) {
     updateNetworkOptions();
   }
   return nextState;
@@ -443,7 +450,7 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleTestStoredConfig() {
     if (_startBLEIfConnectionFails) {
       _agentManager->enableBLEAgent(true);
     }
-    if(_lastOptionUpdate == 0) {
+    if(_optionUpdateTimer.getWaitTime() == 0) {
       updateNetworkOptions();
     }
     nextState = NetworkConfiguratorStates::WAITING_FOR_CONFIG;
@@ -465,13 +472,11 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleWaitingForConf() {
   _receivedEvent = NetworkConfiguratorEvents::NONE;
   if (nextState == _state) {
     //Check if update the network options
-    if (millis() - _lastOptionUpdate > 120000) {
-#ifdef BOARD_HAS_WIFI
-    updateNetworkOptions();
-#endif
+    if (_optionUpdateTimer.isExpired()) {
+      updateNetworkOptions();
     }
 
-    if (_connectionHandlerIstantiated && _agentManager->isConfigInProgress() != true && (millis() - _lastConnectionAttempt > 120000)) {
+    if (_connectionHandlerIstantiated && _agentManager->isConfigInProgress() != true && _connectionRetryTimer.isExpired()) {
       sendStatus(StatusMessage::CONNECTING);
       nextState = NetworkConfiguratorStates::CONNECTING;
     }

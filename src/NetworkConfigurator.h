@@ -11,7 +11,7 @@
 #include "GenericConnectionHandler.h"
 #include "ConfiguratorAgents/AgentsManager.h"
 #include <settings/settings.h>
-#define NC_CONNECTION_TIMEOUT 15000
+#include <Arduino_TimedAttempt.h>
 
 enum class NetworkConfiguratorStates { CHECK_ETH,
                                        READ_STORED_CONFIG,
@@ -44,10 +44,10 @@ private:
   bool _startBLEIfConnectionFails;
   bool _connectionHandlerIstantiated = false;
   bool _checkStoredCred = true;
-  uint32_t _lastConnectionAttempt = 0;
-  uint32_t _startConnectionAttempt;
+  TimedAttempt _connectionTimeout;
+  TimedAttempt _connectionRetryTimer;
+  TimedAttempt _optionUpdateTimer;
   bool _connectionLostStatus = false;
-  uint32_t _lastOptionUpdate = 0;
   enum class NetworkConfiguratorEvents { NONE,
                                          SCAN_REQ,
                                          CONNECT_REQ,
