@@ -129,7 +129,6 @@ void setup() {
     NetworkConfigurator.resetStoredConfiguration();
   }
 
-  NetworkConfigurator.setCheckStoredCred(false);
   NetworkConfigurator.updateNetworkOptions();
   NetworkConfigurator.begin();
   ClaimingHandler.begin(&secureElement, &uhwid, clearStoredCredentials);

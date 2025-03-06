@@ -30,10 +30,9 @@
 #endif
 constexpr char *STORAGE_KEY{ "NETWORK_CONFIGS" };
 
-NetworkConfiguratorClass::NetworkConfiguratorClass(AgentsManagerClass &agentManager, ConnectionHandler &connectionHandler, bool startConfigurationIfConnectionFails)
+NetworkConfiguratorClass::NetworkConfiguratorClass(AgentsManagerClass &agentManager, ConnectionHandler &connectionHandler)
   : _agentManager{ &agentManager },
     _connectionHandler{ &connectionHandler },
-    _startBLEIfConnectionFails{ startConfigurationIfConnectionFails },
     _connectionTimeout{ NC_CONNECTION_TIMEOUT_ms, NC_CONNECTION_TIMEOUT_ms },
     _connectionRetryTimer{ NC_CONNECTION_RETRY_TIMER_ms, NC_CONNECTION_RETRY_TIMER_ms },
     _optionUpdateTimer{ NC_UPDATE_NETWORK_OPTIONS_TIMER_ms, NC_UPDATE_NETWORK_OPTIONS_TIMER_ms } {
@@ -41,7 +40,6 @@ NetworkConfiguratorClass::NetworkConfiguratorClass(AgentsManagerClass &agentMana
 }
 
 bool NetworkConfiguratorClass::begin() {
-  _connectionLostStatus = false;
   _state = NetworkConfiguratorStates::READ_STORED_CONFIG;
   memset(&_networkSetting, 0x00, sizeof(models::NetworkSetting));
 
@@ -95,15 +93,14 @@ NetworkConfiguratorStates NetworkConfiguratorClass::poll() {
   NetworkConfiguratorStates nextState = _state;
   switch (_state) {
 #ifdef BOARD_HAS_ETHERNET
-    case NetworkConfiguratorStates::CHECK_ETH:           nextState = handleCheckEth       (); break;
+    case NetworkConfiguratorStates::CHECK_ETH:           nextState = handleCheckEth     (); break;
 #endif
-    case NetworkConfiguratorStates::READ_STORED_CONFIG: nextState = handleReadStorage     (); break;
-    case NetworkConfiguratorStates::TEST_STORED_CONFIG: nextState = handleTestStoredConfig(); break;
-    case NetworkConfiguratorStates::WAITING_FOR_CONFIG: nextState = handleWaitingForConf  (); break;
-    case NetworkConfiguratorStates::CONNECTING:         nextState = handleConnecting      (); break;
-    case NetworkConfiguratorStates::CONFIGURED:         nextState = handleConfigured      (); break;
-    case NetworkConfiguratorStates::UPDATING_CONFIG:    nextState = handleUpdatingConfig  (); break;
-    case NetworkConfiguratorStates::END:                                                      break;
+    case NetworkConfiguratorStates::READ_STORED_CONFIG: nextState = handleReadStorage   (); break;
+    case NetworkConfiguratorStates::WAITING_FOR_CONFIG: nextState = handleWaitingForConf(); break;
+    case NetworkConfiguratorStates::CONNECTING:         nextState = handleConnecting    (); break;
+    case NetworkConfiguratorStates::CONFIGURED:         nextState = handleConfigured    (); break;
+    case NetworkConfiguratorStates::UPDATING_CONFIG:    nextState = handleUpdatingConfig(); break;
+    case NetworkConfiguratorStates::END:                                                    break;
   }
 
   if(_state != nextState){
@@ -292,6 +289,7 @@ void NetworkConfiguratorClass::connectReqHandler() {
 
 void NetworkConfiguratorClass::setNetworkSettingsHandler(models::NetworkSetting *netSetting) {
   memcpy(&_networkSetting, netSetting, sizeof(models::NetworkSetting));
+  printNetworkSettings();
   _receivedEvent = NetworkConfiguratorEvents::NEW_NETWORK_SETTINGS;
 }
 
@@ -341,11 +339,6 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleConnectRequest() {
   _connectionHandlerIstantiated = true;
   nextState = NetworkConfiguratorStates::CONNECTING;
   return nextState;
-}
-
-void NetworkConfiguratorClass::handleNewNetworkSettings() {
-  printNetworkSettings();
-  _connectionLostStatus = false;  //reset for updating the failure reason
 }
 
 String NetworkConfiguratorClass::decodeConnectionErrorMessage(NetworkConnectionState err, StatusMessage *errorCode) {
@@ -418,11 +411,7 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleReadStorage() {
       nextState = NetworkConfiguratorStates::WAITING_FOR_CONFIG;
     } else {
       _connectionHandlerIstantiated = true;
-      if (_checkStoredCred){
-        nextState = NetworkConfiguratorStates::TEST_STORED_CONFIG;
-      } else {
-        nextState = NetworkConfiguratorStates::CONFIGURED;
-      }
+      nextState = NetworkConfiguratorStates::CONFIGURED;
     }
 
   } else {
@@ -439,26 +428,6 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleReadStorage() {
   return nextState;
 }
 
-NetworkConfiguratorStates NetworkConfiguratorClass::handleTestStoredConfig() {
-  NetworkConfiguratorStates nextState = _state;
-  StatusMessage err;
-  ConnectionResult res = connectToNetwork(&err);
-  if (res == ConnectionResult::SUCCESS) {
-    nextState = NetworkConfiguratorStates::CONFIGURED;
-  } else if (res == ConnectionResult::FAILED) {
-    sendStatus(StatusMessage::CONNECTION_LOST);
-    _connectionLostStatus = true;
-    if (_startBLEIfConnectionFails) {
-      _agentManager->enableBLEAgent(true);
-    }
-    if(_optionUpdateTimer.getWaitTime() == 0) {
-      updateNetworkOptions();
-    }
-    nextState = NetworkConfiguratorStates::WAITING_FOR_CONFIG;
-  }
-  return nextState;
-}
-
 NetworkConfiguratorStates NetworkConfiguratorClass::handleWaitingForConf() {
   NetworkConfiguratorStates nextState = _state;
 
@@ -467,8 +436,8 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleWaitingForConf() {
   switch (_receivedEvent) {
     case NetworkConfiguratorEvents::SCAN_REQ:                updateNetworkOptions    (); break;
     case NetworkConfiguratorEvents::CONNECT_REQ: nextState = handleConnectRequest    (); break;
-    case NetworkConfiguratorEvents::NEW_NETWORK_SETTINGS:    handleNewNetworkSettings(); break;
     case NetworkConfiguratorEvents::GET_WIFI_FW_VERSION:     handleGetWiFiFWVersion  (); break;
+    case NetworkConfiguratorEvents::NEW_NETWORK_SETTINGS:                                break;
   }
   _receivedEvent = NetworkConfiguratorEvents::NONE;
   if (nextState == _state) {
@@ -495,9 +464,7 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleConnecting() {
   if (res == ConnectionResult::SUCCESS) {
     nextState = NetworkConfiguratorStates::CONFIGURED;
   } else if (res == ConnectionResult::FAILED) {
-    if (!_connectionLostStatus) {
-      sendStatus(err);
-    }
+    sendStatus(err);
     nextState = NetworkConfiguratorStates::WAITING_FOR_CONFIG;
   }
 

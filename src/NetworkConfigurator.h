@@ -15,7 +15,6 @@
 
 enum class NetworkConfiguratorStates { CHECK_ETH,
                                        READ_STORED_CONFIG,
-                                       TEST_STORED_CONFIG,
                                        WAITING_FOR_CONFIG,
                                        CONNECTING,
                                        CONFIGURED,
@@ -24,15 +23,9 @@ enum class NetworkConfiguratorStates { CHECK_ETH,
 
 class NetworkConfiguratorClass {
 public:
-  NetworkConfiguratorClass(AgentsManagerClass &agentManager, ConnectionHandler &connectionHandler, bool startBLEIfConnectionFails = false);
+  NetworkConfiguratorClass(AgentsManagerClass &agentManager, ConnectionHandler &connectionHandler);
   bool begin();
   NetworkConfiguratorStates poll();
-  void startBLEIfConnectionFails(bool enable) {
-    _startBLEIfConnectionFails = enable;
-  };
-  void setCheckStoredCred(bool check) {
-    _checkStoredCred = check;
-  };
   bool resetStoredConfiguration();
   bool end();
   bool updateNetworkOptions();
@@ -41,13 +34,11 @@ private:
   AgentsManagerClass *_agentManager;
   ConnectionHandler *_connectionHandler;
   static inline models::NetworkSetting _networkSetting;
-  bool _startBLEIfConnectionFails;
   bool _connectionHandlerIstantiated = false;
-  bool _checkStoredCred = true;
   TimedAttempt _connectionTimeout;
   TimedAttempt _connectionRetryTimer;
   TimedAttempt _optionUpdateTimer;
-  bool _connectionLostStatus = false;
+
   enum class NetworkConfiguratorEvents { NONE,
                                          SCAN_REQ,
                                          CONNECT_REQ,
@@ -63,21 +54,19 @@ private:
   NetworkConfiguratorStates handleCheckEth();
 #endif
   NetworkConfiguratorStates handleReadStorage();
-  NetworkConfiguratorStates handleTestStoredConfig();
   NetworkConfiguratorStates handleWaitingForConf();
   NetworkConfiguratorStates handleConnecting();
   NetworkConfiguratorStates handleConfigured();
   NetworkConfiguratorStates handleUpdatingConfig();
 
   NetworkConfiguratorStates handleConnectRequest();
-  void handleNewNetworkSettings();
   void handleGetWiFiFWVersion();
 
   String decodeConnectionErrorMessage(NetworkConnectionState err, StatusMessage *errorCode);
   ConnectionResult connectToNetwork(StatusMessage *err);
   ConnectionResult disconnectFromNetwork();
   bool sendStatus(StatusMessage msg);
-  void printNetworkSettings();
+  static void printNetworkSettings();
 #ifdef BOARD_HAS_WIFI
   bool scanWiFiNetworks(WiFiOption &wifiOptObj);
   bool insertWiFiAP(WiFiOption &wifiOptObj, char *ssid, int rssi);
