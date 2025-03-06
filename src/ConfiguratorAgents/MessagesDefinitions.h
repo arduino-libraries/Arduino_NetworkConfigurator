@@ -27,10 +27,10 @@ enum class StatusMessage {
   INVALID_PARAMS             = -5,
   OTHER_REQUEST_IN_EXECUTION = -6,
   INVALID_REQUEST            = -7,
+  INTERNET_NOT_AVAILABLE     = -8,
   SCAN_DISABLED_CONNECTING   = -100,
   HW_ERROR_CONN_MODULE       = -101,
-  WIFI_IDLE                  = -102,
-  WIFI_STOPPED               = -103,
+  HW_CONN_MODULE_STOPPED     = -102,
   ERROR_STORAGE_BEGIN        = -200,
   ERROR                      = -255
 };

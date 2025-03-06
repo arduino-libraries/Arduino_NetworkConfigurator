@@ -168,10 +168,9 @@ NetworkConfiguratorClass::ConnectionResult NetworkConfiguratorClass::connectToNe
     WiFi.end();
 #endif
 #endif
-    int errorCode;
-    String errorMsg = decodeConnectionErrorMessage(connectionRes, &errorCode);
+    String errorMsg = decodeConnectionErrorMessage(connectionRes, err);
     DEBUG_INFO("Connection fail: %s", errorMsg.c_str());
-    *err = (StatusMessage)errorCode;
+
     _connectionRetryTimer.reload();
     res = ConnectionResult::FAILED;
   }
@@ -349,28 +348,30 @@ void NetworkConfiguratorClass::handleNewNetworkSettings() {
   _connectionLostStatus = false;  //reset for updating the failure reason
 }
 
-String NetworkConfiguratorClass::decodeConnectionErrorMessage(NetworkConnectionState err, int *errorCode) {
+String NetworkConfiguratorClass::decodeConnectionErrorMessage(NetworkConnectionState err, StatusMessage *errorCode) {
   switch (err) {
     case NetworkConnectionState::ERROR:
-      *errorCode = (int)StatusMessage::HW_ERROR_CONN_MODULE;
+      *errorCode = StatusMessage::HW_ERROR_CONN_MODULE;
       return "HW error";
     case NetworkConnectionState::INIT:
-      *errorCode = (int)StatusMessage::WIFI_IDLE;
-      return "Peripheral in idle";
+      //the connection handler doesn't have a state of "Fail to connect", in case of invalid credentials or
+      //missing network configuration the FSM stays on Init state so use this state to detect the fail to connect
+      *errorCode = StatusMessage::FAILED_TO_CONNECT;
+      return "Failed to connect";
     case NetworkConnectionState::CLOSED:
-      *errorCode = (int)StatusMessage::WIFI_STOPPED;
+      *errorCode = StatusMessage::HW_CONN_MODULE_STOPPED;
       return "Peripheral stopped";
     case NetworkConnectionState::DISCONNECTED:
-      *errorCode = (int)StatusMessage::DISCONNECTED;
+      *errorCode = StatusMessage::DISCONNECTED;
       return "Disconnected";
-      //the connection handler doesn't have a state of "Fail to connect", in case of invalid credentials or
-      //missing wifi network the FSM stays on Connecting state so use the connecting state to detect the fail to connect
     case NetworkConnectionState::CONNECTING:
-      *errorCode = (int)StatusMessage::FAILED_TO_CONNECT;
-      return "failed to connect";
+      //the connection handler doesn't have a state of "Internet not available", in case of it's impossible to reach internet
+      //the FSM stays on Connecting state so use this state to detect if internet is not available
+      *errorCode = StatusMessage::INTERNET_NOT_AVAILABLE;
+      return "Internet not available";
     default:
-      *errorCode = (int)StatusMessage::ERROR;
-      return "generic error";
+      *errorCode = StatusMessage::ERROR;
+      return "Generic error";
   }
 }
 

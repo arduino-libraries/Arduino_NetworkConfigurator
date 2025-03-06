@@ -29,8 +29,8 @@ jobs:
         # Install the NetworkConfigurator library from the repository
         - source-path: ./
         - name: Arduino_DebugUtils
-        - source-url: https://github.com/andreagilardoni/Arduino_ConnectionHandler.git
-          version: 0ca6d61eb538c5a21983e582ee1c8794442f8c75
+        - source-url: https://github.com/fabik111/Arduino_ConnectionHandler.git
+          version: 228ac355a957d60e1e06276ec12fe75598b09759
         - source-url: https://github.com/fabik111/ArduinoBLE.git
           version: 82e2a28f871e97b313846cee6d9efed8943dca53
         - source-url: https://github.com/andreagilardoni/ArduinoIoTCloud.git
@@ -38,7 +38,6 @@ jobs:
         - name: Arduino_SecureElement
         - source-url: https://github.com/arduino-libraries/Arduino_CloudUtils.git
         - source-url: https://github.com/andreagilardoni/ArduinoStorage.git
-          version: 39f0bd138103967aaafcaa7f5c0e1e237b4ccb4d
         - name: ArduinoJson
         - source-url: https://github.com/arduino-libraries/Arduino_UniqueHWId.git
           version: 8977827eed86dbd25292f861ee8de2b19c16b3a0

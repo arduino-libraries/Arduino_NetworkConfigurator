@@ -73,7 +73,7 @@ private:
   void handleNewNetworkSettings();
   void handleGetWiFiFWVersion();
 
-  String decodeConnectionErrorMessage(NetworkConnectionState err, int *errorCode);
+  String decodeConnectionErrorMessage(NetworkConnectionState err, StatusMessage *errorCode);
   ConnectionResult connectToNetwork(StatusMessage *err);
   ConnectionResult disconnectFromNetwork();
   bool sendStatus(StatusMessage msg);
