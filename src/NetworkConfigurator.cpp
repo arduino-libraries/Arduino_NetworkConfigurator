@@ -134,7 +134,10 @@ bool NetworkConfiguratorClass::resetStoredConfiguration() {
   memset(&_networkSetting, 0x00, sizeof(models::NetworkSetting));
   if(_connectionHandlerIstantiated) {
     disconnectFromNetwork();
+    _connectionHandlerIstantiated = false;
   }
+
+  _state = NetworkConfiguratorStates::WAITING_FOR_CONFIG;
 
   return true;
 }

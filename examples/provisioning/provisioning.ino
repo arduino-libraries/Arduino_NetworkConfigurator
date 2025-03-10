@@ -163,8 +163,8 @@ DeviceState handleFirstConfig() {
 }
 
 DeviceState handleCSR() {
-  DeviceState nextState = _state;
   ClaimingHandler.poll();
+  DeviceState nextState = _state;
   if (CSRHandler->poll() == CSRHandlerClass::CSRHandlerStates::COMPLETED) {
 
 
@@ -173,6 +173,9 @@ DeviceState handleCSR() {
     Serial.println("CSR done");
     display_freeram();
     nextState = DeviceState::BEGIN_CLOUD;
+  }else if(nextState == DeviceState::FIRST_CONFIG){
+    CSRHandler->end();
+    delete CSRHandler;
   }
   return nextState;
 }
@@ -192,14 +195,17 @@ DeviceState handleBeginCloud() {
 }
 
 DeviceState handleRun() {
+  ClaimingHandler.poll();
   DeviceState nextState = _state;
+  if(nextState == DeviceState::FIRST_CONFIG){
+    return nextState;
+  }
   ArduinoCloud.update();
 
-  ClaimingHandler.poll();
   if (NetworkConfigurator.poll() == NetworkConfiguratorStates::UPDATING_CONFIG) {
     nextState = DeviceState::FIRST_CONFIG;
   }
-  
+
   // Your code here
   if (millis() - lastUpdate > 10000) {
     Serial.println("alive");

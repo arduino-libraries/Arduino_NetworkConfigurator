@@ -379,7 +379,7 @@ void AgentsManagerClass::handleGetBleMacAddressCommand() {
 
 void AgentsManagerClass::handleResetCommand() {
   if (_statusRequest.pending) {
-    DEBUG_DEBUG("AgentsManagerClass::%s received a GetUnique request while executing another request", __FUNCTION__);
+    DEBUG_DEBUG("AgentsManagerClass::%s received a Reset request while executing another request", __FUNCTION__);
     sendStatus(StatusMessage::OTHER_REQUEST_IN_EXECUTION);
     return;
   }
