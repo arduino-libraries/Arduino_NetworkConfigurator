@@ -70,7 +70,6 @@ void setup() {
     Serial.println("Resetting cred");
     NetworkConfigurator.resetStoredConfiguration();
   }
-  NetworkConfigurator.startBLEIfConnectionFails(true);
   NetworkConfigurator.updateNetworkOptions();
   NetworkConfigurator.begin();
   ProvisioningSystem.begin();
