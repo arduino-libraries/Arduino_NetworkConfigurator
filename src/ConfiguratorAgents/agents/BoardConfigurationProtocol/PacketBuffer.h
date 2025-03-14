@@ -20,7 +20,7 @@ public:
     allocate(obj._size);
     memcpy(_buffer.get(), obj._buffer.get(), obj._size);
   };
-  virtual ~PacketBuffer(){};
+  virtual ~PacketBuffer() = default;
   void setValidityTs(uint32_t ts) {
     _validityTs = ts;
   };
