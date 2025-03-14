@@ -109,10 +109,6 @@ void setup() {
   }
 
   uhwid = GetUHWID();
-  // Need for restoring the scan after got UHWID
-#if defined(ARDUINO_UNOR4_WIFI)
-  WiFi.end();
-#endif
 
 #if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT) || defined(ARDUINO_PORTENTA_H7_M7)
   pinMode(RESETCRED_BUTTON, INPUT_PULLDOWN);

@@ -253,6 +253,10 @@ bool NetworkConfiguratorClass::insertWiFiAP(WiFiOption &wifiOptObj, char *ssid, 
 
 bool NetworkConfiguratorClass::scanWiFiNetworks(WiFiOption &wifiOptObj) {
   wifiOptObj.numDiscoveredWiFiNetworks = 0;
+#if defined(ARDUINO_UNOR4_WIFI)
+  WiFi.end();
+#endif
+
   // check for the WiFi module:
   if (WiFi.status() == WL_NO_MODULE) {
     DEBUG_WARNING("NetworkConfiguratorClass::%s Communication with WiFi module failed!", __FUNCTION__);
