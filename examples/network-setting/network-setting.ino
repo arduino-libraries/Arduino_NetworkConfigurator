@@ -31,7 +31,7 @@ DeviceMode deviceMode = DeviceMode::CONFIG;
 void changeMode(DeviceMode nextMode){
   if(nextMode == DeviceMode::RUN){
     if(deviceMode == DeviceMode::CONFIG){
-      NetworkConfigurator.configurationCompleted();
+      NetworkConfigurator.disconnectAgent();
       if (NetworkConfigurator.isBLEenabled()) {
         NetworkConfigurator.enableBLE(false);
       }

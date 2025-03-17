@@ -79,7 +79,7 @@ void setup() {
 
 void loop() {
   if (provisioningCompleted && networkConfigured) {
-    NetworkConfigurator.configurationCompleted();
+    NetworkConfigurator.disconnectAgent();
     if (NetworkConfigurator.isBLEenabled()) {
       NetworkConfigurator.enableBLE(false);
     }

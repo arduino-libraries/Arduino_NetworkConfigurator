@@ -23,6 +23,8 @@ public:
     static LEDFeedbackClass& getInstance();
     void begin();
     void setMode(LEDFeedbackMode mode);
+    void stop();
+    void restart();
     void poll();
 private:
     LEDFeedbackClass() {};
@@ -35,4 +37,5 @@ private:
     uint16_t _ledPin = 0;
     uint32_t* _framePtr = nullptr;
     int32_t _ledChangeInterval = 500;
+    bool stopped = false;
 };

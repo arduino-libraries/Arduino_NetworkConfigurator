@@ -225,7 +225,20 @@ void LEDFeedbackClass::setMode(LEDFeedbackMode mode) {
   }
 }
 
+void LEDFeedbackClass::stop() {
+  stopped = true;
+  turnOFF();
+}
+
+void LEDFeedbackClass::restart() {
+  stopped = false;
+}
+
 void LEDFeedbackClass::poll() {
+  if(stopped) {
+    return;
+  }
+
   if(_ledChangeInterval == 0) {
     turnOFF();
     return;

@@ -16,6 +16,7 @@
 #include <settings/settings.h>
 #include <Arduino_TimedAttempt.h>
 #include <Arduino_KVStore.h>
+#include "Utility/ResetInput/ResetInput.h"
 
 enum class NetworkConfiguratorStates { CHECK_ETH,
                                        READ_STORED_CONFIG,
@@ -37,9 +38,11 @@ public:
     _kvstore = &kvstore;
   }
 
+  void setReconfigurePin(uint32_t pin);
+  void addReconfigurePinCallback(void (*callback)());
   bool isBLEenabled();
   void enableBLE(bool enable);
-  void configurationCompleted();
+  void disconnectAgent();
   bool addAgent(ConfiguratorAgent &agent);
 
 private:
@@ -47,6 +50,8 @@ private:
   ConnectionHandler *_connectionHandler;
   static inline models::NetworkSetting _networkSetting;
   bool _connectionHandlerIstantiated = false;
+  ResetInput *_resetInput;
+  bool _bleEnabled = true;
   TimedAttempt _connectionTimeout;
   TimedAttempt _connectionRetryTimer;
   TimedAttempt _optionUpdateTimer;
@@ -76,6 +81,8 @@ private:
 
   NetworkConfiguratorStates handleConnectRequest();
   void handleGetWiFiFWVersion();
+
+  void startReconfigureProcedure();
 
   String decodeConnectionErrorMessage(NetworkConnectionState err, StatusMessage *errorCode);
   ConnectionResult connectToNetwork(StatusMessage *err);

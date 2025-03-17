@@ -23,6 +23,7 @@
 #define NC_UPDATE_NETWORK_OPTIONS_TIMER_ms 120000
 
 constexpr char *STORAGE_KEY{ "NETWORK_CONFIGS" };
+constexpr char *START_BLE_AT_STARTUP_KEY{ "START_BLE" };
 
 NetworkConfiguratorClass::NetworkConfiguratorClass(ConnectionHandler &connectionHandler)
   :
@@ -32,6 +33,7 @@ NetworkConfiguratorClass::NetworkConfiguratorClass(ConnectionHandler &connection
     _optionUpdateTimer{ NC_UPDATE_NETWORK_OPTIONS_TIMER_ms, NC_UPDATE_NETWORK_OPTIONS_TIMER_ms } {
       _optionUpdateTimer.begin(NC_UPDATE_NETWORK_OPTIONS_TIMER_ms); //initialize the timer before calling begin
       _agentsManager = &AgentsManagerClass::getInstance();
+      _resetInput = &ResetInput::getInstance();
 }
 
 bool NetworkConfiguratorClass::begin() {
@@ -71,6 +73,7 @@ bool NetworkConfiguratorClass::begin() {
 
   _connectionTimeout.begin(NC_CONNECTION_TIMEOUT_ms);
   _connectionRetryTimer.begin(NC_CONNECTION_RETRY_TIMER_ms);
+  _resetInput->begin();
 
 #ifdef BOARD_HAS_ETHERNET
   _networkSetting.type = NetworkAdapter::ETHERNET;
@@ -108,6 +111,18 @@ NetworkConfiguratorStates NetworkConfiguratorClass::poll() {
       _connectionTimeout.reload();
     }
     _state = nextState;
+  }
+
+  /* Reconfiguration procedure:
+   * - Arduino Opta: press and hold the user button (BTN_USER) until the led (LED_USER) turns off
+   * - Arduino Nano 33 IOT: short the pin 2 to GND until the led turns off
+   * - Arduino Uno R4 WiFi: short the pin 2 to GND until the led turns off
+   * - Arduino Nano RP2040 Connect: short the pin 2 to 3.3V until the led turns off
+   * - Other boards: short the pin 7 to GND until the led turns off
+   */
+
+  if(_resetInput->isEventFired()) {
+    startReconfigureProcedure();
   }
 
   return _state;
@@ -153,15 +168,24 @@ bool NetworkConfiguratorClass::end() {
   return _agentsManager->end(SERVICE_ID_FOR_AGENTMANAGER);
 }
 
+void NetworkConfiguratorClass::setReconfigurePin(uint32_t pin) {
+  _resetInput->setPin(pin);
+}
+
+void NetworkConfiguratorClass::addReconfigurePinCallback(void (*callback)()) {
+  _resetInput->setPinChangedCallback(callback);
+}
+
 bool NetworkConfiguratorClass::isBLEenabled() {
   return _agentsManager->isBLEAgentEnabled();
 }
 
 void NetworkConfiguratorClass::enableBLE(bool enable) {
+  _bleEnabled = enable;
   _agentsManager->enableBLEAgent(enable);
 }
 
-void NetworkConfiguratorClass::configurationCompleted() {
+void NetworkConfiguratorClass::disconnectAgent() {
   _agentsManager->disconnect();
 }
 
@@ -404,6 +428,19 @@ void NetworkConfiguratorClass::handleGetWiFiFWVersion() {
   _agentsManager->sendMsg(fwVersionMsg);
 }
 
+void NetworkConfiguratorClass::startReconfigureProcedure() {
+  resetStoredConfiguration();
+  if(_kvstore != nullptr){
+    if (_kvstore->begin()) {
+      if(!_kvstore->putBool(START_BLE_AT_STARTUP_KEY, true)){
+        DEBUG_ERROR("NetworkConfiguratorClass::%s Error saving BLE enabled at startup", __FUNCTION__);
+      }
+      _kvstore->end();
+    }
+  }
+  NVIC_SystemReset();
+}
+
 #ifdef BOARD_HAS_ETHERNET
 NetworkConfiguratorStates NetworkConfiguratorClass::handleCheckEth() {
   NetworkConfiguratorStates nextState = _state;
@@ -445,6 +482,12 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleReadStorage() {
       }
 
     } else {
+      if(_kvstore->exists(START_BLE_AT_STARTUP_KEY)) {
+        if(_kvstore->getBool(START_BLE_AT_STARTUP_KEY)) {
+          _agentsManager->enableBLEAgent(true);
+        }
+        _kvstore->remove(START_BLE_AT_STARTUP_KEY);
+      }
       nextState = NetworkConfiguratorStates::WAITING_FOR_CONFIG;
     }
     _kvstore->end();
@@ -492,6 +535,9 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleConnecting() {
   ConnectionResult res = connectToNetwork(&err);
 
   if (res == ConnectionResult::SUCCESS) {
+    if(_agentsManager->isBLEAgentEnabled() && !_bleEnabled) {
+      _agentsManager->enableBLEAgent(false);
+    }
     nextState = NetworkConfiguratorStates::CONFIGURED;
   } else if (res == ConnectionResult::FAILED) {
     sendStatus(err);
