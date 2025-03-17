@@ -10,6 +10,7 @@
 #include "ConnectionHandlerDefinitions.h"
 #include "ConfiguratorAgents/MessagesDefinitions.h"
 #include "Arduino_ConnectionHandler.h"
+#include "Utility/LEDFeedback/LEDFeedback.h"
 #ifdef BOARD_HAS_WIFI
 #include "WiFiConnectionHandler.h"
 #endif
@@ -45,7 +46,7 @@ bool NetworkConfiguratorClass::begin() {
   }
   _state = NetworkConfiguratorStates::READ_STORED_CONFIG;
   memset(&_networkSetting, 0x00, sizeof(models::NetworkSetting));
-
+  LEDFeedbackClass::getInstance().begin();
 #ifdef BOARD_HAS_WIFI
 #ifndef ARDUINO_ARCH_ESP32
   String fv = WiFi.firmwareVersion();
@@ -94,6 +95,8 @@ bool NetworkConfiguratorClass::begin() {
 
 NetworkConfiguratorStates NetworkConfiguratorClass::poll() {
   NetworkConfiguratorStates nextState = _state;
+  LEDFeedbackClass::getInstance().poll();
+
   switch (_state) {
 #ifdef BOARD_HAS_ETHERNET
     case NetworkConfiguratorStates::CHECK_ETH:           nextState = handleCheckEth     (); break;
@@ -323,11 +326,13 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleConnectRequest() {
   if (!_kvstore.begin()) {
     DEBUG_ERROR("NetworkConfiguratorClass::%s error initializing kvstore", __FUNCTION__);
     sendStatus(StatusMessage::ERROR_STORAGE_BEGIN);
+    LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::ERROR);
     return nextState;
   }
   if (!_kvstore.putBytes(STORAGE_KEY, (uint8_t *)&_networkSetting, sizeof(models::NetworkSetting))) {
     DEBUG_ERROR("NetworkConfiguratorClass::%s error saving network settings", __FUNCTION__);
     sendStatus(StatusMessage::ERROR);
+    LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::ERROR);
     return nextState;
   }
 
@@ -338,6 +343,7 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleConnectRequest() {
     if(disconnectFromNetwork() == ConnectionResult::FAILED) {
       DEBUG_ERROR("NetworkConfiguratorClass::%s Impossible to disconnect the network", __FUNCTION__);
       sendStatus(StatusMessage::ERROR);
+      LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::ERROR);
       return nextState;
     }
   }
@@ -350,6 +356,7 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleConnectRequest() {
 
   _connectionHandlerIstantiated = true;
   nextState = NetworkConfiguratorStates::CONNECTING;
+  LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::CONNECTING_TO_NETWORK);
   return nextState;
 }
 
@@ -412,6 +419,7 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleReadStorage() {
   if (!_kvstore.begin()) {
     DEBUG_ERROR("NetworkConfiguratorClass::%s error initializing kvstore", __FUNCTION__);
     sendStatus(StatusMessage::ERROR_STORAGE_BEGIN);
+    LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::ERROR);
     return nextState;
   }
 

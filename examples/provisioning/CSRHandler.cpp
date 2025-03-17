@@ -15,6 +15,7 @@
 #include "SecretsHelper.h"
 #include <utility/time/TimeService.h>
 #include <stdlib.h>
+#include "Utility/LEDFeedback/LEDFeedback.h"
 
 #define RESPONSE_MAX_LEN 1100
 #define RESPONSE_TIMEOUT 5000
@@ -42,6 +43,7 @@ void CSRHandlerClass::begin(ConnectionHandler *connectionHandler, SecureElement 
   _uhwid = uhwid;
   if (*_uhwid == "") {
     Serial.println("Error: UHWID not found");
+    LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::ERROR);
     _state = CSRHandlerStates::ERROR;
     return;
   }
@@ -82,7 +84,7 @@ CSRHandlerClass::CSRHandlerStates CSRHandlerClass::poll() {
     case CSRHandlerStates::CERT_CREATED:         _state = handleCertCreated       (); break;
     case CSRHandlerStates::WAITING_COMPLETE_RES: _state = handleWaitingCompleteRes(); break;
     case CSRHandlerStates::COMPLETED:                                                 break;
-    case CSRHandlerStates::ERROR:                                                     break;
+    case CSRHandlerStates::ERROR:                         handleError             (); break;
     case CSRHandlerStates::END:                                                       break;
   }
 
@@ -156,6 +158,7 @@ CSRHandlerClass::CSRHandlerStates CSRHandlerClass::handleBuildCSR() {
   }
   if (!_certForCSR->begin()) {
     Serial.println("Error starting CSR generation!");
+    LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::ERROR);
     return CSRHandlerStates::ERROR;
   }
 
@@ -163,6 +166,7 @@ CSRHandlerClass::CSRHandlerStates CSRHandlerClass::handleBuildCSR() {
 
   if (!SElementCSR::build(*_secureElement, *_certForCSR, static_cast<int>(SElementArduinoCloudSlot::Key), true)) {
     Serial.println("Error generating CSR!");
+    LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::ERROR);
     return CSRHandlerStates::ERROR;
   }
   return CSRHandlerStates::REQUEST_SIGNATURE;
@@ -277,6 +281,7 @@ CSRHandlerClass::CSRHandlerStates CSRHandlerClass::handleBuildCertificate() {
 
   if (!SElementArduinoCloudDeviceId::write(*_secureElement, _deviceId, SElementArduinoCloudSlot::DeviceId)) {
     Serial.println("Error storing device id!");
+    LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::ERROR);
     return CSRHandlerStates::ERROR;
   }
 
@@ -284,6 +289,7 @@ CSRHandlerClass::CSRHandlerStates CSRHandlerClass::handleBuildCertificate() {
   ECP256Certificate cert;
   if (!cert.begin()) {
     Serial.println("Error starting secureElement storage!");
+    LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::ERROR);
     return CSRHandlerStates::ERROR;
   }
 
@@ -303,11 +309,13 @@ CSRHandlerClass::CSRHandlerStates CSRHandlerClass::handleBuildCertificate() {
 
   if (!SElementArduinoCloudCertificate::build(*_secureElement, cert, static_cast<int>(SElementArduinoCloudSlot::Key))) {
     Serial.println("Error building secureElement compressed cert!");
+    LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::ERROR);
     return CSRHandlerStates::ERROR;
   }
 
   if (!SElementArduinoCloudCertificate::write(*_secureElement, cert, SElementArduinoCloudSlot::CompressedCertificate)) {
     Serial.println("Error storing cert!");
+    LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::ERROR);
     return CSRHandlerStates::ERROR;
   }
 
@@ -378,4 +386,8 @@ CSRHandlerClass::CSRHandlerStates CSRHandlerClass::handleWaitingCompleteRes() {
   _client->stop();
 
   return nextState;
+}
+
+void CSRHandlerClass::handleError() {
+  LEDFeedbackClass::getInstance().poll();
 }

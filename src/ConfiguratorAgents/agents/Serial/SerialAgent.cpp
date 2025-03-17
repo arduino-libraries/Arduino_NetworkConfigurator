@@ -8,6 +8,7 @@
 
 #include <Arduino_DebugUtils.h>
 #include "SerialAgent.h"
+#include "Utility/LEDFeedback/LEDFeedback.h"
 
 SerialAgentClass::SerialAgentClass() {
 }
@@ -43,6 +44,7 @@ ConfiguratorAgent::AgentConfiguratorStates SerialAgentClass::poll() {
   if (_disconnectRequest) {
     _disconnectRequest = false;
     clear();
+    LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::NONE);
     _state = AgentConfiguratorStates::INIT;
   }
 
@@ -55,6 +57,7 @@ void SerialAgentClass::disconnectPeer() {
   uint8_t data = 0x02;
   sendData(PacketManager::MessageType::TRANSMISSION_CONTROL, &data, sizeof(data));
   clear();
+  LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::NONE);
   _state = AgentConfiguratorStates::INIT;
 }
 

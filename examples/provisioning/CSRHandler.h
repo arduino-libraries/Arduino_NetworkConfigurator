@@ -65,4 +65,5 @@ private:
   CSRHandlerStates handleBuildCertificate();
   CSRHandlerStates handleCertCreated();
   CSRHandlerStates handleWaitingCompleteRes();
+  void handleError();
 };

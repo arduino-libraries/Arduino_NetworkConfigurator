@@ -12,6 +12,7 @@
 #include "BLEStringCharacteristic.h"
 #include "BLECharacteristic.h"
 #include "BLEAgent.h"
+#include "Utility/LEDFeedback/LEDFeedback.h"
 #define DEBUG_PACKET
 #define BASE_LOCAL_NAME "Arduino"
 #define ARDUINO_COMPANY_ID 0x09A3
@@ -77,6 +78,7 @@ ConfiguratorAgent::AgentConfiguratorStates BLEAgentClass::begin() {
 
   // start advertising
   BLE.advertise();
+  LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::BLE_AVAILABLE);
   _state = AgentConfiguratorStates::INIT;
   DEBUG_DEBUG("BLEAgentClass begin completed");
   return _state;
@@ -91,6 +93,7 @@ ConfiguratorAgent::AgentConfiguratorStates BLEAgentClass::end() {
     BLE.stopAdvertise();
     BLE.end();
     clear();
+    LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::NONE);
     _state = AgentConfiguratorStates::END;
   }
 
@@ -107,11 +110,13 @@ ConfiguratorAgent::AgentConfiguratorStates BLEAgentClass::poll() {
     case BLEEvent::SUBSCRIBED:
       if (_state != AgentConfiguratorStates::PEER_CONNECTED) {
         _state = AgentConfiguratorStates::PEER_CONNECTED;
+        LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::PEER_CONNECTED);
       }
       break;
     case BLEEvent::DISCONNECTED:
       clearInputBuffer();
       clear();
+      LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::BLE_AVAILABLE);
       _state = AgentConfiguratorStates::INIT;
       break;
     default:
@@ -254,6 +259,7 @@ void BLEAgentClass::disconnectPeer() {
     BLE.poll();
   } while (millis() - start < 200);
   clear();
+  LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::BLE_AVAILABLE);
   _state = AgentConfiguratorStates::INIT;
   return;
 }

@@ -9,6 +9,7 @@
 #include "ClaimingHandler.h"
 #include "SecretsHelper.h"
 #include "Arduino_DebugUtils.h"
+#include "Utility/LEDFeedback/LEDFeedback.h"
 #define PROVISIONING_SERVICEID_FOR_AGENTMANAGER 0xB1
 
 ClaimingHandlerClass::ClaimingHandlerClass(AgentsManagerClass &agc) {
@@ -50,6 +51,7 @@ void ClaimingHandlerClass::poll() {
   if(_state == ClaimingHandlerStates::END) {
     return;
   }
+  LEDFeedbackClass::getInstance().poll();
   _agentManager->poll();
 
   switch (_receivedEvent) {
@@ -67,6 +69,7 @@ void ClaimingHandlerClass::getIdReqHandler() {
     if (*_uhwid == "") {
       DEBUG_ERROR("ClaimingHandlerClass::%s Error: UHWID not found", __FUNCTION__);
       sendStatus(StatusMessage::ERROR);
+      LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::ERROR);
       return;
     }
 
@@ -83,6 +86,7 @@ void ClaimingHandlerClass::getIdReqHandler() {
     if (token == "") {
       DEBUG_ERROR("ClaimingHandlerClass::%s Error: token not created", __FUNCTION__);
       sendStatus(StatusMessage::ERROR);
+      LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::ERROR);
       return;
     }
 
@@ -106,6 +110,7 @@ void ClaimingHandlerClass::resetStoredCredReqHandler() {
   if( !_clearStoredCredentials()){
     DEBUG_ERROR("ClaimingHandlerClass::%s Error: reset stored credentials failed", __FUNCTION__);
     sendStatus(StatusMessage::ERROR);
+    LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::ERROR);
   } else {
     sendStatus(StatusMessage::RESET_COMPLETED);
   }

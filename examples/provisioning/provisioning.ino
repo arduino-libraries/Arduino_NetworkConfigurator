@@ -13,6 +13,7 @@
 #include <Arduino_SecureElement.h>
 #include <utility/SElementArduinoCloudDeviceId.h>
 #include <utility/SElementArduinoCloudCertificate.h>
+#include "Utility/LEDFeedback/LEDFeedback.h"
 
 #if defined(ARDUINO_OPTA) || defined(ARDUINO_PORTENTA_H7_M7)
 #include "mbed.h"
@@ -24,7 +25,7 @@ void display_freeram();
 #define RESETCRED_BUTTON BTN_USER
 #elif defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT)
 #define RESETCRED_BUTTON 7
-#else 
+#else
 #define RESETCRED_BUTTON 13
 #endif
 
@@ -93,15 +94,20 @@ void setup() {
     if (!secureElement.writeConfiguration()) {
       Serial.println("Writing secureElement configuration failed!");
       Serial.println("Stopping Provisioning");
-      while (1)
-        ;
+      LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::ERROR);
+      while (1){
+        LEDFeedbackClass::getInstance().poll();
+      }
+
     }
 
     if (!secureElement.lock()) {
       Serial.println("Locking secureElement configuration failed!");
       Serial.println("Stopping Provisioning");
-      while (1)
-        ;
+      LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::ERROR);
+      while (1){
+        LEDFeedbackClass::getInstance().poll();
+      }
     }
 
     Serial.println("secureElement locked successfully");
@@ -176,6 +182,18 @@ DeviceState handleCSR() {
   return nextState;
 }
 
+void cloudConnectedHandler(bool connected) {
+  static bool _status = false;
+  if(connected != _status){
+    _status = connected;
+    if(connected){
+      LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::CONNECTED_TO_CLOUD);
+    } else {
+      LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::NONE);
+    }
+  }
+}
+
 DeviceState handleBeginCloud() {
   // Close the connection to the peer (App mobile, FE, etc)
   AgentsManager.disconnect();
@@ -197,6 +215,8 @@ DeviceState handleRun() {
     return nextState;
   }
   ArduinoCloud.update();
+
+  cloudConnectedHandler(ArduinoCloud.connected());
 
   if (NetworkConfigurator.poll() == NetworkConfiguratorStates::UPDATING_CONFIG) {
     nextState = DeviceState::FIRST_CONFIG;
@@ -233,9 +253,14 @@ void onCounterChange() {
   // Add your code here to act upon Counter change
 }
 
+void cloudConnected() {
+  // Add your code here to act upon Cloud connection
+  LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::CONNECTED_TO_CLOUD);
+}
+
 int freeRam() {
   char top;
-#if defined(ARDUINO_OPTA) || defined(ARDUINO_PORTENTA_H7_M7)
+#if defined(ARDUINO_OPTA) || defined(ARDUINO_PORTENTA_H7_M7) || defined(ARDUINO_NICLA_VISION) || defined(ARDUINO_GIGA)
   int cnt = osThreadGetCount();
   mbed_stats_stack_t* stats = (mbed_stats_stack_t*)malloc(cnt * sizeof(mbed_stats_stack_t));
 

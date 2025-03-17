@@ -11,6 +11,7 @@
 #include <settings/settings.h>
 #include "AgentsManager.h"
 #include "NetworkOptionsDefinitions.h"
+#include "Utility/LEDFeedback/LEDFeedback.h"
 #if !defined(ARDUINO_SAMD_MKRGSM1400) && !defined(ARDUINO_SAMD_MKRNB1500) && !defined(ARDUINO_SAMD_MKRWAN1300) && !defined(ARDUINO_SAMD_MKRWAN1310)
 #define BOARD_HAS_BLE
 #endif
@@ -89,12 +90,6 @@ bool AgentsManagerClass::end(uint8_t id) {
     std::for_each(_agentsList.begin(), _agentsList.end(), [](ConfiguratorAgent *agent) {
       agent->end();
     });
-
-#if defined(ARDUINO_PORTENTA_H7_M7)
-    digitalWrite(LED_BUILTIN, HIGH);
-#else
-    digitalWrite(LED_BUILTIN, LOW);
-#endif
     _selectedAgent = nullptr;
     _statusRequest.reset();
     _initStatusMsg = StatusMessage::NONE;
@@ -200,11 +195,6 @@ AgentsManagerStates AgentsManagerClass::handleInit() {
   for (std::list<ConfiguratorAgent *>::iterator agent = _agentsList.begin(); agent != _agentsList.end(); ++agent) {
     if ((*agent)->poll() == ConfiguratorAgent::AgentConfiguratorStates::PEER_CONNECTED) {
       _selectedAgent = *agent;
-#if defined(ARDUINO_PORTENTA_H7_M7)
-      digitalWrite(LED_BUILTIN, LOW);
-#else
-      digitalWrite(LED_BUILTIN, HIGH);
-#endif
       nextState = AgentsManagerStates::SEND_INITIAL_STATUS;
       break;
     }
@@ -217,6 +207,7 @@ AgentsManagerStates AgentsManagerClass::handleInit() {
         (*agent)->end();
       }
     }
+    LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::PEER_CONNECTED);
   }
   return nextState;
 }
@@ -416,11 +407,6 @@ AgentsManagerStates AgentsManagerClass::handlePeerDisconnected() {
       (*agent)->begin();
     }
   }
-#if defined(ARDUINO_PORTENTA_H7_M7)
-  digitalWrite(LED_BUILTIN, HIGH);
-#else
-  digitalWrite(LED_BUILTIN, LOW);
-#endif
   _selectedAgent = nullptr;
   return AgentsManagerStates::INIT;
 }
