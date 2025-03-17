@@ -40,6 +40,9 @@ NetworkConfiguratorClass::NetworkConfiguratorClass(AgentsManagerClass &agentMana
 }
 
 bool NetworkConfiguratorClass::begin() {
+  if(_state != NetworkConfiguratorStates::END) {
+    return true;
+  }
   _state = NetworkConfiguratorStates::READ_STORED_CONFIG;
   memset(&_networkSetting, 0x00, sizeof(models::NetworkSetting));
 
@@ -137,7 +140,9 @@ bool NetworkConfiguratorClass::resetStoredConfiguration() {
     _connectionHandlerIstantiated = false;
   }
 
-  _state = NetworkConfiguratorStates::WAITING_FOR_CONFIG;
+  if(_state != NetworkConfiguratorStates::END) {
+    _state = NetworkConfiguratorStates::WAITING_FOR_CONFIG;
+  }
 
   return true;
 }
