@@ -493,22 +493,18 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleConnecting() {
 
 NetworkConfiguratorStates NetworkConfiguratorClass::handleConfigured() {
   NetworkConfiguratorStates nextState = _state;
-  bool peerConnected = false;
+  //Return if the user is still connected to the agent, but has just finished configuring the network
   if (_agentManager->isConfigInProgress()) {
-    peerConnected = true;
-  } else {
-    AgentsManagerStates agManagerState = _agentManager->poll();
-    // If the agent manager changes state, it means that user is trying to configure the network, so the network configurator should change state
-    if (agManagerState != AgentsManagerStates::INIT && agManagerState != AgentsManagerStates::END) {
-      peerConnected = true;
-    }
+    return nextState;
   }
 
-  if (peerConnected) {
+  _agentManager->poll();
+  // If the agent manager changes state, it means that user is trying to configure the network, so the network configurator should change state
+  if (_agentManager->isConfigInProgress()) {
     nextState = NetworkConfiguratorStates::UPDATING_CONFIG;
 
 #ifdef BOARD_HAS_WIFI
-  updateNetworkOptions();
+    updateNetworkOptions();
 #endif
   }
 
