@@ -42,7 +42,7 @@ jobs:
         - source-url: https://github.com/arduino-libraries/Arduino_UniqueHWId.git
           version: 8977827eed86dbd25292f861ee8de2b19c16b3a0
       SKETCH_PATHS: |
-        - examples/auto-retry
+        - examples/NetworkConfiguratorDemo
       SKETCHES_REPORTS_PATH: sketches-reports
     strategy:
       fail-fast: false

@@ -1,0 +1,98 @@
+/*
+  Copyright (c) 2025 Arduino SA
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+*/
+
+/*
+ * This sketch shows how to use the NetworkConfigurator library to configure the
+ * network connectivity of the board. The library provides a way to configure and update
+ * the network settings using different interfaces like BLE, Serial, etc.
+ * The NetworkConfigurator library stores the provided network settings in a persistent
+ * key-value storage (KVStore) and uses the ConnectionHandler library to connect to the network.
+ * At startup the NetworkConfigurator library reads the stored network settings from the storage
+ * and loads them into the ConnectionHandler object.
+ *
+ * The NetworkConfigurator library provides a way for wiping out the stored network settings,
+ * please read the documentation for more information.
+ *
+ * In this sketch the BLE and Serial interfaces are always enabled and ready for accepting
+ * a new set of configuration.
+ *
+ * Sketch originally added 21 March 2025
+ * by Fabio Centonze
+ */
+
+ #include <Arduino_ConnectionHandler.h>
+ #include <GenericConnectionHandler.h>
+ #include <Arduino_KVStore.h>
+ #include <NetworkConfigurator.h>
+ #include <ConfiguratorAgents/agents/BLE/BLEAgent.h>
+ #include <ConfiguratorAgents/agents/Serial/SerialAgent.h>
+
+ KVStore kvstore;
+ BLEAgentClass BLEAgent;
+ SerialAgentClass SerialAgent;
+ GenericConnectionHandler conMan;
+ NetworkConfiguratorClass NetworkConfigurator(conMan);
+
+void setup() {
+  /* Initialize serial debug port and wait up to 5 seconds for port to open */
+  Serial.begin(9600);
+  for(unsigned long const serialBeginTime = millis(); !Serial && (millis() - serialBeginTime <= 5000); ) { }
+
+  /* Set the debug message level:
+  * - DBG_ERROR: Only show error messages
+  * - DBG_WARNING: Show warning and error messages
+  * - DBG_INFO: Show info, warning, and error messages
+  * - DBG_DEBUG: Show debug, info, warning, and error messages
+  * - DBG_VERBOSE: Show all messages
+  */
+  setDebugMessageLevel(DBG_INFO);
+
+  /* Add callbacks to the ConnectionHandler object to get notified of network
+  * connection events. */
+  conMan.addCallback(NetworkConnectionEvent::CONNECTED, onNetworkConnect);
+  conMan.addCallback(NetworkConnectionEvent::DISCONNECTED, onNetworkDisconnect);
+  conMan.addCallback(NetworkConnectionEvent::ERROR, onNetworkError);
+
+  /* Set the KVStore */
+  NetworkConfigurator.setStorage(kvstore);
+  /* Add the interfaces that are enabled for configuring the network*/
+  NetworkConfigurator.addAgent(BLEAgent);
+  NetworkConfigurator.addAgent(SerialAgent);
+  /* Start the network configurator */
+  NetworkConfigurator.begin();
+
+}
+
+void loop() {
+  /*
+   * Poll the networkConfigurator and check if connectionHandler is configured.
+   * If the ConnectionHandler has been configured, the following code keeps on
+   * running connection workflows on our allowing reconnection in case of failure
+   * and notification of connect/disconnect event if enabled.
+   *
+   * NOTE: any use of delay() within the loop or methods called from it will delay
+   * the execution of .poll() and .check() methods of the NetworkConfigurator and
+   * ConnectionHandler objects which might not guarantee the correct functioning
+   * of the code.
+   */
+  if(NetworkConfigurator.poll() == NetworkConfiguratorStates::CONFIGURED) {
+    conMan.check();
+  }
+}
+
+void onNetworkConnect() {
+  Serial.println(">>>> CONNECTED to network");
+}
+
+void onNetworkDisconnect() {
+  Serial.println(">>>> DISCONNECTED from network");
+}
+
+void onNetworkError() {
+  Serial.println(">>>> ERROR");
+}
