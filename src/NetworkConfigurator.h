@@ -7,7 +7,8 @@
 */
 
 #pragma once
-#if defined(ARDUINO_SAMD_MKRGSM1400) || defined(ARDUINO_SAMD_MKRNB1500) || defined(ARDUINO_SAMD_MKRWAN1300) || defined(ARDUINO_SAMD_MKRWAN1310)
+#if defined(ARDUINO_SAMD_MKRGSM1400) || defined(ARDUINO_SAMD_MKRNB1500) || defined(ARDUINO_SAMD_MKRWAN1300) || defined(ARDUINO_SAMD_MKRWAN1310) \
+|| defined(ARDUINO_SAMD_MKR1000) || defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_EDGE_CONTROL)
 #error "Board not supported"
 #endif
 #include "Arduino.h"
@@ -24,6 +25,7 @@ enum class NetworkConfiguratorStates { CHECK_ETH,
                                        CONNECTING,
                                        CONFIGURED,
                                        UPDATING_CONFIG,
+                                       ERROR,
                                        END };
 
 class NetworkConfiguratorClass {
@@ -33,10 +35,8 @@ public:
   NetworkConfiguratorStates poll();
   bool resetStoredConfiguration();
   bool end();
-  bool updateNetworkOptions();
-  void setStorage(KVStore &kvstore) {
-    _kvstore = &kvstore;
-  }
+  bool scanNetworkOptions();
+  void setStorage(KVStore &kvstore);
 
   void setReconfigurePin(uint32_t pin);
   void addReconfigurePinCallback(void (*callback)());
@@ -46,12 +46,12 @@ public:
   bool addAgent(ConfiguratorAgent &agent);
 
 private:
-  NetworkConfiguratorStates _state = NetworkConfiguratorStates::END;
+  NetworkConfiguratorStates _state;
   ConnectionHandler *_connectionHandler;
   static inline models::NetworkSetting _networkSetting;
-  bool _connectionHandlerIstantiated = false;
+  bool _connectionHandlerIstantiated;
   ResetInput *_resetInput;
-  bool _bleEnabled = true;
+  bool _bleEnabled;
   TimedAttempt _connectionTimeout;
   TimedAttempt _connectionRetryTimer;
   TimedAttempt _optionUpdateTimer;
@@ -61,13 +61,13 @@ private:
                                          CONNECT_REQ,
                                          NEW_NETWORK_SETTINGS,
                                          GET_WIFI_FW_VERSION };
-  static inline NetworkConfiguratorEvents _receivedEvent = NetworkConfiguratorEvents::NONE;
+  static inline NetworkConfiguratorEvents _receivedEvent;
 
   enum class ConnectionResult { SUCCESS,
                                 FAILED,
                                 IN_PROGRESS };
 
-  KVStore *_kvstore = nullptr;
+  KVStore *_kvstore;
   AgentsManagerClass *_agentsManager;
 
 #ifdef BOARD_HAS_ETHERNET
@@ -78,8 +78,8 @@ private:
   NetworkConfiguratorStates handleConnecting();
   NetworkConfiguratorStates handleConfigured();
   NetworkConfiguratorStates handleUpdatingConfig();
-
-  NetworkConfiguratorStates handleConnectRequest();
+  NetworkConfiguratorStates handleErrorState();
+  bool handleConnectRequest();
   void handleGetWiFiFWVersion();
 
   void startReconfigureProcedure();

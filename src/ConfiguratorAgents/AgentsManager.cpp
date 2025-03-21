@@ -227,7 +227,6 @@ AgentsManagerStates AgentsManagerClass::handleSendInitialStatus() {
       DEBUG_WARNING("AgentsManagerClass::%s failed to send initial status", __FUNCTION__);
       return nextState;
     }
-    _initStatusMsg = StatusMessage::NONE;
   }
   nextState = AgentsManagerStates::SEND_NETWORK_OPTIONS;
   return nextState;

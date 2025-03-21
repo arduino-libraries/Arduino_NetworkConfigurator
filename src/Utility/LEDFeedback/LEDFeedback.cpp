@@ -134,6 +134,14 @@ void LEDFeedbackClass::begin() {
 }
 
 void LEDFeedbackClass::setMode(LEDFeedbackMode mode) {
+  if(_mode == mode) {
+    return;
+  }
+
+  if(_mode == LEDFeedbackMode::ERROR){
+    return;
+  }
+
   _mode = mode;
   _lastUpdate = 0;
   switch (_mode) {

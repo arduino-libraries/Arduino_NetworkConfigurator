@@ -31,7 +31,12 @@ enum class StatusMessage {
   SCAN_DISABLED_CONNECTING   = -100,
   HW_ERROR_CONN_MODULE       = -101,
   HW_CONN_MODULE_STOPPED     = -102,
+  HW_ERROR_SE_BEGIN          = -150,
+  HW_ERROR_SE_CONFIG         = -151,
+  HW_ERROR_SE_LOCK           = -152,
+  ERROR_GENERATING_UHWID     = -160,
   ERROR_STORAGE_BEGIN        = -200,
+  FAIL_TO_PARTITION_STORAGE  = -201,
   ERROR                      = -255
 };
 

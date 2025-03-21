@@ -138,7 +138,7 @@ void setup() {
     }
   }
 
-  NetworkConfigurator.updateNetworkOptions();
+  NetworkConfigurator.scanNetworkOptions();
   NetworkConfigurator.begin();
   ClaimingHandler.begin(&secureElement, &uhwid, clearStoredCredentials);
 
