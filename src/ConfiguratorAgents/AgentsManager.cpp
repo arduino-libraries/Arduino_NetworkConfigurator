@@ -13,6 +13,10 @@
 #include "NetworkOptionsDefinitions.h"
 #include "Utility/LEDFeedback/LEDFeedback.h"
 
+/******************************************************************************
+ * PUBLIC MEMBER FUNCTIONS
+ ******************************************************************************/
+
 bool AgentsManagerClass::addAgent(ConfiguratorAgent &agent) {
   _agentsList.push_back(&agent);
 }
@@ -23,28 +27,26 @@ AgentsManagerClass &AgentsManagerClass::getInstance() {
 };
 
 bool AgentsManagerClass::begin(uint8_t id) {
-  if (_state == AgentsManagerStates::END) {
-    pinMode(LED_BUILTIN, OUTPUT);
+  _servicesList.push_back(id);
+  _instances++;
 
-    for (std::list<ConfiguratorAgent *>::iterator agent = _agentsList.begin(); agent != _agentsList.end(); ++agent) {
-      if((*agent)->getAgentType() == ConfiguratorAgent::AgentTypes::BLE) {
-        if (!_bleAgentEnabled) {
-          continue;
-        }
-      }
-      if ((*agent)->begin() == ConfiguratorAgent::AgentConfiguratorStates::ERROR) {
-        DEBUG_ERROR("AgentsManagerClass::%s agent type %d fails", __FUNCTION__, (int)(*agent)->getAgentType());
-        return false;
-      }
-    }
-
-    //DEBUG_DEBUG("AgentsManagerClass begin completed");
-    _state = AgentsManagerStates::INIT;
+  if (_state != AgentsManagerStates::END) {
+    return true;
   }
 
-  _servicesList.push_back(id);
+  for (std::list<ConfiguratorAgent *>::iterator agent = _agentsList.begin(); agent != _agentsList.end(); ++agent) {
+    if((*agent)->getAgentType() == ConfiguratorAgent::AgentTypes::BLE) {
+      if (!_bleAgentEnabled) {
+        continue;
+      }
+    }
+    if ((*agent)->begin() == ConfiguratorAgent::AgentConfiguratorStates::ERROR) {
+      DEBUG_ERROR("AgentsManagerClass::%s agent type %d fails", __FUNCTION__, (int)(*agent)->getAgentType());
+      return false;
+    }
+  }
 
-  _instances++;
+  _state = AgentsManagerStates::INIT;
 
   return true;
 }
@@ -74,6 +76,10 @@ void AgentsManagerClass::enableBLEAgent(bool enable) {
   }
 }
 
+bool AgentsManagerClass::isBLEAgentEnabled() {
+  return _bleAgentEnabled;
+}
+
 bool AgentsManagerClass::end(uint8_t id) {
   std::list<uint8_t>::iterator it = std::find(_servicesList.begin(), _servicesList.end(), id);
   if (it != _servicesList.end()) {
@@ -99,7 +105,8 @@ bool AgentsManagerClass::end(uint8_t id) {
 void AgentsManagerClass::disconnect() {
   if (_selectedAgent) {
     _selectedAgent->disconnectPeer();
-    _state = handlePeerDisconnected();
+    handlePeerDisconnected();
+    _state = AgentsManagerStates::INIT;
   }
 }
 
@@ -109,59 +116,16 @@ ConfiguratorAgent *AgentsManagerClass::getConnectedAgent() {
 
 bool AgentsManagerClass::sendMsg(ProvisioningOutputMessage &msg) {
 
-  switch (msg.type) {
-    case MessageOutputType::STATUS:
-      {
-        if ((int)msg.m.status < 0) {
-          if (_statusRequest.pending) {
-            _statusRequest.reset();
-          }
-          _initStatusMsg = msg.m.status;
-        } else if (msg.m.status == StatusMessage::CONNECTED) {
-          if (_statusRequest.pending && _statusRequest.key == RequestType::CONNECT) {
-            _statusRequest.reset();
-          }
-          _initStatusMsg = msg.m.status;
-        } else if (msg.m.status == StatusMessage::RESET_COMPLETED) {
-          if (_statusRequest.pending && _statusRequest.key == RequestType::RESET) {
-            _statusRequest.reset();
-          }
-        }
-      }
-      break;
-    case MessageOutputType::NETWORK_OPTIONS:
-      {
-        memcpy(&_netOptions, msg.m.netOptions, sizeof(NetworkOptions));
-        if (_statusRequest.pending && _statusRequest.key == RequestType::SCAN) {
-          _statusRequest.reset();
-        }
-      }
-      break;
-    case MessageOutputType::UHWID:
-    case MessageOutputType::JWT:
-      {
-        _statusRequest.completion++;
-        if (_statusRequest.pending && _statusRequest.key == RequestType::GET_ID && _statusRequest.completion == 2) {
-          _statusRequest.reset();
-        }
-      }
-      break;
-    case MessageOutputType::BLE_MAC_ADDRESS:
-      {
-        if (_statusRequest.pending && _statusRequest.key == RequestType::GET_BLE_MAC_ADDRESS) {
-          _statusRequest.reset();
-        }
-      }
-      break;
-    case MessageOutputType::WIFI_FW_VERSION:
-      {
-        if (_statusRequest.pending && _statusRequest.key == RequestType::GET_WIFI_FW_VERSION) {
-          _statusRequest.reset();
-        }
-      }
-      break;
-    default:
-      break;
+  if(msg.type == MessageOutputType::STATUS) {
+    updateProgressRequest(msg.m.status);
+    if ((int)msg.m.status < 0 || msg.m.status == StatusMessage::CONNECTED) {
+      _initStatusMsg = msg.m.status;
+    }
+  } else {
+    updateProgressRequest(msg.type);
+    if(msg.type == MessageOutputType::NETWORK_OPTIONS){
+      memcpy(&_netOptions, msg.m.netOptions, sizeof(NetworkOptions));
+    }
   }
 
   if(_state == AgentsManagerStates::CONFIG_IN_PROGRESS) {
@@ -171,13 +135,23 @@ bool AgentsManagerClass::sendMsg(ProvisioningOutputMessage &msg) {
 }
 
 bool AgentsManagerClass::addRequestHandler(RequestType type, ConfiguratorRequestHandler callback) {
-  bool success = false;
-  if (_reqHandlers[(int)type - 1] == nullptr) {
-    _reqHandlers[(int)type - 1] = callback;
-    success = true;
+  if(type == RequestType::NONE) {
+    return false;
   }
 
-  return success;
+  if (_reqHandlers[(int)type] == nullptr) {
+    _reqHandlers[(int)type] = callback;
+    return true;
+  }
+
+  return false;
+}
+
+void AgentsManagerClass::removeRequestHandler(RequestType type) {
+  if(type == RequestType::NONE) {
+    return;
+  }
+  _reqHandlers[(int)type] = nullptr;
 }
 
 bool AgentsManagerClass::addReturnTimestampCallback(ReturnTimestamp callback) {
@@ -189,6 +163,10 @@ bool AgentsManagerClass::addReturnTimestampCallback(ReturnTimestamp callback) {
   return true;
 }
 
+void AgentsManagerClass::removeReturnTimestampCallback() {
+  _returnTimestampCb = nullptr;
+}
+
 bool AgentsManagerClass::addReturnNetworkSettingsCallback(ReturnNetworkSettings callback) {
   if (_returnNetworkSettingsCb == nullptr) {
     _returnNetworkSettingsCb = callback;
@@ -196,6 +174,30 @@ bool AgentsManagerClass::addReturnNetworkSettingsCallback(ReturnNetworkSettings 
   }
   return false;
 }
+
+void AgentsManagerClass::removeReturnNetworkSettingsCallback() {
+  _returnNetworkSettingsCb = nullptr;
+}
+
+bool AgentsManagerClass::isConfigInProgress() {
+  return _state != AgentsManagerStates::INIT && _state != AgentsManagerStates::END;
+}
+
+/******************************************************************************
+ * PRIVATE MEMBER FUNCTIONS
+ ******************************************************************************/
+
+AgentsManagerClass::AgentsManagerClass():
+  _netOptions{ .type = NetworkOptionsClass::NONE },
+  _returnTimestampCb{ nullptr },
+  _returnNetworkSettingsCb{ nullptr },
+  _selectedAgent{ nullptr },
+  _instances{ 0 },
+  _bleAgentEnabled{ true },
+  _initStatusMsg{ StatusMessage::NONE },
+  _statusRequest{ .completion = 0, .pending = false, .key = RequestType::NONE },
+  _state{ AgentsManagerStates::END }
+  {}
 
 AgentsManagerStates AgentsManagerClass::handleInit() {
   AgentsManagerStates nextState = _state;
@@ -221,57 +223,119 @@ AgentsManagerStates AgentsManagerClass::handleInit() {
 }
 
 AgentsManagerStates AgentsManagerClass::handleSendInitialStatus() {
-  AgentsManagerStates nextState = _state;
   if (_initStatusMsg != StatusMessage::NONE) {
     if (!sendStatus(_initStatusMsg)) {
       DEBUG_WARNING("AgentsManagerClass::%s failed to send initial status", __FUNCTION__);
-      return nextState;
+      return AgentsManagerStates::SEND_INITIAL_STATUS;
     }
   }
-  nextState = AgentsManagerStates::SEND_NETWORK_OPTIONS;
-  return nextState;
+  return AgentsManagerStates::SEND_NETWORK_OPTIONS;
 }
 
 AgentsManagerStates AgentsManagerClass::handleSendNetworkOptions() {
-  AgentsManagerStates nextState = _state;
   ProvisioningOutputMessage networkOptionMsg = { MessageOutputType::NETWORK_OPTIONS };
   networkOptionMsg.m.netOptions = &_netOptions;
   if (_selectedAgent->sendMsg(networkOptionMsg)) {
-    nextState = AgentsManagerStates::CONFIG_IN_PROGRESS;
+    return AgentsManagerStates::CONFIG_IN_PROGRESS;
   }
-  return nextState;
+  return AgentsManagerStates::SEND_NETWORK_OPTIONS;
 }
 
 AgentsManagerStates AgentsManagerClass::handleConfInProgress() {
-  AgentsManagerStates nextState = _state;
-
   if (_selectedAgent == nullptr) {
-    //DEBUG_WARNING("AgentsManagerClass::%s selected agent is null", __FUNCTION__);
     return AgentsManagerStates::INIT;
   }
 
   ConfiguratorAgent::AgentConfiguratorStates agentConfState = _selectedAgent->poll();
   switch (agentConfState) {
-    case ConfiguratorAgent::AgentConfiguratorStates::RECEIVED_DATA:
-      handleReceivedData();
-      break;
-    case ConfiguratorAgent::AgentConfiguratorStates::INIT:
-      nextState = handlePeerDisconnected();
-      break;
+    case ConfiguratorAgent::AgentConfiguratorStates::RECEIVED_DATA: handleReceivedData    (); break;
+    case ConfiguratorAgent::AgentConfiguratorStates::INIT:          handlePeerDisconnected(); return AgentsManagerStates::INIT;
   }
 
-  return nextState;
+  return AgentsManagerStates::CONFIG_IN_PROGRESS;
+}
+
+void AgentsManagerClass::updateProgressRequest(StatusMessage type) {
+  if ((int)type < 0 && _statusRequest.pending) {
+    _statusRequest.reset();
+    return;
+  }
+
+  RequestType key = RequestType::NONE;
+  switch (type) {
+    case StatusMessage::CONNECTED:       key = RequestType::CONNECT; break;
+    case StatusMessage::RESET_COMPLETED: key = RequestType::RESET;   break;
+  }
+
+  if (key == RequestType::NONE) {
+    return;
+  }
+
+  if (_statusRequest.pending && _statusRequest.key == key) {
+    _statusRequest.reset();
+  }
+}
+
+void AgentsManagerClass::updateProgressRequest(MessageOutputType type) {
+  RequestType key = RequestType::NONE;
+  switch (type) {
+    case MessageOutputType::NETWORK_OPTIONS: key = RequestType::SCAN               ; break;
+    case MessageOutputType::UHWID:           key = RequestType::GET_ID             ; break;
+    case MessageOutputType::JWT:             key = RequestType::GET_ID             ; break;
+    case MessageOutputType::BLE_MAC_ADDRESS: key = RequestType::GET_BLE_MAC_ADDRESS; break;
+    case MessageOutputType::WIFI_FW_VERSION: key = RequestType::GET_WIFI_FW_VERSION; break;
+  }
+
+  if (key == RequestType::NONE) {
+    return;
+  }
+
+  if( key == RequestType::GET_ID && _statusRequest.key == key && _statusRequest.pending){
+    _statusRequest.completion++;
+    if(_statusRequest.completion == 2){
+      _statusRequest.reset();
+    }
+    return;
+  }
+
+  if (_statusRequest.pending && _statusRequest.key == key) {
+    _statusRequest.reset();
+  }
+
 }
 
 void AgentsManagerClass::handleReceivedCommands(RemoteCommands cmd) {
-  switch (cmd) {
-    case RemoteCommands::CONNECT:             handleConnectCommand         (); break;
-    case RemoteCommands::SCAN:                handleUpdateOptCommand       (); break;
-    case RemoteCommands::GET_ID:              handleGetIDCommand           (); break;
-    case RemoteCommands::GET_BLE_MAC_ADDRESS: handleGetBleMacAddressCommand(); break;
-    case RemoteCommands::RESET:               handleResetCommand           (); break;
-    case RemoteCommands::GET_WIFI_FW_VERSION: handleGetWiFiFWVersionCommand(); break;
+  if (_statusRequest.pending) {
+    DEBUG_WARNING("AgentsManagerClass::%s request received of type %d, but another request is in progress", __FUNCTION__, (int)cmd);
+    sendStatus(StatusMessage::OTHER_REQUEST_IN_EXECUTION);
+    return;
   }
+
+  RequestType type = RequestType::NONE;
+  switch (cmd) {
+    case RemoteCommands::CONNECT:             type = RequestType::CONNECT            ; break;
+    case RemoteCommands::SCAN:                type = RequestType::SCAN               ; break;
+    case RemoteCommands::GET_ID:              type = RequestType::GET_ID             ; break;
+    case RemoteCommands::GET_BLE_MAC_ADDRESS: type = RequestType::GET_BLE_MAC_ADDRESS; break;
+    case RemoteCommands::RESET:               type = RequestType::RESET              ; break;
+    case RemoteCommands::GET_WIFI_FW_VERSION: type = RequestType::GET_WIFI_FW_VERSION; break;
+  }
+
+  if(type == RequestType::NONE) {
+    sendStatus(StatusMessage::INVALID_REQUEST);
+    return;
+  }
+
+  ConfiguratorRequestHandler reqHandler = _reqHandlers[(int)type];
+  if (reqHandler == nullptr) {
+    DEBUG_WARNING("AgentsManagerClass::%s request received of type %d, but handler function is not provided", __FUNCTION__, (int)type);
+    sendStatus(StatusMessage::INVALID_REQUEST);
+    return;
+  }
+
+  _statusRequest.pending = true;
+  _statusRequest.key = type;
+  reqHandler();
 }
 
 void AgentsManagerClass::handleReceivedData() {
@@ -303,84 +367,12 @@ void AgentsManagerClass::handleReceivedData() {
   }
 }
 
-void AgentsManagerClass::handleConnectCommand() {
-  if (_statusRequest.pending) {
-    //DEBUG_DEBUG("AgentsManagerClass::%s received a Connect request while executing another request", __FUNCTION__);
-    sendStatus(StatusMessage::OTHER_REQUEST_IN_EXECUTION);
-    return;
-  }
-
-  _statusRequest.pending = true;
-  _statusRequest.key = RequestType::CONNECT;
-  callHandler(RequestType::CONNECT);
-}
-
-void AgentsManagerClass::handleUpdateOptCommand() {
-  if (_statusRequest.pending) {
-    //DEBUG_DEBUG("AgentsManagerClass::%s received a UpdateConnectivityOptions request while executing another request", __FUNCTION__);
-    sendStatus(StatusMessage::OTHER_REQUEST_IN_EXECUTION);
-    return;
-  }
-
-  _statusRequest.pending = true;
-  _statusRequest.key = RequestType::SCAN;
-  callHandler(RequestType::SCAN);
-}
-
-void AgentsManagerClass::handleGetIDCommand() {
-  if (_statusRequest.pending) {
-    //DEBUG_DEBUG("AgentsManagerClass::%s received a GetUnique request while executing another request", __FUNCTION__);
-    sendStatus(StatusMessage::OTHER_REQUEST_IN_EXECUTION);
-    return;
-  }
-
-  _statusRequest.pending = true;
-  _statusRequest.key = RequestType::GET_ID;
-  callHandler(RequestType::GET_ID);
-}
-
-void AgentsManagerClass::handleGetBleMacAddressCommand() {
-  if (_statusRequest.pending) {
-    //DEBUG_DEBUG("AgentsManagerClass::%s received a GetBleMacAddress request while executing another request", __FUNCTION__);
-    sendStatus(StatusMessage::OTHER_REQUEST_IN_EXECUTION);
-    return;
-  }
-
-  _statusRequest.pending = true;
-  _statusRequest.key = RequestType::GET_BLE_MAC_ADDRESS;
-  callHandler(RequestType::GET_BLE_MAC_ADDRESS);
-}
-
-void AgentsManagerClass::handleResetCommand() {
-  if (_statusRequest.pending) {
-    //DEBUG_DEBUG("AgentsManagerClass::%s received a Reset request while executing another request", __FUNCTION__);
-    sendStatus(StatusMessage::OTHER_REQUEST_IN_EXECUTION);
-    return;
-  }
-
-  _statusRequest.pending = true;
-  _statusRequest.key = RequestType::RESET;
-  callHandler(RequestType::RESET);
-}
-
-void AgentsManagerClass::handleGetWiFiFWVersionCommand() {
-  if (_statusRequest.pending) {
-    DEBUG_DEBUG("AgentsManagerClass::%s received a GetWiFiFWVersion request while executing another request", __FUNCTION__);
-    sendStatus(StatusMessage::OTHER_REQUEST_IN_EXECUTION);
-    return;
-  }
-
-  _statusRequest.pending = true;
-  _statusRequest.key = RequestType::GET_WIFI_FW_VERSION;
-  callHandler(RequestType::GET_WIFI_FW_VERSION);
-}
-
 bool AgentsManagerClass::sendStatus(StatusMessage msg) {
   ProvisioningOutputMessage outputMsg = { MessageOutputType::STATUS, { msg } };
   return _selectedAgent->sendMsg(outputMsg);
 }
 
-AgentsManagerStates AgentsManagerClass::handlePeerDisconnected() {
+void AgentsManagerClass::handlePeerDisconnected() {
   //Peer disconnected, restore all stopped agents
   for (std::list<ConfiguratorAgent *>::iterator agent = _agentsList.begin(); agent != _agentsList.end(); ++agent) {
     if (*agent != _selectedAgent) {
@@ -391,36 +383,16 @@ AgentsManagerStates AgentsManagerClass::handlePeerDisconnected() {
     }
   }
   _selectedAgent = nullptr;
-  return AgentsManagerStates::INIT;
-}
-
-void AgentsManagerClass::callHandler(RequestType type) {
-  int key = (int)type - 1;
-  if (_reqHandlers[key] != nullptr) {
-    _reqHandlers[key]();
-  } else {
-    String err;
-    if (type == RequestType::SCAN) {
-      err = "Scan ";
-    } else if (type == RequestType::GET_ID) {
-      err = "Get ID ";
-    } else if (type == RequestType::CONNECT) {
-      err = "Connect ";
-    }
-
-    DEBUG_WARNING("AgentsManagerClass::%s %s request received, but handler function is not provided", __FUNCTION__, err.c_str());
-    _statusRequest.reset();
-    sendStatus(StatusMessage::INVALID_REQUEST);
-  }
+  return;
 }
 
 void AgentsManagerClass::stopBLEAgent() {
   for (std::list<ConfiguratorAgent *>::iterator agent = _agentsList.begin(); agent != _agentsList.end(); ++agent) {
     if ((*agent)->getAgentType() == ConfiguratorAgent::AgentTypes::BLE) {
-      //DEBUG_VERBOSE("AgentsManagerClass::%s End ble agent", __FUNCTION__);
       (*agent)->end();
       if (*agent == _selectedAgent) {
-        _state = handlePeerDisconnected();
+        handlePeerDisconnected();
+        _state = AgentsManagerStates::INIT;
       }
     }
   }
@@ -432,7 +404,6 @@ void AgentsManagerClass::startBLEAgent() {
   }
   std::for_each(_agentsList.begin(), _agentsList.end(), [](ConfiguratorAgent *agent) {
     if (agent->getAgentType() == ConfiguratorAgent::AgentTypes::BLE) {
-      //DEBUG_VERBOSE("AgentsManagerClass::%s Restart ble agent", __FUNCTION__);
       agent->begin();
     }
   });

@@ -13,22 +13,22 @@
 #include "MessagesDefinitions.h"
 
 enum class AgentsManagerStates { INIT,
-                                             SEND_INITIAL_STATUS,
-                                             SEND_NETWORK_OPTIONS,
-                                             CONFIG_IN_PROGRESS,
-                                             END };
+                                SEND_INITIAL_STATUS,
+                                SEND_NETWORK_OPTIONS,
+                                CONFIG_IN_PROGRESS,
+                                END };
 
 typedef void (*ConfiguratorRequestHandler)();
 typedef void (*ReturnTimestamp)(uint64_t ts);
 typedef void (*ReturnNetworkSettings)(models::NetworkSetting *netSetting);
 
-enum class RequestType { NONE,
-                         CONNECT,
-                         SCAN,
-                         GET_ID,
-                         RESET,
-                         GET_WIFI_FW_VERSION,
-                         GET_BLE_MAC_ADDRESS };
+enum class RequestType: int { NONE = -1,
+                              CONNECT = 0,
+                              SCAN = 1,
+                              GET_ID  = 2,
+                              RESET = 3,
+                              GET_WIFI_FW_VERSION = 4,
+                              GET_BLE_MAC_ADDRESS = 5 };
 
 class AgentsManagerClass {
 public:
@@ -38,40 +38,30 @@ public:
   void disconnect();
   AgentsManagerStates poll();
   void enableBLEAgent(bool enable);
-  bool isBLEAgentEnabled() {
-    return _bleAgentEnabled;
-  };
+  bool isBLEAgentEnabled();
   ConfiguratorAgent *getConnectedAgent();
   bool sendMsg(ProvisioningOutputMessage &msg);
   bool addAgent(ConfiguratorAgent &agent);
   bool addRequestHandler(RequestType type, ConfiguratorRequestHandler callback);
-  void removeRequestHandler(RequestType type) {
-    _reqHandlers[(int)type - 1] = nullptr;
-  };
+  void removeRequestHandler(RequestType type);
   bool addReturnTimestampCallback(ReturnTimestamp callback);
-  void removeReturnTimestampCallback() {
-    _returnTimestampCb = nullptr;
-  };
+  void removeReturnTimestampCallback();
   bool addReturnNetworkSettingsCallback(ReturnNetworkSettings callback);
-  void removeReturnNetworkSettingsCallback() {
-    _returnNetworkSettingsCb = nullptr;
-  };
-  inline bool isConfigInProgress() {
-    return _state != AgentsManagerStates::INIT && _state != AgentsManagerStates::END;
-  };
+  void removeReturnNetworkSettingsCallback();
+  bool isConfigInProgress();
+
 private:
-  AgentsManagerClass()
-  : _netOptions{ .type = NetworkOptionsClass::NONE } {};
-  AgentsManagerStates _state = AgentsManagerStates::END;
+  AgentsManagerClass();
+  AgentsManagerStates _state;
   std::list<ConfiguratorAgent *> _agentsList;
   std::list<uint8_t> _servicesList;
   ConfiguratorRequestHandler _reqHandlers[6];
-  ReturnTimestamp _returnTimestampCb = nullptr;
-  ReturnNetworkSettings _returnNetworkSettingsCb = nullptr;
-  ConfiguratorAgent *_selectedAgent = nullptr;
-  uint8_t _instances = 0;
-  bool _bleAgentEnabled = true;
-  StatusMessage _initStatusMsg = StatusMessage::NONE;
+  ReturnTimestamp _returnTimestampCb;
+  ReturnNetworkSettings _returnNetworkSettingsCb;
+  ConfiguratorAgent *_selectedAgent;
+  uint8_t _instances;
+  bool _bleAgentEnabled;
+  StatusMessage _initStatusMsg;
   NetworkOptions _netOptions;
   typedef struct {
     void reset() {
@@ -84,24 +74,20 @@ private:
     RequestType key;
   } StatusRequest;
 
-  StatusRequest _statusRequest = { .completion = 0 , .pending = false, .key = RequestType::NONE};
+  StatusRequest _statusRequest;
 
   AgentsManagerStates handleInit();
   AgentsManagerStates handleSendInitialStatus();
   AgentsManagerStates handleSendNetworkOptions();
   AgentsManagerStates handleConfInProgress();
+  void updateProgressRequest(StatusMessage type);
+  void updateProgressRequest(MessageOutputType type);
   void handleReceivedCommands(RemoteCommands cmd);
   void handleReceivedData();
-  void handleConnectCommand();
-  void handleUpdateOptCommand();
-  void handleGetIDCommand();
-  void handleGetBleMacAddressCommand();
-  void handleResetCommand();
-  void handleGetWiFiFWVersionCommand();
+
   bool sendStatus(StatusMessage msg);
 
-  AgentsManagerStates handlePeerDisconnected();
-  void callHandler(RequestType key);
+  void handlePeerDisconnected();
   void stopBLEAgent();
   void startBLEAgent();
 };
