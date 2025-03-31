@@ -103,10 +103,9 @@ BoardConfigurationProtocol::TransmissionResult BoardConfigurationProtocol::sendA
 
   for (int i = 0; i < receivedDataLen; i++) {
     PacketManager::ReceivingState res;
-    PacketManager::ReceivedData receivedData;
     uint8_t val = readByte();
 
-    res = PacketManager::getInstance().handleReceivedByte(receivedData, val);
+    res = PacketManager::PacketReceiver::getInstance().handleReceivedByte(_packet, val);
     if (res == PacketManager::ReceivingState::ERROR) {
       DEBUG_DEBUG("BoardConfigurationProtocol::%s Malformed packet", __FUNCTION__);
       sendNak();
@@ -114,13 +113,13 @@ BoardConfigurationProtocol::TransmissionResult BoardConfigurationProtocol::sendA
       transmissionRes = TransmissionResult::INVALID_DATA;
       break;
     } else if (res == PacketManager::ReceivingState::RECEIVED) {
-      switch (receivedData.type) {
+      switch (_packet.Type) {
         case PacketManager::MessageType::DATA:
           {
-            #ifdef BCP_DEBUG_PACKET
-            printPacket("payload", receivedData.payload.get_ptr(), receivedData.payload.len());
+            #if BCP_DEBUG_PACKET == 1
+            printPacket("payload", _packet.Payload.get_ptr(), _packet.Payload.len());
             #endif
-            _inputMessagesList.push_back(receivedData.payload);
+            _inputMessagesList.push_back(_packet.Payload);
             //Consider all sent data as received
             _outputMessagesList.clear();
             transmissionRes = TransmissionResult::DATA_RECEIVED;
@@ -128,11 +127,11 @@ BoardConfigurationProtocol::TransmissionResult BoardConfigurationProtocol::sendA
           break;
         case PacketManager::MessageType::TRANSMISSION_CONTROL:
           {
-            if (receivedData.payload.len() == 1 && receivedData.payload[0] == 0x03) {
+            if (_packet.Payload.len() == 1 && _packet.Payload[0] == 0x03) {
               for (std::list<OutputPacketBuffer>::iterator packet = _outputMessagesList.begin(); packet != _outputMessagesList.end(); ++packet) {
                 packet->startProgress();
               }
-            } else if (receivedData.payload.len() == 1 && receivedData.payload[0] == 0x02) {
+            } else if (_packet.Payload.len() == 1 && _packet.Payload[0] == 0x02) {
               handleDisconnectRequest();
             }
           }
@@ -140,6 +139,7 @@ BoardConfigurationProtocol::TransmissionResult BoardConfigurationProtocol::sendA
         default:
           break;
       }
+      PacketManager::PacketReceiver::getInstance().clear(_packet);
     }
   }
 
@@ -159,7 +159,7 @@ bool BoardConfigurationProtocol::sendData(PacketManager::MessageType type, const
     return false;
   }
 
-  #ifdef BCP_DEBUG_PACKET
+  #if BCP_DEBUG_PACKET == 1
   printPacket("output message", outputMsg.get_ptr(), outputMsg.len());
   #endif
 
@@ -177,7 +177,7 @@ bool BoardConfigurationProtocol::sendData(PacketManager::MessageType type, const
 }
 
 void BoardConfigurationProtocol::clear() {
-  PacketManager::getInstance().clear();
+  PacketManager::PacketReceiver::getInstance().clear(_packet);
   _outputMessagesList.clear();
   _inputMessagesList.clear();
 }
@@ -346,7 +346,9 @@ BoardConfigurationProtocol::TransmissionResult BoardConfigurationProtocol::trans
     if (packet->hasBytesToSend()) {
       res = TransmissionResult::NOT_COMPLETED;
       packet->incrementBytesSent(writeBytes(packet->get_ptrAt(packet->bytesSent()), packet->bytesToSend()));
+      #if BCP_DEBUG_PACKET == 1
       DEBUG_DEBUG("BoardConfigurationProtocol::%s  transferred: %d of %d", __FUNCTION__, packet->bytesSent(), packet->len());
+      #endif
       break;
     }
   }

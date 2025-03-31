@@ -31,6 +31,7 @@ public:
 private:
   AgentConfiguratorStates _state = AgentConfiguratorStates::END;
   bool _disconnectRequest = false;
+  PacketManager::Packet_t _packet;
   /*SerialAgent private methods*/
   AgentConfiguratorStates handleInit();
   AgentConfiguratorStates handlePeerConnected();
@@ -121,21 +122,20 @@ inline ConfiguratorAgent::AgentConfiguratorStates SerialAgentClass::handleInit()
     return nextState;
   }
 
-  PacketManager::ReceivedData receivedData;
   while (Serial.available()) {
     uint8_t byte = Serial.read();
-    PacketManager::ReceivingState res = PacketManager::getInstance().handleReceivedByte(receivedData, byte);
+    PacketManager::ReceivingState res = PacketManager::PacketReceiver::getInstance().handleReceivedByte(_packet, byte);
     if (res == PacketManager::ReceivingState::RECEIVED) {
-      if (receivedData.type == PacketManager::MessageType::TRANSMISSION_CONTROL) {
-        if (receivedData.payload.len() == 1 && receivedData.payload[0] == 0x01) {
+      if (_packet.Type == PacketManager::MessageType::TRANSMISSION_CONTROL) {
+        if (_packet.Payload.len() == 1 && _packet.Payload[0] == 0x01) {
           //CONNECT
           nextState = AgentConfiguratorStates::PEER_CONNECTED;
-          PacketManager::getInstance().clear();
+          PacketManager::PacketReceiver::getInstance().clear(_packet);
         }
       }
     } else if (res == PacketManager::ReceivingState::ERROR) {
       DEBUG_DEBUG("SerialAgentClass::%s Error receiving packet", __FUNCTION__);
-      PacketManager::getInstance().clear();
+      PacketManager::PacketReceiver::getInstance().clear(_packet);
       clearInputBuffer();
     }
   }

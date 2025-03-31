@@ -49,4 +49,5 @@ private:
   void printPacket(const char *label, const uint8_t *data, size_t len);
   std::list<OutputPacketBuffer> _outputMessagesList;
   std::list<InputPacketBuffer> _inputMessagesList;
+  PacketManager::Packet_t _packet;
 };

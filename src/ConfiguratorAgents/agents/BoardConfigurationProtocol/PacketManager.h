@@ -10,47 +10,57 @@
 #include "Arduino.h"
 #include "PacketBuffer.h"
 
-class PacketManager {
-public:
+namespace PacketManager {
   enum class ReceivingState { WAITING_HEADER,
-                              WAITING_PAYLOAD,
-                              WAITING_END,
-                              RECEIVED,
-                              ERROR };
+    WAITING_PAYLOAD,
+    WAITING_END,
+    RECEIVED,
+    ERROR };
+
   enum class MessageType { DATA     = 2,
                            TRANSMISSION_CONTROL = 3 };
+
+  /*
+   * The packet structure
+   * 0x55 0xaa <type> <len> <payload> <crc> 0xaa 0x55
+   *  ____________________________________________________________________________________________________________________________________
+   * | Byte[0] | Byte[1] | Byte[2] | Byte[3] | Byte[4] | Byte[5].......Byte[len -3] | Byte[len-2] | Byte[len-1] | Byte[len] | Byte[len+1] |
+   * |______________________HEADER_____________________|__________ PAYLOAD _________|_____________________ TRAILER _______________________|
+   * | 0x55    | 0xaa    | <type>  | <len>             | <payload>                  | <crc>                     | 0xaa      | 0x55        |
+   * |____________________________________________________________________________________________________________________________________|
+   * <type> = MessageType: 2 = DATA, 3 = TRANSMISSION_CONTROL
+   * <len> = length of the payload + 2 bytes for the CRC
+   * <payload> = the data to be sent or received
+   * <crc> = CRC16 of the payload
+   */
   typedef struct {
-    MessageType type;
-    InputPacketBuffer payload;
-  } ReceivedData;
-  
-  static bool createPacket(OutputPacketBuffer &msg, MessageType type, const uint8_t *data, size_t len);
+    InputPacketBuffer Header = {5};
+    InputPacketBuffer Payload;
+    InputPacketBuffer Trailer = {4};
+    uint32_t LastByteReceivedTs = 0;
+    MessageType Type;
+  } Packet_t;
 
-  static PacketManager &getInstance() {
-    static PacketManager instance;
-    return instance;
-  }
+  bool createPacket(OutputPacketBuffer &msg, MessageType type, const uint8_t *data, size_t len);
 
-  ReceivingState handleReceivedByte(ReceivedData &receivedData, uint8_t byte);
-  void clear();
-private:
-  PacketManager()
-    : _tempInputMessageHeader{ 5 }, _tempInputMessageEnd{ 4 } {};
-  ReceivingState _state = ReceivingState::WAITING_HEADER;
-  InputPacketBuffer _tempInputMessageHeader;
-  InputPacketBuffer _tempInputMessagePayload;
-  InputPacketBuffer _tempInputMessageEnd;
-  uint32_t _lastByteReceivedTs = 0;
-
-  ReceivingState handle_WaitingHeader(uint8_t byte);
-  ReceivingState handle_WaitingPayload(uint8_t byte);
-  ReceivingState handle_WaitingEnd(uint8_t byte);
-  void clearInputBuffers();
-  bool checkBeginPacket();
-  bool checkEndPacket();
-  bool checkCRC();
-  uint8_t getPacketType();
-  uint16_t getPacketLen();
-};
-
-//extern PacketManager Packet;
+  class PacketReceiver {
+    public:
+      ReceivingState handleReceivedByte(Packet_t &packet, uint8_t byte);
+      static PacketReceiver &getInstance() {
+        static PacketReceiver instance;
+        return instance;
+      }
+      void clear(Packet_t &packet);
+    private:
+      ReceivingState _state = ReceivingState::WAITING_HEADER;
+      ReceivingState handle_WaitingHeader(Packet_t &packet, uint8_t byte);
+      ReceivingState handle_WaitingPayload(Packet_t &packet, uint8_t byte);
+      ReceivingState handle_WaitingEnd(Packet_t &packet, uint8_t byte);
+      void clearInputBuffers(Packet_t &packet);
+      bool checkBeginPacket(Packet_t &packet);
+      bool checkEndPacket(Packet_t &packet);
+      bool checkCRC(Packet_t &packet);
+      uint8_t getPacketType(Packet_t &packet);
+      uint16_t getPacketLen(Packet_t &packet);
+  };
+}
