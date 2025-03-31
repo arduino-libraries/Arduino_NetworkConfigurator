@@ -9,7 +9,7 @@
 #pragma once
 #include <stdint.h>
 #include <stddef.h>
-#include <Arduino_CBOR.h> // FIXME maybe include only message.h
+#include <Arduino_CBOR.h>
 #include <ConnectionHandlerDefinitions.h>
 #include <settings/settings.h>
 #include <ConfiguratorAgents/NetworkOptionsDefinitions.h>
@@ -31,9 +31,6 @@
 #define MAX_WIFI_NETWORKS           20
 #define MAX_IP_SIZE                 16
 
-// TODO may be move this?
-// TODO put values
-// TODO maybe you need to put tag in the name?
 enum CBORProvisioningMessageTag: CBORTag {
   CBORTimestampProvisioningMessage          = 0x012002,
   CBORCommandsProvisioningMessage           = 0x012003,
@@ -53,7 +50,6 @@ enum CBORProvisioningMessageTag: CBORTag {
   CBORWiFiFWVersionProvisioningMessage      = 0x012014,
 };
 
-// FIXME naming a little bit redundant
 enum ProvisioningMessageId: MessageId {
   /* Provisioning commands*/
   StatusProvisioningMessageId = ArduinoProvisioningStartMessageId,

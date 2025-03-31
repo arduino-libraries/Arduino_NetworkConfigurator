@@ -13,7 +13,6 @@
 #include "ProvisioningMessage.h"
 #include <Arduino_CBOR.h>
 
-// TODO better naming
 class TimestampProvisioningMessageDecoder: public CBORMessageDecoderInterface {
 public:
   TimestampProvisioningMessageDecoder()

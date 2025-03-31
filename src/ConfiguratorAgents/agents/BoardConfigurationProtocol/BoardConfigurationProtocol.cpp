@@ -10,6 +10,10 @@
 #include "CBORAdapter.h"
 #include "cbor/CBOR.h"
 
+#ifndef BCP_DEBUG_PACKET
+#define BCP_DEBUG_PACKET 0
+#endif
+
 #define PACKET_VALIDITY_MS 30000
 
 /******************************************************************************
@@ -86,57 +90,57 @@ BoardConfigurationProtocol::TransmissionResult BoardConfigurationProtocol::sendA
     return TransmissionResult::PEER_NOT_AVAILABLE;
   }
 
-  if (hasReceivedBytes()) {
-    int receivedDataLen = receivedBytes();
-
-    PacketManager::ReceivingState res;
-    PacketManager::ReceivedData receivedData;
-
-    for (int i = 0; i < receivedDataLen; i++) {
-      uint8_t val = readByte();
-      res = PacketManager::getInstance().handleReceivedByte(receivedData, val);
-      if (res == PacketManager::ReceivingState::ERROR) {
-        DEBUG_DEBUG("BoardConfigurationProtocol::%s Error receiving packet", __FUNCTION__);
-        sendNak();
-        clearInputBuffer();
-        transmissionRes = TransmissionResult::INVALID_DATA;
-        break;
-      } else if (res == PacketManager::ReceivingState::RECEIVED) {
-        switch (receivedData.type) {
-          case PacketManager::MessageType::DATA:
-            {
-              //DEBUG_DEBUG("BoardConfigurationProtocol::%s Received data packet", __FUNCTION__);
-              //printPacket("payload", receivedData.payload.get_ptr(), receivedData.payload.len());
-              _inputMessagesList.push_back(receivedData.payload);
-              //Consider all sent data as received
-              _outputMessagesList.clear();
-              transmissionRes = TransmissionResult::DATA_RECEIVED;
-            }
-            break;
-          case PacketManager::MessageType::TRANSMISSION_CONTROL:
-            {
-              if (receivedData.payload.len() == 1 && receivedData.payload[0] == 0x03) {
-
-                //DEBUG_DEBUG("BoardConfigurationProtocol::%s Received NACK packet", __FUNCTION__);
-                for (std::list<OutputPacketBuffer>::iterator packet = _outputMessagesList.begin(); packet != _outputMessagesList.end(); ++packet) {
-                  packet->startProgress();
-                }
-              } else if (receivedData.payload.len() == 1 && receivedData.payload[0] == 0x02) {
-                //DEBUG_DEBUG("BoardConfigurationProtocol::%s Received disconnect request", __FUNCTION__);
-                handleDisconnectRequest();
-              }
-            }
-            break;
-          default:
-            break;
-        }
-      }
-    }
-  }
-
   if (_outputMessagesList.size() > 0) {
     checkOutputPacketValidity();
     transmitStream();
+  }
+
+  if (!hasReceivedBytes()) {
+    return transmissionRes;
+  }
+
+  int receivedDataLen = receivedBytes();
+
+  for (int i = 0; i < receivedDataLen; i++) {
+    PacketManager::ReceivingState res;
+    PacketManager::ReceivedData receivedData;
+    uint8_t val = readByte();
+
+    res = PacketManager::getInstance().handleReceivedByte(receivedData, val);
+    if (res == PacketManager::ReceivingState::ERROR) {
+      DEBUG_DEBUG("BoardConfigurationProtocol::%s Malformed packet", __FUNCTION__);
+      sendNak();
+      clearInputBuffer();
+      transmissionRes = TransmissionResult::INVALID_DATA;
+      break;
+    } else if (res == PacketManager::ReceivingState::RECEIVED) {
+      switch (receivedData.type) {
+        case PacketManager::MessageType::DATA:
+          {
+            #ifdef BCP_DEBUG_PACKET
+            printPacket("payload", receivedData.payload.get_ptr(), receivedData.payload.len());
+            #endif
+            _inputMessagesList.push_back(receivedData.payload);
+            //Consider all sent data as received
+            _outputMessagesList.clear();
+            transmissionRes = TransmissionResult::DATA_RECEIVED;
+          }
+          break;
+        case PacketManager::MessageType::TRANSMISSION_CONTROL:
+          {
+            if (receivedData.payload.len() == 1 && receivedData.payload[0] == 0x03) {
+              for (std::list<OutputPacketBuffer>::iterator packet = _outputMessagesList.begin(); packet != _outputMessagesList.end(); ++packet) {
+                packet->startProgress();
+              }
+            } else if (receivedData.payload.len() == 1 && receivedData.payload[0] == 0x02) {
+              handleDisconnectRequest();
+            }
+          }
+          break;
+        default:
+          break;
+      }
+    }
   }
 
   return transmissionRes;
@@ -152,11 +156,12 @@ bool BoardConfigurationProtocol::sendData(PacketManager::MessageType type, const
   outputMsg.setValidityTs(millis() + PACKET_VALIDITY_MS);
 
   if (!PacketManager::createPacket(outputMsg, type, data, len)) {
-    //DEBUG_WARNING("BoardConfigurationProtocol::%s Failed to create packet", __FUNCTION__);
     return false;
   }
 
-  //printPacket("output message", outputMsg.get_ptr(), outputMsg.len());
+  #ifdef BCP_DEBUG_PACKET
+  printPacket("output message", outputMsg.get_ptr(), outputMsg.len());
+  #endif
 
   _outputMessagesList.push_back(outputMsg);
 
@@ -198,7 +203,6 @@ bool BoardConfigurationProtocol::sendStatus(StatusMessage msg) {
   uint8_t data[len];
   res = CBORAdapter::statusToCBOR(msg, data, &len);
   if (!res) {
-    //DEBUG_ERROR("BoardConfigurationProtocol::%s failed encode status: %d ", __FUNCTION__, (int)msg);
     return res;
   }
 
@@ -249,13 +253,12 @@ bool BoardConfigurationProtocol::sendUhwid(const byte *uhwid) {
   res = CBORAdapter::uhwidToCBOR(uhwid, data, &cborDataLen);
 
   if (!res) {
-    //DEBUG_ERROR("BoardConfigurationProtocol::%s failed to convert uhwid to CBOR", __FUNCTION__);
     return res;
   }
 
   res = sendData(PacketManager::MessageType::DATA, data, cborDataLen);
   if (!res) {
-    DEBUG_ERROR("BoardConfigurationProtocol::%s failed to send uhwid", __FUNCTION__);
+    DEBUG_WARNING("BoardConfigurationProtocol::%s failed to send uhwid", __FUNCTION__);
     return res;
   }
 
@@ -265,7 +268,6 @@ bool BoardConfigurationProtocol::sendUhwid(const byte *uhwid) {
 bool BoardConfigurationProtocol::sendJwt(const char *jwt, size_t len) {
   bool res = false;
   if (len > MAX_JWT_SIZE) {
-    //DEBUG_ERROR("BoardConfigurationProtocol::%s JWT too long", __FUNCTION__);
     return res;
   }
 
@@ -274,14 +276,13 @@ bool BoardConfigurationProtocol::sendJwt(const char *jwt, size_t len) {
 
   res = CBORAdapter::jwtToCBOR(jwt, data, &cborDataLen);
   if (!res) {
-    //DEBUG_ERROR("BoardConfigurationProtocol::%s failed to convert JWT to CBOR", __FUNCTION__);
     return res;
   }
 
   res = sendData(PacketManager::MessageType::DATA, data, cborDataLen);
 
   if (!res) {
-    DEBUG_ERROR("BoardConfigurationProtocol::%s failed to send JWT", __FUNCTION__);
+    DEBUG_WARNING("BoardConfigurationProtocol::%s failed to send JWT", __FUNCTION__);
     return res;
   }
 
@@ -291,7 +292,6 @@ bool BoardConfigurationProtocol::sendJwt(const char *jwt, size_t len) {
 bool BoardConfigurationProtocol::sendBleMacAddress(const uint8_t *mac, size_t len) {
   bool res = false;
   if (len != BLE_MAC_ADDRESS_SIZE) {
-    //DEBUG_ERROR("BoardConfigurationProtocol::%s Invalid BLE MAC address", __FUNCTION__);
     return res;
   }
 
@@ -300,13 +300,12 @@ bool BoardConfigurationProtocol::sendBleMacAddress(const uint8_t *mac, size_t le
 
   res = CBORAdapter::BLEMacAddressToCBOR(mac, data, &cborDataLen);
   if (!res) {
-    //DEBUG_ERROR("BoardConfigurationProtocol::%s failed to convert BLE MAC address to CBOR", __FUNCTION__);
     return res;
   }
 
   res = sendData(PacketManager::MessageType::DATA, data, cborDataLen);
   if (!res) {
-    DEBUG_ERROR("BoardConfigurationProtocol::%s failed to send BLE MAC address", __FUNCTION__);
+    DEBUG_WARNING("BoardConfigurationProtocol::%s failed to send BLE MAC address", __FUNCTION__);
     return res;
   }
   return res;
@@ -320,13 +319,12 @@ bool BoardConfigurationProtocol::sendWifiFWVersion(const char *wifiFWVersion) {
 
   res = CBORAdapter::wifiFWVersionToCBOR(wifiFWVersion, data, &cborDataLen);
   if (!res) {
-    DEBUG_ERROR("BoardConfigurationProtocol::%s failed to convert WiFi FW version to CBOR", __FUNCTION__);
     return res;
   }
 
   res = sendData(PacketManager::MessageType::DATA, data, cborDataLen);
   if (!res) {
-    DEBUG_ERROR("BoardConfigurationProtocol::%s failed to send WiFi FW version", __FUNCTION__);
+    DEBUG_WARNING("BoardConfigurationProtocol::%s failed to send WiFi FW version", __FUNCTION__);
     return res;
   }
 

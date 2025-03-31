@@ -35,7 +35,6 @@ bool CBORAdapter::jwtToCBOR(const char *jwt, uint8_t *data, size_t *len) {
   CBORMessageEncoder encoder;
 
   if (*len < CBOR_DATA_JWT_LEN || strlen(jwt) > MAX_JWT_SIZE) {
-    //Serial.println("CBORAdapter jwtToCBOR: Invalid jwt size");
     return false;
   }
 

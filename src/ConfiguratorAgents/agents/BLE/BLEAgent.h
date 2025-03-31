@@ -92,7 +92,6 @@ private:
   void clearInputBuffer();
 };
 
-//extern BLEAgentClass BLEAgent;
 inline BLEAgentClass::BLEAgentClass()
   : _confService{ "5e5be887-c816-4d4f-b431-9eb34b02f4d9" },
     _inputStreamCharacteristic{ "0000ffe1-0000-1000-8000-00805f9b34fc", BLEWrite, 256 },
@@ -134,7 +133,7 @@ inline ConfiguratorAgent::AgentConfiguratorStates BLEAgentClass::begin() {
   BLE.advertise();
   LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::BLE_AVAILABLE);
   _state = AgentConfiguratorStates::INIT;
-  //DEBUG_DEBUG("BLEAgentClass begin completed");
+
   return _state;
 }
 
