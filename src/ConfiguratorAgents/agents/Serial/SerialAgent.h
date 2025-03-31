@@ -117,24 +117,26 @@ inline bool SerialAgentClass::isPeerConnected() {
 
 inline ConfiguratorAgent::AgentConfiguratorStates SerialAgentClass::handleInit() {
   AgentConfiguratorStates nextState = _state;
-  if (Serial) {
-    PacketManager::ReceivedData receivedData;
-    while (Serial.available()) {
-      uint8_t byte = Serial.read();
-      PacketManager::ReceivingState res = PacketManager::getInstance().handleReceivedByte(receivedData, byte);
-      if (res == PacketManager::ReceivingState::RECEIVED) {
-        if (receivedData.type == PacketManager::MessageType::TRANSMISSION_CONTROL) {
-          if (receivedData.payload.len() == 1 && receivedData.payload[0] == 0x01) {
-            //CONNECT
-            nextState = AgentConfiguratorStates::PEER_CONNECTED;
-            PacketManager::getInstance().clear();
-          }
+  if (!Serial) {
+    return nextState;
+  }
+
+  PacketManager::ReceivedData receivedData;
+  while (Serial.available()) {
+    uint8_t byte = Serial.read();
+    PacketManager::ReceivingState res = PacketManager::getInstance().handleReceivedByte(receivedData, byte);
+    if (res == PacketManager::ReceivingState::RECEIVED) {
+      if (receivedData.type == PacketManager::MessageType::TRANSMISSION_CONTROL) {
+        if (receivedData.payload.len() == 1 && receivedData.payload[0] == 0x01) {
+          //CONNECT
+          nextState = AgentConfiguratorStates::PEER_CONNECTED;
+          PacketManager::getInstance().clear();
         }
-      } else if (res == PacketManager::ReceivingState::ERROR) {
-        DEBUG_DEBUG("SerialAgentClass::%s Error receiving packet", __FUNCTION__);
-        PacketManager::getInstance().clear();
-        clearInputBuffer();
       }
+    } else if (res == PacketManager::ReceivingState::ERROR) {
+      DEBUG_DEBUG("SerialAgentClass::%s Error receiving packet", __FUNCTION__);
+      PacketManager::getInstance().clear();
+      clearInputBuffer();
     }
   }
 
