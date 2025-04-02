@@ -18,7 +18,7 @@
 #include <Arduino_KVStore.h>
 #include "Utility/ResetInput/ResetInput.h"
 
-enum class NetworkConfiguratorStates { CHECK_ETH, //TODO rename 
+enum class NetworkConfiguratorStates { ZERO_TOUCH_CONFIG,
                                        READ_STORED_CONFIG,
                                        WAITING_FOR_CONFIG,
                                        CONNECTING,
@@ -161,8 +161,8 @@ private:
   KVStore *_kvstore;
   AgentsManagerClass *_agentsManager;
 
-#ifdef BOARD_HAS_ETHERNET
-  NetworkConfiguratorStates handleCheckEth(); //TODO rename
+#if ZERO_TOUCH_ENABLED
+  NetworkConfiguratorStates handleZeroTouchConfig();
 #endif
   NetworkConfiguratorStates handleReadStorage();
   NetworkConfiguratorStates handleWaitingForConf();
@@ -180,6 +180,9 @@ private:
   ConnectionResult disconnectFromNetwork();
   bool sendStatus(StatusMessage msg);
   static void printNetworkSettings();
+#ifdef BOARD_HAS_ETHERNET
+  void defaultEthernetSettings();
+#endif
 #ifdef BOARD_HAS_WIFI
   bool scanWiFiNetworks(WiFiOption &wifiOptObj);
   bool insertWiFiAP(WiFiOption &wifiOptObj, char *ssid, int rssi);

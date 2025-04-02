@@ -51,7 +51,11 @@ bool NetworkConfiguratorClass::begin() {
   if(_state != NetworkConfiguratorStates::END) {
     return true;
   }
+  #if  ZERO_TOUCH_ENABLED
+  _state = NetworkConfiguratorStates::ZERO_TOUCH_CONFIG;
+  #else
   _state = NetworkConfiguratorStates::READ_STORED_CONFIG;
+  #endif
   memset(&_networkSetting, 0x00, sizeof(models::NetworkSetting));
   LEDFeedbackClass::getInstance().begin();
 #ifdef BOARD_HAS_WIFI
@@ -76,17 +80,6 @@ bool NetworkConfiguratorClass::begin() {
   _connectionRetryTimer.begin(NC_CONNECTION_RETRY_TIMER_ms);
   _resetInput->begin();
 
-#ifdef BOARD_HAS_ETHERNET //TODO Generalize
-  _networkSetting.type = NetworkAdapter::ETHERNET;
-  _networkSetting.eth.timeout = 250;
-  _networkSetting.eth.response_timeout = 500;
-  if (!_connectionHandler->updateSetting(_networkSetting)) {
-    return true;
-  }
-  _connectionHandlerIstantiated = true;
-  _connectionTimeout.reload();
-  _state = NetworkConfiguratorStates::CHECK_ETH;
-#endif
   return true;
 }
 
@@ -95,16 +88,16 @@ NetworkConfiguratorStates NetworkConfiguratorClass::poll() {
   LEDFeedbackClass::getInstance().poll();//TODO rename in update
 
   switch (_state) {
-#ifdef BOARD_HAS_ETHERNET
-    case NetworkConfiguratorStates::CHECK_ETH:           nextState = handleCheckEth     (); break;
+#if ZERO_TOUCH_ENABLED
+    case NetworkConfiguratorStates::ZERO_TOUCH_CONFIG:  nextState = handleZeroTouchConfig(); break;
 #endif
-    case NetworkConfiguratorStates::READ_STORED_CONFIG: nextState = handleReadStorage   (); break;
-    case NetworkConfiguratorStates::WAITING_FOR_CONFIG: nextState = handleWaitingForConf(); break;
-    case NetworkConfiguratorStates::CONNECTING:         nextState = handleConnecting    (); break;
-    case NetworkConfiguratorStates::CONFIGURED:         nextState = handleConfigured    (); break;
-    case NetworkConfiguratorStates::UPDATING_CONFIG:    nextState = handleUpdatingConfig(); break;
-    case NetworkConfiguratorStates::ERROR:              nextState = handleErrorState    (); break;
-    case NetworkConfiguratorStates::END:                                                    break;
+    case NetworkConfiguratorStates::READ_STORED_CONFIG: nextState = handleReadStorage    (); break;
+    case NetworkConfiguratorStates::WAITING_FOR_CONFIG: nextState = handleWaitingForConf (); break;
+    case NetworkConfiguratorStates::CONNECTING:         nextState = handleConnecting     (); break;
+    case NetworkConfiguratorStates::CONFIGURED:         nextState = handleConfigured     (); break;
+    case NetworkConfiguratorStates::UPDATING_CONFIG:    nextState = handleUpdatingConfig (); break;
+    case NetworkConfiguratorStates::ERROR:              nextState = handleErrorState     (); break;
+    case NetworkConfiguratorStates::END:                                                     break;
   }
 
   if(_state != nextState){
@@ -429,22 +422,32 @@ void NetworkConfiguratorClass::startReconfigureProcedure() {
   NVIC_SystemReset();
 }
 
-#ifdef BOARD_HAS_ETHERNET
-NetworkConfiguratorStates NetworkConfiguratorClass::handleCheckEth() {
-  NetworkConfiguratorStates nextState = _state;
+#if ZERO_TOUCH_ENABLED
+NetworkConfiguratorStates NetworkConfiguratorClass::handleZeroTouchConfig() {
+  if(_networkSetting.type == NetworkAdapter::NONE) {
+    #ifdef BOARD_HAS_ETHERNET
+    defaultEthernetSettings();
+    #endif
+    if (!_connectionHandler->updateSetting(_networkSetting)) {
+      return NetworkConfiguratorStates::READ_STORED_CONFIG;
+    }
+    _connectionHandlerIstantiated = true;
+    _connectionTimeout.reload();
+  }
+
   StatusMessage err;
   ConnectionResult connectionRes = connectToNetwork(&err);
   if (connectionRes == ConnectionResult::SUCCESS) {
-    nextState = NetworkConfiguratorStates::CONFIGURED;
+    return NetworkConfiguratorStates::CONFIGURED;
   } else if (connectionRes == ConnectionResult::FAILED) {
     DEBUG_VERBOSE("NetworkConfiguratorClass::%s Connection eth fail", __FUNCTION__);
     if(disconnectFromNetwork() == ConnectionResult::FAILED) {
       sendStatus(StatusMessage::ERROR);
     }
     _connectionHandlerIstantiated = false;
-    nextState = NetworkConfiguratorStates::READ_STORED_CONFIG;
+    return NetworkConfiguratorStates::READ_STORED_CONFIG;
   }
-  return nextState;
+  return NetworkConfiguratorStates::ZERO_TOUCH_CONFIG;
 }
 #endif
 
@@ -665,4 +668,13 @@ void NetworkConfiguratorClass::printNetworkSettings() {
       break;
   }
 }
-#endif // NETWORK_CONFIGURATOR_COMPATIBLE
+
+#ifdef BOARD_HAS_ETHERNET
+void NetworkConfiguratorClass::defaultEthernetSettings() {
+  _networkSetting.type = NetworkAdapter::ETHERNET;
+  _networkSetting.eth.timeout = 250;
+  _networkSetting.eth.response_timeout = 500;
+}
+#endif
+
+#endif  // NETWORK_CONFIGURATOR_COMPATIBLE
