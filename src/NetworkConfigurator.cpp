@@ -45,6 +45,7 @@ NetworkConfiguratorClass::NetworkConfiguratorClass(ConnectionHandler &connection
       _optionUpdateTimer.begin(NC_UPDATE_NETWORK_OPTIONS_TIMER_ms); //initialize the timer before calling begin
       _agentsManager = &AgentsManagerClass::getInstance();
       _resetInput = &ResetInput::getInstance();
+      _ledFeedback = &LEDFeedbackClass::getInstance();
 }
 
 bool NetworkConfiguratorClass::begin() {
@@ -57,7 +58,7 @@ bool NetworkConfiguratorClass::begin() {
   _state = NetworkConfiguratorStates::READ_STORED_CONFIG;
   #endif
   memset(&_networkSetting, 0x00, sizeof(models::NetworkSetting));
-  LEDFeedbackClass::getInstance().begin();
+  _ledFeedback->begin();
 #ifdef BOARD_HAS_WIFI
   String fv = WiFi.firmwareVersion();
   if (fv < WIFI_FIRMWARE_LATEST_VERSION) {
@@ -85,7 +86,7 @@ bool NetworkConfiguratorClass::begin() {
 
 NetworkConfiguratorStates NetworkConfiguratorClass::update() {
   NetworkConfiguratorStates nextState = _state;
-  LEDFeedbackClass::getInstance().poll();//TODO rename in update
+  _ledFeedback->update();
 
   switch (_state) {
 #if ZERO_TOUCH_ENABLED
@@ -342,7 +343,7 @@ bool NetworkConfiguratorClass::handleConnectRequest() {
     if (!_kvstore->begin()) {
       DEBUG_ERROR("NetworkConfiguratorClass::%s error initializing kvstore", __FUNCTION__);
       sendStatus(StatusMessage::ERROR_STORAGE_BEGIN);
-      LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::ERROR);
+      _ledFeedback->setMode(LEDFeedbackClass::LEDFeedbackMode::ERROR);
       return false;
     }
     bool storeResult = _kvstore->putBytes(STORAGE_KEY, (uint8_t *)&_networkSetting, sizeof(models::NetworkSetting));
@@ -351,7 +352,7 @@ bool NetworkConfiguratorClass::handleConnectRequest() {
     if (!storeResult) {
       DEBUG_ERROR("NetworkConfiguratorClass::%s error saving network settings", __FUNCTION__);
       sendStatus(StatusMessage::ERROR);
-      LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::ERROR);
+      _ledFeedback->setMode(LEDFeedbackClass::LEDFeedbackMode::ERROR);
       return false;
     }
   }
@@ -359,7 +360,7 @@ bool NetworkConfiguratorClass::handleConnectRequest() {
   if (_connectionHandlerIstantiated) {
     if(disconnectFromNetwork() == ConnectionResult::FAILED) {
       sendStatus(StatusMessage::ERROR);
-      LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::ERROR);
+      _ledFeedback->setMode(LEDFeedbackClass::LEDFeedbackMode::ERROR);
       return false;
     }
   }
@@ -370,7 +371,7 @@ bool NetworkConfiguratorClass::handleConnectRequest() {
   }
 
   _connectionHandlerIstantiated = true;
-  LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::CONNECTING_TO_NETWORK);
+  _ledFeedback->setMode(LEDFeedbackClass::LEDFeedbackMode::CONNECTING_TO_NETWORK);
   return true;
 }
 
@@ -460,7 +461,7 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleReadStorage() {
   if (!_kvstore->begin()) {
     DEBUG_ERROR("NetworkConfiguratorClass::%s error initializing kvstore", __FUNCTION__);
     sendStatus(StatusMessage::ERROR_STORAGE_BEGIN);
-    LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::ERROR);
+    _ledFeedback->setMode(LEDFeedbackClass::LEDFeedbackMode::ERROR);
     return NetworkConfiguratorStates::ERROR;
   }
 
@@ -539,7 +540,7 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleConfigured() {
   bool configInprogress = _agentsManager->isConfigInProgress();
 
   if (configInprogress) {
-    LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::PEER_CONNECTED);
+    _ledFeedback->setMode(LEDFeedbackClass::LEDFeedbackMode::PEER_CONNECTED);
   }
 
   _agentsManager->poll();

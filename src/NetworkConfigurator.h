@@ -17,6 +17,7 @@
 #include <Arduino_TimedAttempt.h>
 #include <Arduino_KVStore.h>
 #include "Utility/ResetInput/ResetInput.h"
+#include "Utility/LEDFeedback/LEDFeedback.h"
 
 enum class NetworkConfiguratorStates { ZERO_TOUCH_CONFIG,
                                        READ_STORED_CONFIG,
@@ -141,6 +142,7 @@ private:
   static inline models::NetworkSetting _networkSetting;
   bool _connectionHandlerIstantiated;
   ResetInput *_resetInput;
+  LEDFeedbackClass *_ledFeedback;
   bool _bleEnabled;
   TimedAttempt _connectionTimeout;
   TimedAttempt _connectionRetryTimer;

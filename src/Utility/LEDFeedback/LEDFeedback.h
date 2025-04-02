@@ -25,7 +25,7 @@ public:
     void setMode(LEDFeedbackMode mode);
     void stop();
     void restart();
-    void poll();
+    void update();
 private:
     LEDFeedbackClass() {};
     void turnON();

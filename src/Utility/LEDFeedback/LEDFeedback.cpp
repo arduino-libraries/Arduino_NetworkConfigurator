@@ -197,7 +197,7 @@ void LEDFeedbackClass::restart() {
   stopped = false;
 }
 
-void LEDFeedbackClass::poll() {
+void LEDFeedbackClass::update() {
   if(stopped) {
     return;
   }
