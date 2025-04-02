@@ -5,14 +5,13 @@
   License, v. 2.0. If a copy of the MPL was not distributed with this
   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
+#include "ANetworkConfigurator_Config.h"
+#if NETWORK_CONFIGURATOR_COMPATIBLE
+
 #include "BoardConfigurationProtocol.h"
 #include "Arduino_DebugUtils.h"
 #include "CBORAdapter.h"
 #include "cbor/CBOR.h"
-
-#ifndef BCP_DEBUG_PACKET
-#define BCP_DEBUG_PACKET 0
-#endif
 
 #define PACKET_VALIDITY_MS 30000
 
@@ -370,3 +369,5 @@ void BoardConfigurationProtocol::printPacket(const char *label, const uint8_t *d
   }
   Debug.newlineOn();
 }
+
+#endif // NETWORK_CONFIGURATOR_COMPATIBLE

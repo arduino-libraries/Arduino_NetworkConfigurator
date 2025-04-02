@@ -20,7 +20,6 @@
 #include "Utility/LEDFeedback/LEDFeedback.h"
 #include "ConfiguratorAgents/agents/BoardConfigurationProtocol/cbor/CBORInstances.h"
 
-#define DEBUG_PACKET
 #define BASE_LOCAL_NAME "Arduino"
 #define ARDUINO_COMPANY_ID 0x09A3
 

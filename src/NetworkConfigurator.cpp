@@ -5,6 +5,8 @@
   License, v. 2.0. If a copy of the MPL was not distributed with this
   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
+#include "ANetworkConfigurator_Config.h"
+#if NETWORK_CONFIGURATOR_COMPATIBLE
 
 #include <Arduino_DebugUtils.h>
 #include "ConnectionHandlerDefinitions.h"
@@ -66,7 +68,7 @@ bool NetworkConfiguratorClass::begin() {
 
   _agentsManager->addRequestHandler(RequestType::GET_WIFI_FW_VERSION, getWiFiFWVersionHandler);
 
-  if (!_agentsManager->begin(SERVICE_ID_FOR_AGENTMANAGER)) {
+  if (!_agentsManager->begin(SERVICE_ID_FOR_AGENTMANAGER)) { //TODO check if this is needed if the counter is enough
     DEBUG_ERROR("NetworkConfiguratorClass::%s Failed to initialize the AgentsManagerClass", __FUNCTION__);
   }
 
@@ -74,7 +76,7 @@ bool NetworkConfiguratorClass::begin() {
   _connectionRetryTimer.begin(NC_CONNECTION_RETRY_TIMER_ms);
   _resetInput->begin();
 
-#ifdef BOARD_HAS_ETHERNET
+#ifdef BOARD_HAS_ETHERNET //TODO Generalize
   _networkSetting.type = NetworkAdapter::ETHERNET;
   _networkSetting.eth.timeout = 250;
   _networkSetting.eth.response_timeout = 500;
@@ -90,7 +92,7 @@ bool NetworkConfiguratorClass::begin() {
 
 NetworkConfiguratorStates NetworkConfiguratorClass::poll() {
   NetworkConfiguratorStates nextState = _state;
-  LEDFeedbackClass::getInstance().poll();
+  LEDFeedbackClass::getInstance().poll();//TODO rename in update
 
   switch (_state) {
 #ifdef BOARD_HAS_ETHERNET
@@ -590,7 +592,7 @@ void NetworkConfiguratorClass::printNetworkSettings() {
 #if defined(BOARD_HAS_WIFI)
     case NetworkAdapter::WIFI:
       DEBUG_INFO("WIFI");
-      DEBUG_INFO("SSID: %s PSW: %s", _networkSetting.wifi.ssid, _networkSetting.wifi.pwd);
+      DEBUG_INFO("SSID: %s PSW: %s", _networkSetting.wifi.ssid, _networkSetting.wifi.pwd);//TODO remove psw
       break;
 #endif
 
@@ -663,3 +665,4 @@ void NetworkConfiguratorClass::printNetworkSettings() {
       break;
   }
 }
+#endif // NETWORK_CONFIGURATOR_COMPATIBLE

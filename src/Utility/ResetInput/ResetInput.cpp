@@ -5,24 +5,11 @@
   License, v. 2.0. If a copy of the MPL was not distributed with this
   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
+#include "ANetworkConfigurator_Config.h"
+#if NETWORK_CONFIGURATOR_COMPATIBLE
 
 #include "ResetInput.h"
 #include "Utility/LEDFeedback/LEDFeedback.h"
-
-#ifdef ARDUINO_OPTA
-#define PIN_RECONFIGURE BTN_USER
-#define LED_RECONFIGURE LED_USER
-#elif defined(ARDUINO_SAMD_NANO_33_IOT) || defined(ARDUINO_UNOR4_WIFI) || defined(ARDUINO_NANO_RP2040_CONNECT)
-#define PIN_RECONFIGURE 2
-#define LED_RECONFIGURE LED_BUILTIN
-#else
-#define PIN_RECONFIGURE 7
-#define LED_RECONFIGURE LED_BUILTIN
-#endif
-
-#ifndef RESET_HOLD_TIME
-#define RESET_HOLD_TIME 3000000
-#endif
 
 ResetInput &ResetInput::getInstance() {
   static ResetInput instance;
@@ -110,3 +97,5 @@ void ResetInput::_pressedCallback() {
     _pressedCustomCallback();
   }
 }
+
+#endif // NETWORK_CONFIGURATOR_COMPATIBLE

@@ -11,8 +11,7 @@
 #define MAX_WIFI_NETWORKS 20
 
 enum class NetworkOptionsClass { NONE,
-                                 WIFI,
-                                 LAN };
+                                 WIFI };
 
 typedef struct {
   char *SSID;

@@ -5,62 +5,19 @@
   License, v. 2.0. If a copy of the MPL was not distributed with this
   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
+#include "ANetworkConfigurator_Config.h"
+#if NETWORK_CONFIGURATOR_COMPATIBLE
+
 #include "LEDFeedback.h"
 
-#if defined(ARDUINO_SAMD_MKRWIFI1010)
-#define BOARD_HAS_RGB
-#define GREEN_LED 25
-#define BLUE_LED 27
-#define RED_LED 26
-#define BOARD_USE_NINA
-#define LED_ON HIGH
-#define LED_OFF LOW
+#ifdef BOARD_USE_NINA
 #include "WiFiNINA.h"
 #include "utility/wifi_drv.h"
-#elif defined(ARDUINO_NANO_RP2040_CONNECT)
-#define BOARD_HAS_RGB
-#define GREEN_LED 25
-#define BLUE_LED 26
-#define RED_LED 27
-#define BOARD_USE_NINA
-#define LED_ON LOW
-#define LED_OFF HIGH
-#include "WiFiNINA.h"
-#include "utility/wifi_drv.h"
-#elif defined(ARDUINO_SAMD_NANO_33_IOT)
-#define GREEN_LED LED_BUILTIN
-#define LED_ON HIGH
-#define LED_OFF LOW
-#elif  defined(ARDUINO_PORTENTA_H7_M7) || defined(ARDUINO_PORTENTA_C33) || defined(ARDUINO_NICLA_VISION)
-#define BOARD_HAS_RGB
-#define GREEN_LED LEDG
-#define BLUE_LED  LEDB
-#define RED_LED LEDR
-#define LED_ON LOW
-#define LED_OFF HIGH
-#elif defined(ARDUINO_GIGA)
-#define BOARD_HAS_RGB
-#define GREEN_LED LEDG
-#define BLUE_LED  LEDB
-#define RED_LED LEDR
-#define LED_ON LOW
-#define LED_OFF HIGH
-#elif defined(ARDUINO_OPTA)
-#define BOARD_HAS_RGB
-#define GREEN_LED LED_BUILTIN
-#define BLUE_LED  LED_USER
-#define RED_LED LEDR
-#define LED_ON HIGH
-#define LED_OFF LOW
-#elif defined(ARDUINO_UNOR4_WIFI)
-#define GREEN_LED LED_BUILTIN
-#define LED_ON HIGH
-#define LED_OFF LOW
-#define BOARD_HAS_LED_MATRIX
-#include "Arduino_LED_Matrix.h"
 #endif
 
 #ifdef BOARD_HAS_LED_MATRIX
+#include "Arduino_LED_Matrix.h"
+
 ArduinoLEDMatrix matrix;
 const uint32_t bluetooth[3] = {
 
@@ -89,8 +46,6 @@ const uint32_t cloud[][4] = {
 		66
 	}
 };
-
-
 
 #endif
 
@@ -311,3 +266,5 @@ void LEDFeedbackClass::turnON() {
 #endif
   _ledState = true;
 }
+
+#endif // NETWORK_CONFIGURATOR_COMPATIBLE

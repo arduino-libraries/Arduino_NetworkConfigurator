@@ -5,6 +5,8 @@
   License, v. 2.0. If a copy of the MPL was not distributed with this
   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
+#include "ANetworkConfigurator_Config.h"
+#if NETWORK_CONFIGURATOR_COMPATIBLE
 
 #include "Decoder.h"
 #include <settings/settings_default.h>
@@ -403,3 +405,5 @@ MessageDecoder::Status GSMConfigProvisioningMessageDecoder::decode(CborValue* it
   return extractCellularFields(iter, &provisioningNetworkConfig->networkSetting.gsm);
 }
 #endif
+
+#endif // NETWORK_CONFIGURATOR_COMPATIBLE
