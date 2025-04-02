@@ -33,8 +33,8 @@ enum class RequestType: int { NONE = -1,
 class AgentsManagerClass {
 public:
   static AgentsManagerClass &getInstance();
-  bool begin(uint8_t id);
-  bool end(uint8_t id);
+  bool begin();
+  bool end();
   void disconnect();
   AgentsManagerStates poll();
   void enableBLEAgent(bool enable);
@@ -54,7 +54,6 @@ private:
   AgentsManagerClass();
   AgentsManagerStates _state;
   std::list<ConfiguratorAgent *> _agentsList;
-  std::list<uint8_t> _servicesList;
   ConfiguratorRequestHandler _reqHandlers[6];
   ReturnTimestamp _returnTimestampCb;
   ReturnNetworkSettings _returnNetworkSettingsCb;

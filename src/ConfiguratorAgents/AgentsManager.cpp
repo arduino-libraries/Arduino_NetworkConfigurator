@@ -28,8 +28,7 @@ AgentsManagerClass &AgentsManagerClass::getInstance() {
   return instance;
 };
 
-bool AgentsManagerClass::begin(uint8_t id) {
-  _servicesList.push_back(id);
+bool AgentsManagerClass::begin() {
   _instances++;
 
   if (_state != AgentsManagerStates::END) {
@@ -82,14 +81,7 @@ bool AgentsManagerClass::isBLEAgentEnabled() {
   return _bleAgentEnabled;
 }
 
-bool AgentsManagerClass::end(uint8_t id) {
-  std::list<uint8_t>::iterator it = std::find(_servicesList.begin(), _servicesList.end(), id);
-  if (it != _servicesList.end()) {
-    _servicesList.erase(it);
-  } else {
-    return false;
-  }
-
+bool AgentsManagerClass::end() {
   _instances--;
   if (_instances == 0) {
     std::for_each(_agentsList.begin(), _agentsList.end(), [](ConfiguratorAgent *agent) {

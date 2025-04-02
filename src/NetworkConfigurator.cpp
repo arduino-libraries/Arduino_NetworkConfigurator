@@ -18,8 +18,6 @@
 #endif
 #include "NetworkConfigurator.h"
 
-#define SERVICE_ID_FOR_AGENTMANAGER 0xB0
-
 #define NC_CONNECTION_RETRY_TIMER_ms 120000
 #define NC_CONNECTION_TIMEOUT_ms 15000
 #define NC_UPDATE_NETWORK_OPTIONS_TIMER_ms 120000
@@ -73,7 +71,7 @@ bool NetworkConfiguratorClass::begin() {
 
   _agentsManager->addRequestHandler(RequestType::GET_WIFI_FW_VERSION, getWiFiFWVersionHandler);
 
-  if (!_agentsManager->begin(SERVICE_ID_FOR_AGENTMANAGER)) { //TODO check if this is needed if the counter is enough
+  if (!_agentsManager->begin()) {
     DEBUG_ERROR("NetworkConfiguratorClass::%s Failed to initialize the AgentsManagerClass", __FUNCTION__);
   }
 
@@ -155,12 +153,16 @@ bool NetworkConfiguratorClass::resetStoredConfiguration() {
 }
 
 bool NetworkConfiguratorClass::end() {
+  if (_state == NetworkConfiguratorStates::END) {
+    return true;
+  }
+
   _agentsManager->removeReturnNetworkSettingsCallback();
   _agentsManager->removeRequestHandler(RequestType::SCAN);
   _agentsManager->removeRequestHandler(RequestType::CONNECT);
   _agentsManager->removeRequestHandler(RequestType::GET_WIFI_FW_VERSION);
   _state = NetworkConfiguratorStates::END;
-  return _agentsManager->end(SERVICE_ID_FOR_AGENTMANAGER);
+  return _agentsManager->end();
 }
 
 bool NetworkConfiguratorClass::scanNetworkOptions() {
