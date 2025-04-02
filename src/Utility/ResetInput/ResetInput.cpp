@@ -53,7 +53,7 @@ bool ResetInput::isEventFired() {
   return _fireEvent;
 }
 
-void ResetInput::setPinChangedCallback(void (*callback)()) {
+void ResetInput::setPinChangedCallback(ResetInputCallback callback) {
   _pressedCustomCallback = callback;
 }
 

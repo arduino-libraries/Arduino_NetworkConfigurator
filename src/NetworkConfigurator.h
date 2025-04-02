@@ -107,8 +107,7 @@ public:
    * interrupt on the reconfiguration pin is fired.
    * @param callback Pointer to the callback function.
    */
-  //TODO add to example
-  void addReconfigurePinCallback(void (*callback)());//TODO add version with std:function https://github.com/arduino-libraries/ArduinoMqttClient/blob/0a0706262ad56043954b008a7f89adf3b783ec88/src/MqttClient.h#L38
+  void addReconfigurePinCallback(ResetInput::ResetInputCallback callback);
 
   /**
    * @brief Checks if BLE (Bluetooth Low Energy) is enabled.
@@ -125,7 +124,7 @@ public:
   /**
    * @brief Disconnects the current agent from the peer.
    */
-  void disconnectAgent();//TODO think about a method for returning the agent and call its disconnect
+  void disconnectAgent();
 
   /**
    * @brief Adds a new configurator agent.

@@ -193,7 +193,7 @@ void NetworkConfiguratorClass::setReconfigurePin(uint32_t pin) {
   _resetInput->setPin(pin);
 }
 
-void NetworkConfiguratorClass::addReconfigurePinCallback(void (*callback)()) {
+void NetworkConfiguratorClass::addReconfigurePinCallback(ResetInput::ResetInputCallback callback) {
   _resetInput->setPinChangedCallback(callback);
 }
 

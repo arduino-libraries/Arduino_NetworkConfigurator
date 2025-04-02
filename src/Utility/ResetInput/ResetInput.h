@@ -9,21 +9,23 @@
 #pragma once
 
 #include "Arduino.h"
+#include <functional>
 
 class ResetInput{
 public:
+  typedef std::function<void()> ResetInputCallback;
   static ResetInput& getInstance();
   // Setup the interrupt pin
   void begin();
   // Monitor if the event is fired
   bool isEventFired();
   // Add a custom function to be called when the pin status changes. It must be set before calling the begin method
-  void setPinChangedCallback(void (*callback)());
+  void setPinChangedCallback(ResetInputCallback callback);
   // Set the pin to be monitored. It must be set before calling the begin method
   void setPin(uint32_t pin);
 private:
   ResetInput();
-  static inline void (*_pressedCustomCallback)();
+  static inline ResetInputCallback _pressedCustomCallback;
   uint32_t _pin;
   static inline volatile bool _pressed;
   static inline volatile bool _fireEvent;

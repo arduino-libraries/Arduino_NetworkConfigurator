@@ -25,18 +25,18 @@
  * by Fabio Centonze
  */
 
- #include <Arduino_ConnectionHandler.h>
- #include <GenericConnectionHandler.h>
- #include <Arduino_KVStore.h>
- #include <NetworkConfigurator.h>
- #include <ConfiguratorAgents/agents/BLE/BLEAgent.h>
- #include <ConfiguratorAgents/agents/Serial/SerialAgent.h>
+#include <Arduino_ConnectionHandler.h>
+#include <GenericConnectionHandler.h>
+#include <Arduino_KVStore.h>
+#include <NetworkConfigurator.h>
+#include <ConfiguratorAgents/agents/BLE/BLEAgent.h>
+#include <ConfiguratorAgents/agents/Serial/SerialAgent.h>
 
- KVStore kvstore;
- BLEAgentClass BLEAgent;
- SerialAgentClass SerialAgent;
- GenericConnectionHandler conMan;
- NetworkConfiguratorClass NetworkConfigurator(conMan);
+KVStore kvstore;
+BLEAgentClass BLEAgent;
+SerialAgentClass SerialAgent;
+GenericConnectionHandler conMan;
+NetworkConfiguratorClass NetworkConfigurator(conMan);
 
 void setup() {
   /* Initialize serial debug port and wait up to 5 seconds for port to open */
@@ -63,6 +63,8 @@ void setup() {
   /* Add the interfaces that are enabled for configuring the network*/
   NetworkConfigurator.addAgent(BLEAgent);
   NetworkConfigurator.addAgent(SerialAgent);
+  /* Add a custom callback function to be invoked every time the interrupt on reconfiguration pin is fired*/
+  NetworkConfigurator.addReconfigurePinCallback(onResetPinInterrupt);
   /* Start the network configurator */
   NetworkConfigurator.begin();
 
@@ -83,6 +85,11 @@ void loop() {
   if(NetworkConfigurator.update() == NetworkConfiguratorStates::CONFIGURED) {
     conMan.check();
   }
+}
+
+void onResetPinInterrupt() {
+  //Add your custom code here
+  //This function is called when the reconfiguration pin interrupt is fired
 }
 
 void onNetworkConnect() {
