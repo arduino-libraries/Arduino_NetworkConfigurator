@@ -19,7 +19,7 @@ ResetInput &ResetInput::getInstance() {
 ResetInput::ResetInput():
   _pin {PIN_RECONFIGURE}
   {
-    _pressed = false;
+    _expired = false;
     _startPressed = 0;
     _fireEvent = false;
     _pressedCustomCallback = nullptr;
@@ -32,21 +32,19 @@ void ResetInput::begin() {
   pinMode(PIN_RECONFIGURE, INPUT_PULLUP);
 #endif
   pinMode(LED_RECONFIGURE, OUTPUT);
+  digitalWrite(LED_RECONFIGURE, LED_OFF);
 
   attachInterrupt(digitalPinToInterrupt(PIN_RECONFIGURE),_pressedCallback, CHANGE);
 }
 
 bool ResetInput::isEventFired() {
-  if(_pressed){
+  if(_startPressed != 0){
 #if defined(ARDUINO_NANO_RP2040_CONNECT) || defined(ARDUINO_SAMD_MKRWIFI1010)
     LEDFeedbackClass::getInstance().stop();
 #endif
     if(micros() - _startPressed > RESET_HOLD_TIME){
-#if defined(ARDUINO_PORTENTA_H7_M7) || defined(ARDUINO_GIGA)
-    digitalWrite(LED_RECONFIGURE, HIGH);
-#else
-    digitalWrite(LED_RECONFIGURE, LOW);
-#endif
+      digitalWrite(LED_RECONFIGURE, LED_OFF);
+      _expired = true;
     }
   }
 
@@ -71,21 +69,10 @@ void ResetInput::_pressedCallback() {
     LEDFeedbackClass::getInstance().stop();
 #endif
     _startPressed = micros();
-    _pressed = true;
-#if defined(ARDUINO_PORTENTA_H7_M7) || defined(ARDUINO_GIGA)
-    digitalWrite(LED_RECONFIGURE, LOW);
-#else
-    digitalWrite(LED_RECONFIGURE, HIGH);
-#endif
+    digitalWrite(LED_RECONFIGURE, LED_ON);
   } else {
-#if defined(ARDUINO_PORTENTA_H7_M7) || defined(ARDUINO_GIGA)
-    digitalWrite(LED_RECONFIGURE, HIGH);
-#else
-    digitalWrite(LED_RECONFIGURE, LOW);
-#endif
-
-    _pressed = false;
-    if(_startPressed != 0 && micros() - _startPressed > RESET_HOLD_TIME){
+    digitalWrite(LED_RECONFIGURE, LED_OFF);
+    if(_startPressed != 0 && _expired){
       _fireEvent = true;
     }else{
       LEDFeedbackClass::getInstance().restart();

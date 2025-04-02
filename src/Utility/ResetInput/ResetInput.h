@@ -27,7 +27,7 @@ private:
   ResetInput();
   static inline ResetInputCallback _pressedCustomCallback;
   uint32_t _pin;
-  static inline volatile bool _pressed;
+  static inline volatile bool _expired;
   static inline volatile bool _fireEvent;
   static inline volatile uint32_t _startPressed;
   static void _pressedCallback();

@@ -15,8 +15,13 @@
  * At startup the NetworkConfigurator library reads the stored network settings from the storage
  * and loads them into the ConnectionHandler object.
  *
- * The NetworkConfigurator library provides a way for wiping out the stored network settings,
- * please read the documentation for more information.
+ * The NetworkConfigurator library provides a way for wiping out the stored network settings.
+ * Reconfiguration procedure:
+ * - Arduino Opta: press and hold the user button (BTN_USER) until the led (LED_USER) turns off
+ * - Arduino MKR WiFi 1010: short the pin 7 to GND until the led turns off
+ * - Arduino GIGA R1 WiFi: short the pin 7 to GND until the led turns off
+ * - Arduino Nano RP2040 Connect: short the pin 2 to 3.3V until the led turns off
+ * - Other boards: short the pin 2 to GND until the led turns off
  *
  * In this sketch the BLE and Serial interfaces are always enabled and ready for accepting
  * a new set of configuration.

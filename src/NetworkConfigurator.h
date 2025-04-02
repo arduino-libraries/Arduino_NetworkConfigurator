@@ -41,10 +41,10 @@ enum class NetworkConfiguratorStates { ZERO_TOUCH_CONFIG,
  * the restart of the BLE interface if turned off.
  * Reconfiguration procedure:
  * - Arduino Opta: press and hold the user button (BTN_USER) until the led (LED_USER) turns off
- * - Arduino Nano 33 IOT: short the pin 2 to GND until the led turns off
- * - Arduino Uno R4 WiFi: short the pin 2 to GND until the led turns off
+ * - Arduino MKR WiFi 1010: short the pin 7 to GND until the led turns off
+ * - Arduino GIGA R1 WiFi: short the pin 7 to GND until the led turns off
  * - Arduino Nano RP2040 Connect: short the pin 2 to 3.3V until the led turns off
- * - Other boards: short the pin 7 to GND until the led turns off
+ * - Other boards: short the pin 2 to GND until the led turns off
  *
  */
 class NetworkConfiguratorClass {
