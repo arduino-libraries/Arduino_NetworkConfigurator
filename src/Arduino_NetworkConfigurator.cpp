@@ -16,7 +16,7 @@
 #ifdef BOARD_HAS_WIFI
 #include "WiFiConnectionHandler.h"
 #endif
-#include "NetworkConfigurator.h"
+#include "Arduino_NetworkConfigurator.h"
 
 #define NC_CONNECTION_RETRY_TIMER_ms 120000
 #define NC_CONNECTION_TIMEOUT_ms 15000
