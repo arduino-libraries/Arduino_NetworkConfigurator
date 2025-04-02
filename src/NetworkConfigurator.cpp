@@ -598,7 +598,10 @@ void NetworkConfiguratorClass::printNetworkSettings() {
 #if defined(BOARD_HAS_WIFI)
     case NetworkAdapter::WIFI:
       DEBUG_INFO("WIFI");
-      DEBUG_INFO("SSID: %s PSW: %s", _networkSetting.wifi.ssid, _networkSetting.wifi.pwd);//TODO remove psw
+      DEBUG_INFO("SSID: %s", _networkSetting.wifi.ssid);
+      #if DEBUG_NETWORK_CREDENTIALS
+      DEBUG_INFO("PSW: %s", _networkSetting.wifi.ssid, _networkSetting.wifi.pwd);
+      #endif
       break;
 #endif
 
@@ -620,30 +623,36 @@ void NetworkConfiguratorClass::printNetworkSettings() {
 #if defined(BOARD_HAS_NB)
     case NetworkAdapter::NB:
       DEBUG_INFO("NB-IoT");
-      DEBUG_INFO("PIN: %s", _networkSetting.nb.pin);
       DEBUG_INFO("APN: %s", _networkSetting.nb.apn);
       DEBUG_INFO("Login: %s", _networkSetting.nb.login);
+      #if DEBUG_NETWORK_CREDENTIALS
+      DEBUG_INFO("PIN: %s", _networkSetting.nb.pin);
       DEBUG_INFO("Pass: %s", _networkSetting.nb.pass);
+      #endif
       break;
 #endif
 
 #if defined(BOARD_HAS_GSM)
     case NetworkAdapter::GSM:
       DEBUG_INFO("GSM");
-      DEBUG_INFO("PIN: %s", _networkSetting.gsm.pin);
       DEBUG_INFO("APN: %s", _networkSetting.gsm.apn);
       DEBUG_INFO("Login: %s", _networkSetting.gsm.login);
+      #if DEBUG_NETWORK_CREDENTIALS
+      DEBUG_INFO("PIN: %s", _networkSetting.gsm.pin);
       DEBUG_INFO("Pass: %s", _networkSetting.gsm.pass);
+      #endif
       break;
 #endif
 
 #if defined(BOARD_HAS_CATM1_NBIOT)
     case NetworkAdapter::CATM1:
       DEBUG_INFO("CATM1");
-      DEBUG_INFO("PIN: %s", _networkSetting.catm1.pin);
       DEBUG_INFO("APN: %s", _networkSetting.catm1.apn);
       DEBUG_INFO("Login: %s", _networkSetting.catm1.login);
+      #if DEBUG_NETWORK_CREDENTIALS
+      DEBUG_INFO("PIN: %s", _networkSetting.catm1.pin);
       DEBUG_INFO("Pass: %s", _networkSetting.catm1.pass);
+      #endif
       DEBUG_INFO("Band: %d", _networkSetting.catm1.band);
       break;
 #endif
@@ -651,10 +660,12 @@ void NetworkConfiguratorClass::printNetworkSettings() {
 #if defined(BOARD_HAS_CELLULAR)
     case NetworkAdapter::CELL:
       DEBUG_INFO("CELLULAR");
-      DEBUG_INFO("PIN: %s", _networkSetting.cell.pin);
       DEBUG_INFO("APN: %s", _networkSetting.cell.apn);
       DEBUG_INFO("Login: %s", _networkSetting.cell.login);
+      #if DEBUG_NETWORK_CREDENTIALS
+      DEBUG_INFO("PIN: %s", _networkSetting.cell.pin);
       DEBUG_INFO("Pass: %s", _networkSetting.cell.pass);
+      #endif
       break;
 #endif
 
@@ -662,7 +673,9 @@ void NetworkConfiguratorClass::printNetworkSettings() {
     case NetworkAdapter::LORA:
       DEBUG_INFO("LORA");
       DEBUG_INFO("AppEUI: %s", _networkSetting.lora.appeui);
+      #if DEBUG_NETWORK_CREDENTIALS
       DEBUG_INFO("AppKey: %s", _networkSetting.lora.appkey);
+      #endif
       DEBUG_INFO("Band: %d", _networkSetting.lora.band);
       DEBUG_INFO("Channel mask: %s", _networkSetting.lora.channelMask);
       DEBUG_INFO("Device class: %c", _networkSetting.lora.deviceClass);
