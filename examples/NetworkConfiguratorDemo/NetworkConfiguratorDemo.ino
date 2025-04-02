@@ -76,11 +76,11 @@ void loop() {
    * and notification of connect/disconnect event if enabled.
    *
    * NOTE: any use of delay() within the loop or methods called from it will delay
-   * the execution of .poll() and .check() methods of the NetworkConfigurator and
+   * the execution of .update() and .check() methods of the NetworkConfigurator and
    * ConnectionHandler objects which might not guarantee the correct functioning
    * of the code.
    */
-  if(NetworkConfigurator.poll() == NetworkConfiguratorStates::CONFIGURED) {
+  if(NetworkConfigurator.update() == NetworkConfiguratorStates::CONFIGURED) {
     conMan.check();
   }
 }

@@ -83,7 +83,7 @@ bool NetworkConfiguratorClass::begin() {
   return true;
 }
 
-NetworkConfiguratorStates NetworkConfiguratorClass::poll() {
+NetworkConfiguratorStates NetworkConfiguratorClass::update() {
   NetworkConfiguratorStates nextState = _state;
   LEDFeedbackClass::getInstance().poll();//TODO rename in update
 

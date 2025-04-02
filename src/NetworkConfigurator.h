@@ -65,7 +65,7 @@ public:
    * @brief Polls the current state of the network configurator.
    * @return The current state as a NetworkConfiguratorStates enum.
    */
-  NetworkConfiguratorStates poll();//TODO rename "update"
+  NetworkConfiguratorStates update();
 
   /**
    * @brief Resets the stored network configuration.
