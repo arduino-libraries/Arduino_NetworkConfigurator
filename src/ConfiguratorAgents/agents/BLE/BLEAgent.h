@@ -50,7 +50,7 @@ public:
   BLEAgentClass();
   AgentConfiguratorStates begin();
   AgentConfiguratorStates end();
-  AgentConfiguratorStates poll();
+  AgentConfiguratorStates update();
   void disconnectPeer();
   bool receivedMsgAvailable();
   bool getReceivedMsg(ProvisioningInputMessage &msg);
@@ -152,7 +152,7 @@ inline ConfiguratorAgent::AgentConfiguratorStates BLEAgentClass::end() {
   return _state;
 }
 
-inline ConfiguratorAgent::AgentConfiguratorStates BLEAgentClass::poll() {
+inline ConfiguratorAgent::AgentConfiguratorStates BLEAgentClass::update() {
   if (_state == AgentConfiguratorStates::END) {
     return _state;
   }
