@@ -12,13 +12,18 @@
 
 namespace PacketManager {
   enum class ReceivingState { WAITING_HEADER,
-    WAITING_PAYLOAD,
-    WAITING_END,
-    RECEIVED,
-    ERROR };
+                              WAITING_PAYLOAD,
+                              WAITING_END,
+                              RECEIVED,
+                              ERROR };
 
   enum class MessageType { DATA     = 2,
                            TRANSMISSION_CONTROL = 3 };
+
+  enum class TransmissionControlMessage : uint8_t{
+    CONNECT    = 0x01,
+    DISCONNECT = 0x02,
+    NACK       = 0x03 };
 
   /*
    * The packet structure
@@ -56,7 +61,6 @@ namespace PacketManager {
       ReceivingState handle_WaitingHeader(Packet_t &packet, uint8_t byte);
       ReceivingState handle_WaitingPayload(Packet_t &packet, uint8_t byte);
       ReceivingState handle_WaitingEnd(Packet_t &packet, uint8_t byte);
-      void clearInputBuffers(Packet_t &packet);
       bool checkBeginPacket(Packet_t &packet);
       bool checkEndPacket(Packet_t &packet);
       bool checkCRC(Packet_t &packet);

@@ -48,7 +48,7 @@ bool BoardConfigurationProtocol::getMsg(ProvisioningInputMessage &msg) {
   return true;
 }
 
-bool BoardConfigurationProtocol::sendNewMsg(ProvisioningOutputMessage &msg) {
+bool BoardConfigurationProtocol::sendMsg(ProvisioningOutputMessage &msg) {
   bool res = false;
   switch (msg.type) {
     case MessageOutputType::STATUS:
@@ -94,15 +94,15 @@ BoardConfigurationProtocol::TransmissionResult BoardConfigurationProtocol::sendA
     transmitStream();
   }
 
-  if (!hasReceivedBytes()) {
+  if (!received()) {
     return transmissionRes;
   }
 
-  int receivedDataLen = receivedBytes();
+  int receivedDataLen = available();
 
   for (int i = 0; i < receivedDataLen; i++) {
     PacketManager::ReceivingState res;
-    uint8_t val = readByte();
+    uint8_t val = read();
 
     res = PacketManager::PacketReceiver::getInstance().handleReceivedByte(_packet, val);
     if (res == PacketManager::ReceivingState::ERROR) {
@@ -126,11 +126,11 @@ BoardConfigurationProtocol::TransmissionResult BoardConfigurationProtocol::sendA
           break;
         case PacketManager::MessageType::TRANSMISSION_CONTROL:
           {
-            if (_packet.Payload.len() == 1 && _packet.Payload[0] == 0x03) {
+            if (_packet.Payload.len() == 1 && _packet.Payload[0] == (uint8_t)PacketManager::TransmissionControlMessage::NACK) {
               for (std::list<OutputPacketBuffer>::iterator packet = _outputMessagesList.begin(); packet != _outputMessagesList.end(); ++packet) {
                 packet->startProgress();
               }
-            } else if (_packet.Payload.len() == 1 && _packet.Payload[0] == 0x02) {
+            } else if (_packet.Payload.len() == 1 && _packet.Payload[0] == (uint8_t)PacketManager::TransmissionControlMessage::DISCONNECT) {
               handleDisconnectRequest();
             }
           }
@@ -344,7 +344,7 @@ BoardConfigurationProtocol::TransmissionResult BoardConfigurationProtocol::trans
   for (std::list<OutputPacketBuffer>::iterator packet = _outputMessagesList.begin(); packet != _outputMessagesList.end(); ++packet) {
     if (packet->hasBytesToSend()) {
       res = TransmissionResult::NOT_COMPLETED;
-      packet->incrementBytesSent(writeBytes(packet->get_ptrAt(packet->bytesSent()), packet->bytesToSend()));
+      packet->incrementBytesSent(write(packet->get_ptrAt(packet->bytesSent()), packet->bytesToSend()));
       #if BCP_DEBUG_PACKET == 1
       DEBUG_DEBUG("BoardConfigurationProtocol::%s  transferred: %d of %d", __FUNCTION__, packet->bytesSent(), packet->len());
       #endif
