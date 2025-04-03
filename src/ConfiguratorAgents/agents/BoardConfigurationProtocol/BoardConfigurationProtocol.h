@@ -14,7 +14,7 @@
 class BoardConfigurationProtocol {
 public:
   bool getMsg(ProvisioningInputMessage &msg);
-  bool sendNewMsg(ProvisioningOutputMessage &msg);
+  bool sendMsg(ProvisioningOutputMessage &msg);
   bool msgAvailable();
 
 protected:
@@ -29,10 +29,10 @@ protected:
   void clear();
   void checkOutputPacketValidity();
   /*Pure virtual methods that depends on physical interface*/
-  virtual bool hasReceivedBytes() = 0;
-  virtual size_t receivedBytes() = 0;
-  virtual uint8_t readByte() = 0;
-  virtual int writeBytes(const uint8_t *data, size_t len) = 0;
+  virtual bool received() = 0;
+  virtual size_t available() = 0;
+  virtual uint8_t read() = 0;
+  virtual int write(const uint8_t *data, size_t len) = 0;
   virtual void handleDisconnectRequest() = 0;
   virtual bool isPeerConnected() = 0;
   virtual void clearInputBuffer() = 0;

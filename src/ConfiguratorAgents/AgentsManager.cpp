@@ -329,7 +329,7 @@ void AgentsManagerClass::updateProgressRequest(MessageOutputType type) {
 
 void AgentsManagerClass::handleReceivedCommands(RemoteCommands cmd) {
   if (_statusRequest.pending) {
-    DEBUG_WARNING("AgentsManagerClass::%s request received of type %d, but another request is in progress", __FUNCTION__, (int)cmd);
+    DEBUG_WARNING("AgentsManagerClass::%s request received of type %d, but request %d is in progress", __FUNCTION__, (int)cmd, (int)_statusRequest.key);
     sendStatus(StatusMessage::OTHER_REQUEST_IN_EXECUTION);
     return;
   }

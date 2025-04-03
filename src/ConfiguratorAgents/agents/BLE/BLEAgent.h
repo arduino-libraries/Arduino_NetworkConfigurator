@@ -45,7 +45,7 @@
 #error "Board not supported for BLE configuration"
 #endif
 
-class BLEAgentClass : public ConfiguratorAgent, BoardConfigurationProtocol {
+class BLEAgentClass : public ConfiguratorAgent, private BoardConfigurationProtocol {
 public:
   BLEAgentClass();
   AgentConfiguratorStates begin();
@@ -83,10 +83,10 @@ private:
   static void bleOutputStreamSubscribed(BLEDevice central, BLECharacteristic characteristic);
 
   /*BoardConfigurationProtocol pure virtual methods implementation*/
-  bool hasReceivedBytes();
-  size_t receivedBytes();
-  uint8_t readByte();
-  int writeBytes(const uint8_t *data, size_t len);
+  bool received();
+  size_t available();
+  uint8_t read();
+  int write(const uint8_t *data, size_t len);
   void handleDisconnectRequest();
   void clearInputBuffer();
 };
@@ -202,7 +202,7 @@ inline bool BLEAgentClass::receivedMsgAvailable() {
 }
 
 inline bool BLEAgentClass::sendMsg(ProvisioningOutputMessage &msg) {
-  return BoardConfigurationProtocol::sendNewMsg(msg);
+  return BoardConfigurationProtocol::sendMsg(msg);
 }
 
 inline bool BLEAgentClass::isPeerConnected() {
@@ -220,7 +220,7 @@ inline void BLEAgentClass::bleOutputStreamSubscribed(BLEDevice central, BLEChara
   DEBUG_INFO("BLEAgentClass Connected event, central: %s", central.address().c_str());
 }
 
-inline bool BLEAgentClass::hasReceivedBytes() {
+inline bool BLEAgentClass::received() {
   bool res = _inputStreamCharacteristic.written();
   if (res) {
     _readByte = 0;
@@ -228,11 +228,11 @@ inline bool BLEAgentClass::hasReceivedBytes() {
   return res;
 }
 
-inline size_t BLEAgentClass::receivedBytes() {
+inline size_t BLEAgentClass::available() {
   return _inputStreamCharacteristic.valueLength();
 }
 
-inline uint8_t BLEAgentClass::readByte() {
+inline uint8_t BLEAgentClass::read() {
   const uint8_t *charValue = _inputStreamCharacteristic.value();
   if (_readByte < _inputStreamCharacteristic.valueLength()) {
     return charValue[_readByte++];
@@ -240,7 +240,7 @@ inline uint8_t BLEAgentClass::readByte() {
   return 0;
 }
 
-inline int BLEAgentClass::writeBytes(const uint8_t *data, size_t len) {
+inline int BLEAgentClass::write(const uint8_t *data, size_t len) {
   return _outputStreamCharacteristic.write(data, len);
 }
 

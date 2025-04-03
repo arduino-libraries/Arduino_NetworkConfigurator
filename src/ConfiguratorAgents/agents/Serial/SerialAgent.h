@@ -14,7 +14,7 @@
 #include "ConfiguratorAgents/agents/BoardConfigurationProtocol/cbor/CBORInstances.h"
 #include "Utility/LEDFeedback/LEDFeedback.h"
 
-class SerialAgentClass : public ConfiguratorAgent, BoardConfigurationProtocol { //TODO put private BoardConfigurationProtocol
+class SerialAgentClass : public ConfiguratorAgent, private BoardConfigurationProtocol {
 public:
   SerialAgentClass();
   AgentConfiguratorStates begin();
@@ -37,10 +37,10 @@ private:
   AgentConfiguratorStates handlePeerConnected();
 
   /*BoardConfigurationProtocol pure virtual methods implementation*/
-  bool hasReceivedBytes();
-  size_t receivedBytes();
-  uint8_t readByte();
-  int writeBytes(const uint8_t *data, size_t len);
+  bool received();
+  size_t available();
+  uint8_t read();
+  int write(const uint8_t *data, size_t len);
   void handleDisconnectRequest();
   void clearInputBuffer();
 };
@@ -109,7 +109,7 @@ inline bool SerialAgentClass::receivedMsgAvailable() {
 }
 
 inline bool SerialAgentClass::sendMsg(ProvisioningOutputMessage &msg) {
-  return BoardConfigurationProtocol::sendNewMsg(msg);
+  return BoardConfigurationProtocol::sendMsg(msg);
 }
 
 inline bool SerialAgentClass::isPeerConnected() {
@@ -127,15 +127,14 @@ inline ConfiguratorAgent::AgentConfiguratorStates SerialAgentClass::handleInit()
     PacketManager::ReceivingState res = PacketManager::PacketReceiver::getInstance().handleReceivedByte(_packet, byte);
     if (res == PacketManager::ReceivingState::RECEIVED) {
       if (_packet.Type == PacketManager::MessageType::TRANSMISSION_CONTROL) {
-        if (_packet.Payload.len() == 1 && _packet.Payload[0] == 0x01) {//TODO use define
+        if (_packet.Payload.len() == 1 && _packet.Payload[0] == (uint8_t)PacketManager::TransmissionControlMessage::CONNECT) {
           //CONNECT
           nextState = AgentConfiguratorStates::PEER_CONNECTED;
-          PacketManager::PacketReceiver::getInstance().clear(_packet);
         }
       }
+      PacketManager::PacketReceiver::getInstance().clear(_packet);
     } else if (res == PacketManager::ReceivingState::ERROR) {
       DEBUG_DEBUG("SerialAgentClass::%s Error receiving packet", __FUNCTION__);
-      PacketManager::PacketReceiver::getInstance().clear(_packet);
       clearInputBuffer();
     }
   }
@@ -163,19 +162,19 @@ inline ConfiguratorAgent::AgentConfiguratorStates SerialAgentClass::handlePeerCo
   return nextState;
 }
 
-inline bool SerialAgentClass::hasReceivedBytes() {
+inline bool SerialAgentClass::received() {
   return Serial.available() > 0;
 }
 
-inline size_t SerialAgentClass::receivedBytes() {
+inline size_t SerialAgentClass::available() {
   return Serial.available();
 }
 
-inline uint8_t SerialAgentClass::readByte() {
+inline uint8_t SerialAgentClass::read() {
   return Serial.read();
 }
 
-inline int SerialAgentClass::writeBytes(const uint8_t *data, size_t len) {
+inline int SerialAgentClass::write(const uint8_t *data, size_t len) {
   return Serial.write(data, len);
 }
 

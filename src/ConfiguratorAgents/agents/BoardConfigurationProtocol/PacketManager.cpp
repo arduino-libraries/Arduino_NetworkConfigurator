@@ -67,7 +67,7 @@ namespace PacketManager {
     }
 
     if (millis() - packet.LastByteReceivedTs > BYTES_VALIDITY_MS) {
-      clearInputBuffers(packet);
+      clear(packet);
     }
 
     packet.LastByteReceivedTs = millis();
@@ -76,7 +76,7 @@ namespace PacketManager {
       case ReceivingState::WAITING_HEADER:  _state = handle_WaitingHeader (packet,byte); break;
       case ReceivingState::WAITING_PAYLOAD: _state = handle_WaitingPayload(packet,byte); break;
       case ReceivingState::WAITING_END:     _state = handle_WaitingEnd    (packet,byte); break;
-      default:                                                                    break;
+      default:                                                                           break;
     }
 
     if (_state == ReceivingState::RECEIVED) {
@@ -87,15 +87,14 @@ namespace PacketManager {
       }
     }
 
+    if (_state == ReceivingState::ERROR) {
+      clear(packet);
+    }
+
     return _state;
   }
 
   void PacketReceiver::clear(Packet_t &packet) {
-    clearInputBuffers(packet);
-    _state = ReceivingState::WAITING_HEADER;
-  }
-
-  void PacketReceiver::clearInputBuffers(Packet_t &packet) {
     packet.LastByteReceivedTs = 0;
     packet.Header.clear();
     packet.Payload.reset();
@@ -157,7 +156,6 @@ namespace PacketManager {
 
     if (packet.Header.receivedAll()) {
       if (!checkBeginPacket(packet)) {
-        clearInputBuffers(packet);
         return ReceivingState::ERROR;
       }
 
@@ -193,7 +191,6 @@ namespace PacketManager {
         return ReceivingState::RECEIVED;
       } else {
         //Error
-        clearInputBuffers(packet);
         return ReceivingState::ERROR;
       }
     }
