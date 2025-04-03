@@ -47,6 +47,73 @@ const uint32_t cloud[][4] = {
 	}
 };
 
+const uint32_t snake[][4] = {
+  { 0xffffffff, 0xffffffff, 0xffffffff, 66 },
+	{ 0x7fffffff, 0xffffffff, 0xfffff7ff, 66 },
+	{ 0x3fe7ffff, 0xffffffff, 0xff7ff3fe, 66 },
+	{ 0x1fc3fe7f, 0xfffffff7, 0xff3fe1fc, 66 },
+	{ 0xf81fc3f, 0xe7ff7ff3, 0xfe1fc0f8, 66 },
+	{ 0x500f81f, 0xc3fe3fe1, 0xfc0f8070, 66 },
+	{ 0x500f, 0x81fc1fc0, 0xf8070020, 66 },
+	{ 0x5, 0xf80f80, 0x70020000, 66 },
+	{ 0x5, 0xa80880, 0x50020000, 600 },
+	{ 0xd812, 0x41040880, 0x50020000, 200 },
+	{ 0x5, 0xa80880, 0x50020000, 600 },
+	{ 0xd812, 0x41040880, 0x50020000, 200 },
+	{ 0x5, 0xa80880, 0x50020000, 130 },
+	{ 0x45, 0xa80880, 0x50020000, 130 },
+	{ 0x45, 0xa80880, 0x10060000, 130 },
+	{ 0x45, 0xa80080, 0x100e0000, 130 },
+	{ 0x45, 0x280080, 0x101e0000, 130 },
+	{ 0x41, 0x280080, 0x103e0000, 130 },
+	{ 0x41, 0x80080, 0x107e0000, 130 },
+	{ 0x40, 0x80084, 0x107e0000, 130 },
+	{ 0x40, 0x4084, 0x107e0000, 130 },
+	{ 0x40, 0x4004084, 0x107e0000, 130 },
+	{ 0x40, 0x4204084, 0x107e0000, 130 },
+	{ 0x60, 0x4204004, 0x107e0000, 130 },
+	{ 0x70, 0x4204004, 0x7e0000, 130 },
+	{ 0x70, 0x5204004, 0x7c0000, 130 },
+	{ 0x70, 0x5a04004, 0x780000, 130 },
+	{ 0x70, 0x5e04004, 0x700000, 130 },
+	{ 0x70, 0x45e04004, 0x700000, 130 },
+	{ 0x70, 0x45f04004, 0x600000, 130 },
+	{ 0x71, 0x45f04004, 0x400000, 130 },
+	{ 0x71, 0xc5f04004, 0x400000, 130 },
+	{ 0x71, 0xc5f04004, 0x400002, 130 },
+	{ 0x71, 0xe5f04004, 0x2, 130 },
+	{ 0x71, 0xe5f24000, 0x2, 130 },
+	{ 0x71, 0xe5f20020, 0x2, 130 },
+	{ 0x71, 0xe1f20020, 0x2000002, 130 },
+	{ 0x71, 0xe1f22020, 0x2002002, 130 },
+	{ 0x31, 0xe1f22020, 0x2002006, 130 },
+	{ 0x11, 0xe1f22020, 0x200200e, 130 },
+	{ 0x1, 0xe1f22020, 0x200201e, 130 },
+	{ 0x1, 0xe0f22020, 0x200203e, 130 },
+	{ 0x1, 0xe0722020, 0x200207e, 130 },
+	{ 0x1, 0xe0322020, 0x20020fe, 130 },
+	{ 0x1, 0xe0122020, 0x20820fe, 130 },
+	{ 0x1, 0xe0022020, 0x21820fe, 130 },
+	{ 0x0, 0xe0022022, 0x221820fe, 130 },
+	{ 0x0, 0x60022022, 0x221820fe, 130 },
+	{ 0x0, 0x21022022, 0x221820fe, 130 },
+	{ 0x0, 0x1822022, 0x221820fe, 130 },
+	{ 0x0, 0x1802422, 0x2218a0fe, 130 },
+	{ 0x0, 0x1802402, 0x2218a0fe, 130 },
+	{ 0x0, 0x1802402, 0x2019a0fe, 130 },
+	{ 0x0, 0x1802442, 0x201980fe, 130 },
+	{ 0x0, 0x1802442, 0x241980fc, 130 },
+	{ 0x4000, 0x1802442, 0x241980f8, 130 },
+	{ 0x4000, 0x1882442, 0x241980f0, 130 },
+	{ 0x4000, 0x1982442, 0x241980e0, 130 },
+	{ 0x4001, 0x1982442, 0x241980c0, 130 },
+	{ 0x6001, 0x1982442, 0x24198080, 130 },
+	{ 0x6001, 0x1982442, 0x24198000, 130 },
+	{ 0x6001, 0x1982442, 0x24198000, 130 },
+	{ 0x6001, 0x1982442, 0x24198000, 130 },
+	{ 0x6001, 0x1982442, 0x24198000, 600 }
+};
+
 #endif
 
 
@@ -54,6 +121,14 @@ const uint32_t cloud[][4] = {
 #define HEARTBEAT_INTERVAL 250
 #define SLOWBLINK_INTERVAL 2000
 #define ALWAYS_ON_INTERVAL -1
+
+/* The BLE_AVAILABLE animation follows the pattern:
+ *  _|¯|_|¯|_|¯¯¯¯¯¯¯¯¯¯¯|_
+ * HIGH: led on
+ * LOW: led off
+ */
+#define N_IMPULSES_START_ON_PERIOD 5
+#define N_IMPULSES_END_ON_PERIOD 15
 
 LEDFeedbackClass &LEDFeedbackClass::getInstance() {
   static LEDFeedbackClass instance;
@@ -116,8 +191,9 @@ void LEDFeedbackClass::setMode(LEDFeedbackMode mode) {
         _ledPin = GREEN_LED;
       #endif
       #ifdef BOARD_HAS_LED_MATRIX
-        matrix.loadFrame(bluetooth);
-        _framePtr = (uint32_t*)bluetooth;
+        _framePtr = nullptr;
+        matrix.loadSequence(snake);
+        matrix.play(true);
       #endif
       _ledChangeInterval = HEARTBEAT_INTERVAL;
       _count = 0;
@@ -172,14 +248,15 @@ void LEDFeedbackClass::setMode(LEDFeedbackMode mode) {
       #ifdef BOARD_HAS_RGB
         turnOFF();
         _ledPin = RED_LED;
+        _ledChangeInterval = SLOWBLINK_INTERVAL;
       #else
         _ledPin = GREEN_LED;
+        _ledChangeInterval = FASTBLINK_INTERVAL;
       #endif
       #ifdef BOARD_HAS_LED_MATRIX
         _framePtr = (uint32_t*)LEDMATRIX_EMOJI_SAD;
         matrix.loadFrame(LEDMATRIX_EMOJI_SAD);
       #endif
-      _ledChangeInterval = FASTBLINK_INTERVAL;
     }
       break;
     default:
@@ -212,16 +289,17 @@ void LEDFeedbackClass::update() {
 
   if(millis() - _lastUpdate > _ledChangeInterval/2) {
     _lastUpdate = millis();
+    //Implement the pattern for BLE_AVAILABLE
     if(_mode == LEDFeedbackMode::BLE_AVAILABLE) {
       if (_count == 0){
         turnOFF();
         _count++;
         return;
-      }else if(_count >= 5 && _count < 15){
+      }else if(_count >= N_IMPULSES_START_ON_PERIOD && _count < N_IMPULSES_END_ON_PERIOD){
         turnON();
         _count++;
         return;
-      }else if(_count >= 15){
+      }else if(_count >= N_IMPULSES_END_ON_PERIOD){
         _count = 0;
         return;
       }else{
