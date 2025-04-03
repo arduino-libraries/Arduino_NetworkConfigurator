@@ -25,7 +25,7 @@ public:
   virtual ~ConfiguratorAgent() {}
   virtual AgentConfiguratorStates begin() = 0;
   virtual AgentConfiguratorStates end() = 0;
-  virtual AgentConfiguratorStates poll() = 0;
+  virtual AgentConfiguratorStates update() = 0;
   virtual void disconnectPeer() = 0;
   virtual bool receivedMsgAvailable() = 0;
   virtual bool getReceivedMsg(ProvisioningInputMessage &msg) = 0;

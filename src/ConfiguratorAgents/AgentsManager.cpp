@@ -197,7 +197,7 @@ AgentsManagerStates AgentsManagerClass::handleInit() {
   AgentsManagerStates nextState = _state;
 
   for (std::list<ConfiguratorAgent *>::iterator agent = _agentsList.begin(); agent != _agentsList.end(); ++agent) {
-    if ((*agent)->poll() == ConfiguratorAgent::AgentConfiguratorStates::PEER_CONNECTED) {
+    if ((*agent)->update() == ConfiguratorAgent::AgentConfiguratorStates::PEER_CONNECTED) {
       _selectedAgent = *agent;
       nextState = AgentsManagerStates::SEND_INITIAL_STATUS;
       break;
@@ -240,7 +240,7 @@ AgentsManagerStates AgentsManagerClass::handleConfInProgress() {
     return AgentsManagerStates::INIT;
   }
 
-  ConfiguratorAgent::AgentConfiguratorStates agentConfState = _selectedAgent->poll();
+  ConfiguratorAgent::AgentConfiguratorStates agentConfState = _selectedAgent->update();
   switch (agentConfState) {
     case ConfiguratorAgent::AgentConfiguratorStates::RECEIVED_DATA: handleReceivedData    (); break;
     case ConfiguratorAgent::AgentConfiguratorStates::INIT:          handlePeerDisconnected(); return AgentsManagerStates::INIT;

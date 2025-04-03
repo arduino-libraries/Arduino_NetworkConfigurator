@@ -14,12 +14,12 @@
 #include "ConfiguratorAgents/agents/BoardConfigurationProtocol/cbor/CBORInstances.h"
 #include "Utility/LEDFeedback/LEDFeedback.h"
 
-class SerialAgentClass : public ConfiguratorAgent, BoardConfigurationProtocol {
+class SerialAgentClass : public ConfiguratorAgent, BoardConfigurationProtocol { //TODO put private BoardConfigurationProtocol
 public:
   SerialAgentClass();
   AgentConfiguratorStates begin();
   AgentConfiguratorStates end();
-  AgentConfiguratorStates poll();
+  AgentConfiguratorStates update();
   void disconnectPeer();
   bool receivedMsgAvailable();
   bool getReceivedMsg(ProvisioningInputMessage &msg);
@@ -66,7 +66,7 @@ inline ConfiguratorAgent::AgentConfiguratorStates SerialAgentClass::end() {
   return _state;
 }
 
-inline ConfiguratorAgent::AgentConfiguratorStates SerialAgentClass::poll() {
+inline ConfiguratorAgent::AgentConfiguratorStates SerialAgentClass::update() {
 
   switch (_state) {
     case AgentConfiguratorStates::INIT:           _state = handleInit         (); break;
@@ -127,7 +127,7 @@ inline ConfiguratorAgent::AgentConfiguratorStates SerialAgentClass::handleInit()
     PacketManager::ReceivingState res = PacketManager::PacketReceiver::getInstance().handleReceivedByte(_packet, byte);
     if (res == PacketManager::ReceivingState::RECEIVED) {
       if (_packet.Type == PacketManager::MessageType::TRANSMISSION_CONTROL) {
-        if (_packet.Payload.len() == 1 && _packet.Payload[0] == 0x01) {
+        if (_packet.Payload.len() == 1 && _packet.Payload[0] == 0x01) {//TODO use define
           //CONNECT
           nextState = AgentConfiguratorStates::PEER_CONNECTED;
           PacketManager::PacketReceiver::getInstance().clear(_packet);
