@@ -55,6 +55,14 @@ const uint32_t cloud[][4] = {
 #define SLOWBLINK_INTERVAL 2000
 #define ALWAYS_ON_INTERVAL -1
 
+/* The BLE_AVAILABLE animation follows the pattern:
+ *  _|¯|_|¯|_|¯¯¯¯¯¯¯¯¯¯¯|_
+ * HIGH: led on
+ * LOW: led off
+ */
+#define N_IMPULSES_START_ON_PERIOD 5
+#define N_IMPULSES_END_ON_PERIOD 15
+
 LEDFeedbackClass &LEDFeedbackClass::getInstance() {
   static LEDFeedbackClass instance;
   return instance;
@@ -172,14 +180,15 @@ void LEDFeedbackClass::setMode(LEDFeedbackMode mode) {
       #ifdef BOARD_HAS_RGB
         turnOFF();
         _ledPin = RED_LED;
+        _ledChangeInterval = SLOWBLINK_INTERVAL;
       #else
         _ledPin = GREEN_LED;
+        _ledChangeInterval = FASTBLINK_INTERVAL;
       #endif
       #ifdef BOARD_HAS_LED_MATRIX
         _framePtr = (uint32_t*)LEDMATRIX_EMOJI_SAD;
         matrix.loadFrame(LEDMATRIX_EMOJI_SAD);
       #endif
-      _ledChangeInterval = FASTBLINK_INTERVAL;
     }
       break;
     default:
@@ -212,16 +221,17 @@ void LEDFeedbackClass::update() {
 
   if(millis() - _lastUpdate > _ledChangeInterval/2) {
     _lastUpdate = millis();
+    //Implement the pattern for BLE_AVAILABLE
     if(_mode == LEDFeedbackMode::BLE_AVAILABLE) {
       if (_count == 0){
         turnOFF();
         _count++;
         return;
-      }else if(_count >= 5 && _count < 15){
+      }else if(_count >= N_IMPULSES_START_ON_PERIOD && _count < N_IMPULSES_END_ON_PERIOD){
         turnON();
         _count++;
         return;
-      }else if(_count >= 15){
+      }else if(_count >= N_IMPULSES_END_ON_PERIOD){
         _count = 0;
         return;
       }else{
