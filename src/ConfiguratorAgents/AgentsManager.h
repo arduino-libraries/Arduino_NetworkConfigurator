@@ -36,7 +36,7 @@ public:
   bool begin();
   bool end();
   void disconnect();
-  AgentsManagerStates poll(); //TODO rename to update
+  AgentsManagerStates update();
   void enableAgent(ConfiguratorAgent::AgentTypes type, bool enable);
   bool isAgentEnabled(ConfiguratorAgent::AgentTypes type);
   // Force starting agent even if disabled
