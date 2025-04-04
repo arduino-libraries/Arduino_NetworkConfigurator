@@ -11,7 +11,7 @@
 #if NETWORK_CONFIGURATOR_COMPATIBLE
 
 #include "Arduino.h"
-#include "GenericConnectionHandler.h"//TODO fix include
+#include "Arduino_ConnectionHandler.h"
 #include "ConfiguratorAgents/AgentsManager.h"
 #include <settings/settings.h>
 #include <Arduino_TimedAttempt.h>
