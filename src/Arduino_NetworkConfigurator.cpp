@@ -11,7 +11,6 @@
 #include <Arduino_DebugUtils.h>
 #include "ConnectionHandlerDefinitions.h"
 #include "ConfiguratorAgents/MessagesDefinitions.h"
-#include "Arduino_ConnectionHandler.h"
 #include "Utility/LEDFeedback/LEDFeedback.h"
 #ifdef BOARD_HAS_WIFI
 #include "WiFiConnectionHandler.h"
