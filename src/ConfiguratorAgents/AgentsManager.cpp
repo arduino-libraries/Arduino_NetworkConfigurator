@@ -50,7 +50,7 @@ bool AgentsManagerClass::begin() {
   return true;
 }
 
-AgentsManagerStates AgentsManagerClass::poll() {
+AgentsManagerStates AgentsManagerClass::update() {
   switch (_state) {
     case AgentsManagerStates::INIT:                 _state = handleInit              (); break;
     case AgentsManagerStates::SEND_INITIAL_STATUS:  _state = handleSendInitialStatus (); break;

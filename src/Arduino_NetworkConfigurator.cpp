@@ -493,7 +493,7 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleReadStorage() {
 
 NetworkConfiguratorStates NetworkConfiguratorClass::handleWaitingForConf() {
   NetworkConfiguratorStates nextState = _state;
-  _agentsManager->poll();
+  _agentsManager->update();
   bool connecting = false;
   switch (_receivedEvent) {
     case NetworkConfiguratorEvents::SCAN_REQ:                 scanNetworkOptions  (); break;
@@ -517,7 +517,7 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleWaitingForConf() {
 }
 
 NetworkConfiguratorStates NetworkConfiguratorClass::handleConnecting() {
-  _agentsManager->poll();  //To keep alive the connection with the configurator
+  _agentsManager->update();  //To keep alive the connection with the configurator
   StatusMessage err;
   ConnectionResult res = connectToNetwork(&err);
 
@@ -539,7 +539,7 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleConfigured() {
     _ledFeedback->setMode(LEDFeedbackClass::LEDFeedbackMode::PEER_CONNECTED);
   }
 
-  _agentsManager->poll();
+  _agentsManager->update();
   // If the agent manager changes state, it means that user is trying to configure the network, so the network configurator should change state
   if (_agentsManager->isConfigInProgress() && !configInprogress) {
     scanNetworkOptions();
@@ -560,7 +560,7 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleUpdatingConfig() {
 }
 
 NetworkConfiguratorStates NetworkConfiguratorClass::handleErrorState() {
-  _agentsManager->poll();
+  _agentsManager->update();
   return NetworkConfiguratorStates::ERROR;
 }
 
