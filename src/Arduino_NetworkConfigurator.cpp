@@ -34,7 +34,6 @@ NetworkConfiguratorClass::NetworkConfiguratorClass(ConnectionHandler &connection
     _state{ NetworkConfiguratorStates::END },
     _connectionHandler{ &connectionHandler },
     _connectionHandlerIstantiated{ false },
-    _bleEnabled{ true },
     _kvstore{ nullptr },
     _connectionTimeout{ NC_CONNECTION_TIMEOUT_ms, NC_CONNECTION_TIMEOUT_ms },
     _connectionRetryTimer{ NC_CONNECTION_RETRY_TIMER_ms, NC_CONNECTION_RETRY_TIMER_ms },
@@ -200,13 +199,12 @@ void NetworkConfiguratorClass::addReconfigurePinCallback(ResetInput::ResetInputC
   _resetInput->setPinChangedCallback(callback);
 }
 
-bool NetworkConfiguratorClass::isBLEenabled() {
-  return _agentsManager->isBLEAgentEnabled();
+bool NetworkConfiguratorClass::isAgentEnabled(ConfiguratorAgent::AgentTypes type) {
+  return _agentsManager->isAgentEnabled(type);
 }
 
-void NetworkConfiguratorClass::enableBLE(bool enable) {
-  _bleEnabled = enable;
-  _agentsManager->enableBLEAgent(enable);
+void NetworkConfiguratorClass::enableAgent(ConfiguratorAgent::AgentTypes type, bool enable) {
+  _agentsManager->enableAgent(type, enable);
 }
 
 void NetworkConfiguratorClass::disconnectAgent() {
@@ -469,7 +467,7 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleReadStorage() {
 
   if(_kvstore->exists(START_BLE_AT_STARTUP_KEY)) {
     if(_kvstore->getBool(START_BLE_AT_STARTUP_KEY)) {
-      _agentsManager->enableBLEAgent(true);
+      _agentsManager->startAgent(ConfiguratorAgent::AgentTypes::BLE);
     }
     _kvstore->remove(START_BLE_AT_STARTUP_KEY);
   }
@@ -525,9 +523,6 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleConnecting() {
   ConnectionResult res = connectToNetwork(&err);
 
   if (res == ConnectionResult::SUCCESS) {
-    if(_agentsManager->isBLEAgentEnabled() && !_bleEnabled) {
-      _agentsManager->enableBLEAgent(false);
-    }
     return NetworkConfiguratorStates::CONFIGURED;
   } else if (res == ConnectionResult::FAILED) {
     sendStatus(err);

@@ -11,7 +11,7 @@
 #if NETWORK_CONFIGURATOR_COMPATIBLE
 
 #include "Arduino.h"
-#include "GenericConnectionHandler.h"
+#include "GenericConnectionHandler.h"//TODO fix include
 #include "ConfiguratorAgents/AgentsManager.h"
 #include <settings/settings.h>
 #include <Arduino_TimedAttempt.h>
@@ -29,6 +29,7 @@ enum class NetworkConfiguratorStates { ZERO_TOUCH_CONFIG,
                                        END };
 
 /**
+ * @class NetworkConfiguratorClass
  * @brief Class responsible for managing the network configuration of an Arduino_ConnectionHandler instance.
  * The library provides a way to configure and update
  * the network settings using different interfaces like BLE, Serial, etc.
@@ -70,7 +71,7 @@ public:
 
   /**
    * @brief Resets the stored network configuration.
-   * This method is alternative to the reconfiguration procedure
+   * This method is an alternative to the reconfiguration procedure
    * without forcing the restart of the BLE interface if turned off.
    * @return True if the reset is successful, false otherwise.
    */
@@ -97,7 +98,7 @@ public:
 
   /**
    * @brief Sets the pin used for the reconfiguration procedure.
-   * It must be set before calling the begin() method.
+   * This must be set before calling the begin() method.
    * @param pin The pin number to be used for reconfiguration,
    * internally it's mapped to an interrupt with INPUT_PULLUP mode.
    */
@@ -111,25 +112,27 @@ public:
   void addReconfigurePinCallback(ResetInput::ResetInputCallback callback);
 
   /**
-   * @brief Checks if BLE (Bluetooth Low Energy) is enabled.
-   * @return True if BLE is enabled, false otherwise.
+   * @brief Checks if a specific configuration agent is enabled.
+   * @param type The type of the agent to check (e.g., BLE, Serial).
+   * @return True if the agent is enabled, false otherwise.
    */
-  bool isBLEenabled();
+  bool isAgentEnabled(ConfiguratorAgent::AgentTypes type);
 
   /**
-   * @brief Enables or disables BLE (Bluetooth Low Energy).
-   * @param enable True to enable BLE, false to disable it.
+   * @brief Enables or disables a specific configuration agent.
+   * @param type The type of the agent to enable or disable (e.g., BLE, Serial).
+   * @param enable True to enable the agent, false to disable it.
    */
-  void enableBLE(bool enable);
+  void enableAgent(ConfiguratorAgent::AgentTypes type, bool enable);
 
   /**
-   * @brief Disconnects the current agent from the peer.
+   * @brief Disconnects the current configuration agent from the peer.
    */
   void disconnectAgent();
 
   /**
    * @brief Adds a new configurator agent.
-   * Configurator agents handle the configuration interfaces BLE, Serial, etc.
+   * Configurator agents handle the configuration interfaces such as BLE, Serial, etc.
    * This method should be called before the begin() method.
    * @param agent Reference to a ConfiguratorAgent object.
    * @return True if the agent is added successfully, false otherwise.
@@ -143,7 +146,6 @@ private:
   bool _connectionHandlerIstantiated;
   ResetInput *_resetInput;
   LEDFeedbackClass *_ledFeedback;
-  bool _bleEnabled;
   TimedAttempt _connectionTimeout;
   TimedAttempt _connectionRetryTimer;
   TimedAttempt _optionUpdateTimer;

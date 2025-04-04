@@ -36,10 +36,8 @@ bool AgentsManagerClass::begin() {
   }
 
   for (std::list<ConfiguratorAgent *>::iterator agent = _agentsList.begin(); agent != _agentsList.end(); ++agent) {
-    if((*agent)->getAgentType() == ConfiguratorAgent::AgentTypes::BLE) {
-      if (!_bleAgentEnabled) {
-        continue;
-      }
+    if( _enabledAgents[(int)(*agent)->getAgentType()] == false) {
+      continue;
     }
     if ((*agent)->begin() == ConfiguratorAgent::AgentConfiguratorStates::ERROR) {
       DEBUG_ERROR("AgentsManagerClass::%s agent type %d fails", __FUNCTION__, (int)(*agent)->getAgentType());
@@ -64,21 +62,51 @@ AgentsManagerStates AgentsManagerClass::poll() {
   return _state;
 }
 
-void AgentsManagerClass::enableBLEAgent(bool enable) {
-  if (_bleAgentEnabled == enable) {
+void AgentsManagerClass::enableAgent(ConfiguratorAgent::AgentTypes type, bool enable) {
+  bool _agentState = _enabledAgents[(int)type];
+
+  if (_agentState == enable) {
     return;
   }
-  _bleAgentEnabled = enable;
 
+  _enabledAgents[(int)type] = enable;
   if (enable) {
-    startBLEAgent();
+    startAgent(type);
   } else {
-    stopBLEAgent();
+    stopAgent(type);
   }
 }
 
-bool AgentsManagerClass::isBLEAgentEnabled() {
-  return _bleAgentEnabled;
+bool AgentsManagerClass::isAgentEnabled(ConfiguratorAgent::AgentTypes type) {
+  return _enabledAgents[(int)type];
+}
+
+bool AgentsManagerClass::startAgent(ConfiguratorAgent::AgentTypes type) {
+  if (_state == AgentsManagerStates::END) {
+    return false;
+  }
+
+  for (std::list<ConfiguratorAgent *>::iterator agent = _agentsList.begin(); agent != _agentsList.end(); ++agent) {
+    if ((*agent)->getAgentType() == type) {
+      (*agent)->begin();
+      return true;
+    }
+  }
+  return false;
+}
+
+bool AgentsManagerClass::stopAgent(ConfiguratorAgent::AgentTypes type) {
+  for (std::list<ConfiguratorAgent *>::iterator agent = _agentsList.begin(); agent != _agentsList.end(); ++agent) {
+    if ((*agent)->getAgentType() == type) {
+      (*agent)->end();
+      if (*agent == _selectedAgent) {
+        handlePeerDisconnected();
+        _state = AgentsManagerStates::INIT;
+      }
+      return true;
+    }
+  }
+  return false;
 }
 
 bool AgentsManagerClass::end() {
@@ -187,11 +215,12 @@ AgentsManagerClass::AgentsManagerClass():
   _returnNetworkSettingsCb{ nullptr },
   _selectedAgent{ nullptr },
   _instances{ 0 },
-  _bleAgentEnabled{ true },
   _initStatusMsg{ StatusMessage::NONE },
   _statusRequest{ .completion = 0, .pending = false, .key = RequestType::NONE },
   _state{ AgentsManagerStates::END }
-  {}
+  {
+    memset(_enabledAgents, 0x01, sizeof(_enabledAgents));
+  }
 
 AgentsManagerStates AgentsManagerClass::handleInit() {
   AgentsManagerStates nextState = _state;
@@ -369,38 +398,17 @@ bool AgentsManagerClass::sendStatus(StatusMessage msg) {
 void AgentsManagerClass::handlePeerDisconnected() {
   //Peer disconnected, restore all stopped agents
   for (std::list<ConfiguratorAgent *>::iterator agent = _agentsList.begin(); agent != _agentsList.end(); ++agent) {
+    if (_enabledAgents[(int)(*agent)->getAgentType()] == false) {
+      (*agent)->end();
+      continue;
+    }
+
     if (*agent != _selectedAgent) {
-      if ((*agent)->getAgentType() == ConfiguratorAgent::AgentTypes::BLE && !_bleAgentEnabled) {
-        continue;
-      }
       (*agent)->begin();
     }
   }
   _selectedAgent = nullptr;
   return;
-}
-
-void AgentsManagerClass::stopBLEAgent() {
-  for (std::list<ConfiguratorAgent *>::iterator agent = _agentsList.begin(); agent != _agentsList.end(); ++agent) {
-    if ((*agent)->getAgentType() == ConfiguratorAgent::AgentTypes::BLE) {
-      (*agent)->end();
-      if (*agent == _selectedAgent) {
-        handlePeerDisconnected();
-        _state = AgentsManagerStates::INIT;
-      }
-    }
-  }
-}
-
-void AgentsManagerClass::startBLEAgent() {
-  if (_state == AgentsManagerStates::END || !_bleAgentEnabled) {
-    return;
-  }
-  std::for_each(_agentsList.begin(), _agentsList.end(), [](ConfiguratorAgent *agent) {
-    if (agent->getAgentType() == ConfiguratorAgent::AgentTypes::BLE) {
-      agent->begin();
-    }
-  });
 }
 
 #endif // NETWORK_CONFIGURATOR_COMPATIBLE

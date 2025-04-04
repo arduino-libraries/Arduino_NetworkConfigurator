@@ -36,9 +36,12 @@ public:
   bool begin();
   bool end();
   void disconnect();
-  AgentsManagerStates poll();
-  void enableBLEAgent(bool enable);
-  bool isBLEAgentEnabled();
+  AgentsManagerStates poll(); //TODO rename to update
+  void enableAgent(ConfiguratorAgent::AgentTypes type, bool enable);
+  bool isAgentEnabled(ConfiguratorAgent::AgentTypes type);
+  // Force starting agent even if disabled
+  bool startAgent(ConfiguratorAgent::AgentTypes type);
+  bool stopAgent(ConfiguratorAgent::AgentTypes type);
   ConfiguratorAgent *getConnectedAgent();
   bool sendMsg(ProvisioningOutputMessage &msg);
   bool addAgent(ConfiguratorAgent &agent);
@@ -54,12 +57,12 @@ private:
   AgentsManagerClass();
   AgentsManagerStates _state;
   std::list<ConfiguratorAgent *> _agentsList;
+  bool _enabledAgents[2];
   ConfiguratorRequestHandler _reqHandlers[6];
   ReturnTimestamp _returnTimestampCb;
   ReturnNetworkSettings _returnNetworkSettingsCb;
   ConfiguratorAgent *_selectedAgent;
   uint8_t _instances;
-  bool _bleAgentEnabled;
   StatusMessage _initStatusMsg;
   NetworkOptions _netOptions;
   typedef struct {
@@ -87,6 +90,4 @@ private:
   bool sendStatus(StatusMessage msg);
 
   void handlePeerDisconnected();
-  void stopBLEAgent();
-  void startBLEAgent();
 };
