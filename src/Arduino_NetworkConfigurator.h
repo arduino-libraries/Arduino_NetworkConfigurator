@@ -19,6 +19,19 @@
 #include "Utility/ResetInput/ResetInput.h"
 #include "Utility/LEDFeedback/LEDFeedback.h"
 
+/**
+ * @enum NetworkConfiguratorStates
+ * @brief Represents the various states of the NetworkConfiguratorClass.
+ *
+ * - ZERO_TOUCH_CONFIG: Automatically configures the network settings without user intervention.
+ * - READ_STORED_CONFIG: Reads the stored network configuration from persistent storage and loads to the ConnectionHandler.
+ * - WAITING_FOR_CONFIG: Waits for the user to provide network configuration settings.
+ * - CONNECTING: Attempts to connect to the network using the provided configuration.
+ * - CONFIGURED: Indicates that the ConnectionHanlder has been successfully configured.
+ * - UPDATING_CONFIG: Updates the network configuration.
+ * - ERROR: Represents an error state during the configuration process.
+ * - END: Marks the end of the network configuration process.
+ */
 enum class NetworkConfiguratorStates { ZERO_TOUCH_CONFIG,
                                        READ_STORED_CONFIG,
                                        WAITING_FOR_CONFIG,
@@ -146,10 +159,14 @@ private:
   bool _connectionHandlerIstantiated;
   ResetInput *_resetInput;
   LEDFeedbackClass *_ledFeedback;
+  /* Timeout instances */
+  // Timeout for connection attempt
   TimedAttempt _connectionTimeout;
+  // Timeout for retrying to connect using the provided credentials
   TimedAttempt _connectionRetryTimer;
+  // Timeout for updating the network options ex. periodically scanning for new WiFi networks
   TimedAttempt _optionUpdateTimer;
-
+  /* List of events the NetworkConfigurator can handle from the AgentsManager */
   enum class NetworkConfiguratorEvents { NONE,
                                          SCAN_REQ,
                                          CONNECT_REQ,
@@ -164,6 +181,7 @@ private:
   KVStore *_kvstore;
   AgentsManagerClass *_agentsManager;
 
+  /* FSM handler functions */
 #if ZERO_TOUCH_ENABLED
   NetworkConfiguratorStates handleZeroTouchConfig();
 #endif
@@ -190,6 +208,7 @@ private:
   bool scanWiFiNetworks(WiFiOption &wifiOptObj);
   bool insertWiFiAP(WiFiOption &wifiOptObj, char *ssid, int rssi);
 #endif
+  /* Callback for agentsManager */
   static void scanReqHandler();
   static void connectReqHandler();
   static void setNetworkSettingsHandler(models::NetworkSetting *netSetting);

@@ -44,7 +44,12 @@
 #else
 #error "Board not supported for BLE configuration"
 #endif
-
+/**
+ * @class BLEAgentClass
+ * @brief This class is responsible for managing BLE communication with a peer device/client for board configuration purposes.
+ * It extends the ConfiguratorAgent class and implements the BoardConfigurationProtocol interface to handle
+ * communication, message exchange, and connection management over a Bluetooth Low Energy interface.
+ */
 class BLEAgentClass : public ConfiguratorAgent, private BoardConfigurationProtocol {
 public:
   BLEAgentClass();

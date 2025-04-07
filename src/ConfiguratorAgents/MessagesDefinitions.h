@@ -14,6 +14,7 @@
 #define MAX_UHWID_SIZE 32
 #define MAX_JWT_SIZE  269
 
+/* Status codes */
 enum class StatusMessage {
   NONE                       = 0,
   CONNECTING                 = 1,
@@ -40,6 +41,7 @@ enum class StatusMessage {
   ERROR                      = -255
 };
 
+/* Commands codes */
 enum class RemoteCommands { CONNECT             = 1,
                             GET_ID              = 2,
                             GET_BLE_MAC_ADDRESS = 3,
@@ -48,6 +50,7 @@ enum class RemoteCommands { CONNECT             = 1,
                             GET_WIFI_FW_VERSION = 101
 };
 
+/* Types of outgoing messages */
 enum class MessageOutputType { STATUS,
                                NETWORK_OPTIONS,
                                UHWID,
@@ -56,12 +59,18 @@ enum class MessageOutputType { STATUS,
                                WIFI_FW_VERSION
 };
 
+/* Types of ingoing messages */
 enum class MessageInputType {
   COMMANDS,
   NETWORK_SETTINGS,
   TIMESTAMP
 };
 
+/* Message structure for outgoing messages
+ * The payload is a union of different types
+ * pointers, no copy of object is required no
+ * memory is allocated
+ */
 struct ProvisioningOutputMessage {
   MessageOutputType type;
   union {
@@ -74,6 +83,9 @@ struct ProvisioningOutputMessage {
   } m;
 };
 
+/*
+ * Message structure for ingoing messages
+ */
 struct ProvisioningInputMessage {
   MessageInputType type;
   union {

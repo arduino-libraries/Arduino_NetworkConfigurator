@@ -14,6 +14,12 @@
 #include "ConfiguratorAgents/agents/BoardConfigurationProtocol/cbor/CBORInstances.h"
 #include "Utility/LEDFeedback/LEDFeedback.h"
 
+/**
+ * @class SerialAgentClass
+ * @brief This class is responsible for managing serial communication with a peer device/client for board configuration purposes.
+ * It extends the ConfiguratorAgent class and implements the BoardConfigurationProtocol interface to handle
+ * communication, message exchange, and connection management over a USB serial interface.
+ */
 class SerialAgentClass : public ConfiguratorAgent, private BoardConfigurationProtocol {
 public:
   SerialAgentClass();
