@@ -48,11 +48,20 @@ bool NetworkConfiguratorClass::begin() {
   if(_state != NetworkConfiguratorStates::END) {
     return true;
   }
+  /*
+   * If the board is zero touch capable, starts with zero touch configuration mode
+   * In this state the board will try to connect to the network using a set of
+   * default network settings ex. Ethernet with DHCP
+   * This mode will fail if the provided ConnectionHandler is not GenericConnectionHandler type
+   * falling back to read the network settings from the storage
+   */
+
   #if  ZERO_TOUCH_ENABLED
   _state = NetworkConfiguratorStates::ZERO_TOUCH_CONFIG;
   #else
   _state = NetworkConfiguratorStates::READ_STORED_CONFIG;
   #endif
+
   memset(&_networkSetting, 0x00, sizeof(models::NetworkSetting));
   _ledFeedback->begin();
 #ifdef BOARD_HAS_WIFI
@@ -62,7 +71,7 @@ bool NetworkConfiguratorClass::begin() {
   }
   _agentsManager->addRequestHandler(RequestType::SCAN, scanReqHandler);
 #endif
-
+  // Register callbacks to agentsManager
   _agentsManager->addRequestHandler(RequestType::CONNECT, connectReqHandler);
 
   _agentsManager->addReturnNetworkSettingsCallback(setNetworkSettingsHandler);
@@ -164,6 +173,7 @@ bool NetworkConfiguratorClass::end() {
 }
 
 bool NetworkConfiguratorClass::scanNetworkOptions() {
+// If board has Wifi scan for networks
 #ifdef BOARD_HAS_WIFI
   sendStatus(StatusMessage::SCANNING);  //Notify before scan
 
@@ -175,7 +185,7 @@ bool NetworkConfiguratorClass::scanNetworkOptions() {
   }
 
   NetworkOptions netOption = { NetworkOptionsClass::WIFI, wifiOptObj };
-#else
+#else // Send an empty network options message
   NetworkOptions netOption = { NetworkOptionsClass::NONE };
 #endif
   ProvisioningOutputMessage netOptionMsg = { MessageOutputType::NETWORK_OPTIONS };

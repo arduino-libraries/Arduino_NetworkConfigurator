@@ -10,6 +10,10 @@
 #include "Arduino.h"
 #define MAX_WIFI_NETWORKS 20
 
+/*
+ * Structures for storing the available network options
+ */
+
 enum class NetworkOptionsClass { NONE,
                                  WIFI };
 
@@ -24,7 +28,6 @@ struct WiFiOption {
   DiscoveredWiFiNetwork discoveredWifiNetworks[MAX_WIFI_NETWORKS];
   int numDiscoveredWiFiNetworks = 0;
 };
-
 
 struct NetworkOptions {
   NetworkOptionsClass type;

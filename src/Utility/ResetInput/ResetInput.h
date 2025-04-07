@@ -11,24 +11,59 @@
 #include "Arduino.h"
 #include <functional>
 
+/**
+ * @class ResetInput
+ * @brief A singleton class to handle input of the reset functionality with interrupt-based monitoring.
+ *
+ * This class provides methods to configure and monitor a reset input pin. It allows
+ * setting up a custom callback function to be executed when the pin status changes.
+ */
 class ResetInput{
 public:
+  /**
+   * @typedef ResetInput::ResetInputCallback
+   * @brief A type definition for the callback function to be executed on pin status change.
+   */
   typedef std::function<void()> ResetInputCallback;
+  /**
+   * @brief Get the singleton instance of the ResetInput class.
+   * @return A reference to the ResetInput instance.
+   */
   static ResetInput& getInstance();
-  // Setup the interrupt pin
+  /**
+   * @brief Initialize the reset input by setting up the interrupt pin.
+   */
   void begin();
-  // Monitor if the event is fired
+  /**
+   * @brief Check if the reset event has been fired.
+   * @return True if the event is fired, otherwise false.
+   */
   bool isEventFired();
-  // Add a custom function to be called when the pin status changes. It must be set before calling the begin method
+  /**
+   * @brief Set a custom callback function to be called when the pin status changes.
+   * This function must be called before invoking the `begin` method.
+   * @param callback The custom callback function to be executed.
+   */
   void setPinChangedCallback(ResetInputCallback callback);
-  // Set the pin to be monitored. It must be set before calling the begin method
+  /**
+   * @brief Set the pin to be monitored for reset events.
+   * By default, the pin is set as INPUT_PULLUP.
+   * This function must be called before invoking the `begin` method.
+   * @param pin The pin number to be monitored.
+   */
   void setPin(uint32_t pin);
 private:
+  /**
+   * @brief Private constructor to enforce the singleton pattern.
+   */
   ResetInput();
   static inline ResetInputCallback _pressedCustomCallback;
   uint32_t _pin;
   static inline volatile bool _expired;
   static inline volatile bool _fireEvent;
   static inline volatile uint32_t _startPressed;
+  /**
+   * @brief Internal callback function to handle pin press events.
+   */
   static void _pressedCallback();
 };
