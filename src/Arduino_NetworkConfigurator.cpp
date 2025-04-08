@@ -61,6 +61,7 @@ bool NetworkConfiguratorClass::begin() {
   #else
   _state = NetworkConfiguratorStates::READ_STORED_CONFIG;
   #endif
+  _connectionHandler->enableCheckInternetAvailability(true);
 
   memset(&_networkSetting, 0x00, sizeof(models::NetworkSetting));
   _ledFeedback->begin();
