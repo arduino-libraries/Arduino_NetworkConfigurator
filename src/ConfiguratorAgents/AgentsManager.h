@@ -54,7 +54,9 @@ enum class RequestType: int { NONE = -1,
                               GET_ID  = 2,
                               RESET = 3,
                               GET_WIFI_FW_VERSION = 4,
-                              GET_BLE_MAC_ADDRESS = 5 };
+                              GET_BLE_MAC_ADDRESS = 5,
+                              GET_PROVISIONING_SKETCH_VERSION = 6,
+                              GET_NETCONFIG_LIB_VERSION = 7};
 
 /**
  * @class AgentsManagerClass
@@ -209,7 +211,7 @@ private:
   AgentsManagerStates _state;
   std::list<ConfiguratorAgent *> _agentsList;
   bool _enabledAgents[2];
-  ConfiguratorRequestHandler _reqHandlers[6];
+  ConfiguratorRequestHandler _reqHandlers[8];
   ReturnTimestamp _returnTimestampCb;
   ReturnNetworkSettings _returnNetworkSettingsCb;
   ConfiguratorAgent *_selectedAgent;

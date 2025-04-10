@@ -67,7 +67,13 @@ bool BoardConfigurationProtocol::sendMsg(ProvisioningOutputMessage &msg) {
       res = sendBleMacAddress(msg.m.BLEMacAddress, BLE_MAC_ADDRESS_SIZE);
       break;
     case MessageOutputType::WIFI_FW_VERSION:
-      res = sendWifiFWVersion(msg.m.wifiFwVersion);
+      res = sendVersion(msg.m.wifiFwVersion, msg.type);
+      break;
+    case MessageOutputType::PROV_SKETCH_VERSION:
+      res = sendVersion(msg.m.provSketchVersion, msg.type);
+      break;
+    case MessageOutputType::NETCONFIG_LIB_VERSION:
+      res = sendVersion(msg.m.netConfigLibVersion, msg.type);
       break;
     default:
       break;
@@ -310,21 +316,27 @@ bool BoardConfigurationProtocol::sendBleMacAddress(const uint8_t *mac, size_t le
   return res;
 }
 
-bool BoardConfigurationProtocol::sendWifiFWVersion(const char *wifiFWVersion) {
+bool BoardConfigurationProtocol::sendVersion(const char *version, MessageOutputType type) {
   bool res = false;
 
-  size_t cborDataLen = CBOR_MIN_WIFI_FW_VERSION_LEN + strlen(wifiFWVersion);
+  size_t cborDataLen = CBOR_MIN_WIFI_FW_VERSION_LEN + strlen(version);
   uint8_t data[cborDataLen];
 
-  res = CBORAdapter::wifiFWVersionToCBOR(wifiFWVersion, data, &cborDataLen);
+  switch (type)
+  {
+  case MessageOutputType::WIFI_FW_VERSION:       res = CBORAdapter::wifiFWVersionToCBOR      (version, data, &cborDataLen); break;
+  case MessageOutputType::PROV_SKETCH_VERSION:   res = CBORAdapter::provSketchVersionToCBOR  (version, data, &cborDataLen); break;
+  case MessageOutputType::NETCONFIG_LIB_VERSION: res = CBORAdapter::netConfigLibVersionToCBOR(version, data, &cborDataLen); break;
+  default:                                                                                                           return false;
+  }
+
   if (!res) {
     return res;
   }
 
   res = sendData(PacketManager::MessageType::DATA, data, cborDataLen);
   if (!res) {
-    DEBUG_WARNING("BoardConfigurationProtocol::%s failed to send WiFi FW version", __FUNCTION__);
-    return res;
+    DEBUG_WARNING("BoardConfigurationProtocol::%s failed to send version of type %d", __FUNCTION__, (int)type);
   }
 
   return res;

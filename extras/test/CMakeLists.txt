@@ -16,8 +16,8 @@ FetchContent_Declare(
 
 FetchContent_Declare(
   cloudutils
-  GIT_REPOSITORY      https://github.com/andreagilardoni/Arduino_CloudUtils.git
-  GIT_TAG             cbor-messages
+  GIT_REPOSITORY      https://github.com/arduino-libraries/Arduino_CloudUtils.git
+  GIT_TAG             main
   CONFIGURE_COMMAND   ""
   BUILD_COMMAND       ""
 )
@@ -125,12 +125,12 @@ set(TEST_TARGET_SRCS
 
 ##########################################################################
 
-add_compile_definitions(BOARD_HAS_LORA BOARD_HAS_CATM1_NBIOT BOARD_HAS_WIFI BOARD_HAS_ETHERNET BOARD_HAS_CELLULAR BOARD_HAS_NB BOARD_HAS_GSM)
+add_compile_definitions(CI_TEST BOARD_HAS_LORA BOARD_HAS_CATM1_NBIOT BOARD_HAS_WIFI BOARD_HAS_ETHERNET BOARD_HAS_CELLULAR BOARD_HAS_NB BOARD_HAS_GSM)
 add_compile_options(-Wextra -Werror)
 add_compile_options(-Wno-cast-function-type)
 
 set(CMAKE_C_FLAGS   ${CMAKE_C_FLAGS}   "--coverage")
-set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "--coverage -Wno-deprecated-copy")
+set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "--coverage -Wno-deprecated-copy -Wno-missing-field-initializers")
 
 ##########################################################################
 

@@ -9,6 +9,8 @@ static UniqueHardwareIdProvisioningMessageEncoder   uniqueHardwareIdProvisioning
 static JWTProvisioningMessageEncoder                jWTProvisioningMessageEncoder;
 static BLEMacAddressProvisioningMessageEncoder      bLEMacAddressProvisioningMessageEncoder;
 static WiFiFWVersionProvisioningMessageEncoder      wiFiFWVersionProvisioningMessageEncoder;
+static ProvSketchVersionProvisioningMessageEncoder  provSketchVersionProvisioningMessageEncoder;
+static NetConfigLibVersProvisioningMessageEncoder   netConfigLibVersProvisioningMessageEncoder;
 
 static TimestampProvisioningMessageDecoder      timestampProvisioningMessageDecoder;
 static CommandsProvisioningMessageDecoder       commandsProvisioningMessageDecoder;

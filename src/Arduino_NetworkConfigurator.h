@@ -171,7 +171,8 @@ private:
                                          SCAN_REQ,
                                          CONNECT_REQ,
                                          NEW_NETWORK_SETTINGS,
-                                         GET_WIFI_FW_VERSION };
+                                         GET_WIFI_FW_VERSION,
+                                         GET_NET_CONF_LIB_VERSION };
   static inline NetworkConfiguratorEvents _receivedEvent;
 
   enum class ConnectionResult { SUCCESS,
@@ -193,6 +194,7 @@ private:
   NetworkConfiguratorStates handleErrorState();
   bool handleConnectRequest();
   void handleGetWiFiFWVersion();
+  void handleGetNetConfLibVersion();
 
   void startReconfigureProcedure();
 
@@ -213,6 +215,7 @@ private:
   static void connectReqHandler();
   static void setNetworkSettingsHandler(models::NetworkSetting *netSetting);
   static void getWiFiFWVersionHandler();
+  static void getNetConfLibVersionHandler();
 };
 
 #endif // NETWORK_CONFIGURATOR_COMPATIBLE
