@@ -30,9 +30,8 @@ jobs:
         - source-path: ./
         - name: Arduino_DebugUtils
         - source-url: https://github.com/fabik111/Arduino_ConnectionHandler.git
-          version: e8539870f2f8b7936f3126070b45055c38856bb1
-        - source-url: https://github.com/fabik111/ArduinoBLE.git
-          version: 82e2a28f871e97b313846cee6d9efed8943dca53
+          version: 0314cf54593029aea05bb8c179e40a26128f7d67
+        - source-url: https://github.com/arduino-libraries/ArduinoBLE.git
         - source-url: https://github.com/arduino-libraries/Arduino_CloudUtils.git
         - source-url: https://github.com/arduino-libraries/Arduino_KVStore.git
       SKETCH_PATHS: |

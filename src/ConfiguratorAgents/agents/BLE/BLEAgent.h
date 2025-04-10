@@ -246,7 +246,7 @@ inline uint8_t BLEAgentClass::read() {
 }
 
 inline int BLEAgentClass::write(const uint8_t *data, size_t len) {
-  return _outputStreamCharacteristic.write(data, len);
+  return _outputStreamCharacteristic.writeValue(data, len);
 }
 
 inline void BLEAgentClass::handleDisconnectRequest() {
