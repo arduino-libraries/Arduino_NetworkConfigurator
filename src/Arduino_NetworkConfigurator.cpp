@@ -79,6 +79,8 @@ bool NetworkConfiguratorClass::begin() {
 
   _agentsManager->addRequestHandler(RequestType::GET_WIFI_FW_VERSION, getWiFiFWVersionHandler);
 
+  _agentsManager->addRequestHandler(RequestType::GET_NETCONFIG_LIB_VERSION, getNetConfLibVersionHandler);
+
   if (!_agentsManager->begin()) {
     DEBUG_ERROR("NetworkConfiguratorClass::%s Failed to initialize the AgentsManagerClass", __FUNCTION__);
   }
@@ -343,6 +345,10 @@ void NetworkConfiguratorClass::getWiFiFWVersionHandler() {
   _receivedEvent = NetworkConfiguratorEvents::GET_WIFI_FW_VERSION;
 }
 
+void NetworkConfiguratorClass::getNetConfLibVersionHandler() {
+  _receivedEvent = NetworkConfiguratorEvents::GET_NET_CONF_LIB_VERSION;
+}
+
 bool NetworkConfiguratorClass::handleConnectRequest() {
   if (_networkSetting.type == NetworkAdapter::NONE) {
     sendStatus(StatusMessage::PARAMS_NOT_FOUND);
@@ -417,6 +423,12 @@ void NetworkConfiguratorClass::handleGetWiFiFWVersion() {
   ProvisioningOutputMessage fwVersionMsg = { MessageOutputType::WIFI_FW_VERSION };
   fwVersionMsg.m.wifiFwVersion = fwVersion.c_str();
   _agentsManager->sendMsg(fwVersionMsg);
+}
+
+void NetworkConfiguratorClass::handleGetNetConfLibVersion() {
+  ProvisioningOutputMessage libVersionMsg = { MessageOutputType::NETCONFIG_LIB_VERSION };
+  libVersionMsg.m.netConfigLibVersion = ANetworkConfigurator_LIB_VERSION;
+  _agentsManager->sendMsg(libVersionMsg);
 }
 
 void NetworkConfiguratorClass::startReconfigureProcedure() {
@@ -507,10 +519,11 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleWaitingForConf() {
   _agentsManager->update();
   bool connecting = false;
   switch (_receivedEvent) {
-    case NetworkConfiguratorEvents::SCAN_REQ:                 scanNetworkOptions  (); break;
-    case NetworkConfiguratorEvents::CONNECT_REQ: connecting = handleConnectRequest  (); break;
-    case NetworkConfiguratorEvents::GET_WIFI_FW_VERSION:      handleGetWiFiFWVersion(); break;
-    case NetworkConfiguratorEvents::NEW_NETWORK_SETTINGS:                               break;
+    case NetworkConfiguratorEvents::SCAN_REQ:                 scanNetworkOptions        (); break;
+    case NetworkConfiguratorEvents::CONNECT_REQ: connecting = handleConnectRequest      (); break;
+    case NetworkConfiguratorEvents::GET_WIFI_FW_VERSION:      handleGetWiFiFWVersion    (); break;
+    case NetworkConfiguratorEvents::GET_NET_CONF_LIB_VERSION: handleGetNetConfLibVersion(); break;
+    case NetworkConfiguratorEvents::NEW_NETWORK_SETTINGS:                                   break;
   }
   _receivedEvent = NetworkConfiguratorEvents::NONE;
 

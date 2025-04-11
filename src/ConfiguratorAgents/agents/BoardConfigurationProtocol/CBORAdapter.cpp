@@ -97,6 +97,34 @@ bool CBORAdapter::wifiFWVersionToCBOR(const char *wifiFWVersion, uint8_t *data, 
   return status == MessageEncoder::Status::Complete ? true : false;
 }
 
+bool CBORAdapter::provSketchVersionToCBOR(const char *provSketchVersion, uint8_t *data, size_t *len) {
+  CBORMessageEncoder encoder;
+  if(*len < CBOR_MIN_PROV_SKETCH_VERSION_LEN + strlen(provSketchVersion)) {
+    return false;
+  }
+  ProvSketchVersionProvisioningMessage provSketchVersionMsg;
+  provSketchVersionMsg.c.id = ProvisioningMessageId::ProvSketchVersionProvisioningMessageId;
+  provSketchVersionMsg.provSketchVersion = provSketchVersion;
+
+  MessageEncoder::Status status = encoder.encode((Message *)&provSketchVersionMsg, data, *len);
+
+  return status == MessageEncoder::Status::Complete ? true : false;
+}
+
+bool CBORAdapter::netConfigLibVersionToCBOR(const char *netConfigLibVersion, uint8_t *data, size_t *len) {
+  CBORMessageEncoder encoder;
+  if(*len < CBOR_MIN_NETCONFIG_LIB_VERSION_LEN + strlen(netConfigLibVersion)) {
+    return false;
+  }
+  NetConfigLibVersionProvisioningMessage netConfigLibVersionMsg;
+  netConfigLibVersionMsg.c.id = ProvisioningMessageId::NetConfigLibVersProvisioningMessageId;
+  netConfigLibVersionMsg.netConfigLibVersion = netConfigLibVersion;
+
+  MessageEncoder::Status status = encoder.encode((Message *)&netConfigLibVersionMsg, data, *len);
+
+  return status == MessageEncoder::Status::Complete ? true : false;
+}
+
 bool CBORAdapter::networkOptionsToCBOR(const NetworkOptions *netOptions, uint8_t *data, size_t *len) {
   bool result = false;
   switch (netOptions->type) {

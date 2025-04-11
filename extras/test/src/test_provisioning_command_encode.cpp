@@ -12,6 +12,7 @@
  #include <Encoder.h>
  #include <cbor/MessageEncoder.h>
  #include "../../src/ConfiguratorAgents/agents/BoardConfigurationProtocol/cbor/CBOR.h"
+ #include "../../src/ConfiguratorAgents/agents/BoardConfigurationProtocol/cbor/CBORInstances.h"
 
  /******************************************************************************
     TEST CODE
@@ -227,6 +228,61 @@
     // 81             # array(1)
     //   65           # text(5)
     //     312E362E30 # "1.6.0"
+    THEN("The encoding is successful") {
+        REQUIRE(err == MessageEncoder::Status::Complete);
+        REQUIRE(bytes_encoded == sizeof(expected_result));
+        REQUIRE(memcmp(buffer, expected_result, sizeof(expected_result)) == 0);
+    }
+   }
+
+   WHEN("Encode a message with provisioning sketch version ")
+   {
+    ProvSketchVersionProvisioningMessage command;
+    command.c.id = ProvisioningMessageId::ProvSketchVersionProvisioningMessageId;
+    command.provSketchVersion = "1.6.0";
+    uint8_t buffer[512];
+    size_t bytes_encoded = sizeof(buffer);
+
+    CBORMessageEncoder encoder;
+    MessageEncoder::Status err = encoder.encode((Message*)&command, buffer, bytes_encoded);
+
+    uint8_t expected_result[] = {
+    0xda, 0x00, 0x01, 0x20, 0x15, 0x81, 0x65, 0x31, 0x2E, 0x36, 0x2E, 0x30
+    };
+
+    // Test the encoding is
+    // DA 00012015       # tag(73749)
+    //   81              # array(1)
+    //     65            # text(5)
+    //        312E362E30 # "1.6.0"
+    THEN("The encoding is successful") {
+        REQUIRE(err == MessageEncoder::Status::Complete);
+        REQUIRE(bytes_encoded == sizeof(expected_result));
+        REQUIRE(memcmp(buffer, expected_result, sizeof(expected_result)) == 0);
+    }
+   }
+
+   WHEN("Encode a message with provisioning Network Configurator lib version ")
+   {
+    NetConfigLibVersionProvisioningMessage command;
+    command.c.id = ProvisioningMessageId::NetConfigLibVersProvisioningMessageId;
+    command.netConfigLibVersion = "1.6.0";
+    uint8_t buffer[512];
+    size_t bytes_encoded = sizeof(buffer);
+
+    CBORMessageEncoder encoder;
+    MessageEncoder::Status err = encoder.encode((Message*)&command, buffer, bytes_encoded);
+
+    uint8_t expected_result[] = {
+    0xda, 0x00, 0x01, 0x20, 0x16, 0x81, 0x65, 0x31, 0x2E, 0x36, 0x2E, 0x30
+    };
+
+    // Test the encoding is
+    // DA 00012016       # tag(73750)
+    //   81              # array(1)
+    //     65            # text(5)
+    //        312E362E30 # "1.6.0"
+    printf("res %d\n", (int)err);
     THEN("The encoding is successful") {
         REQUIRE(err == MessageEncoder::Status::Complete);
         REQUIRE(bytes_encoded == sizeof(expected_result));

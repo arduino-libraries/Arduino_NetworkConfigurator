@@ -135,4 +135,42 @@ MessageEncoder::Status WiFiFWVersionProvisioningMessageEncoder::encode(CborEncod
   return MessageEncoder::Status::Complete;
 }
 
+MessageEncoder::Status ProvSketchVersionProvisioningMessageEncoder::encode(CborEncoder* encoder, Message *msg) {
+  ProvSketchVersionProvisioningMessage * provisioningSketchVersion = (ProvSketchVersionProvisioningMessage*) msg;
+  CborEncoder array_encoder;
+
+  if(cbor_encoder_create_array(encoder, &array_encoder, 1) != CborNoError) {
+    return MessageEncoder::Status::Error;
+  }
+
+  if(cbor_encode_text_stringz(&array_encoder, provisioningSketchVersion->provSketchVersion) != CborNoError) {
+    return MessageEncoder::Status::Error;
+  }
+
+  if(cbor_encoder_close_container(encoder, &array_encoder) != CborNoError) {
+    return MessageEncoder::Status::Error;
+  }
+
+  return MessageEncoder::Status::Complete;
+}
+
+MessageEncoder::Status NetConfigLibVersProvisioningMessageEncoder::encode(CborEncoder* encoder, Message *msg) {
+  NetConfigLibVersionProvisioningMessage * netConfigLibVersion = (NetConfigLibVersionProvisioningMessage*) msg;
+  CborEncoder array_encoder;
+
+  if(cbor_encoder_create_array(encoder, &array_encoder, 1) != CborNoError) {
+    return MessageEncoder::Status::Error;
+  }
+
+  if(cbor_encode_text_stringz(&array_encoder, netConfigLibVersion->netConfigLibVersion) != CborNoError) {
+    return MessageEncoder::Status::Error;
+  }
+
+  if(cbor_encoder_close_container(encoder, &array_encoder) != CborNoError) {
+    return MessageEncoder::Status::Error;
+  }
+
+  return MessageEncoder::Status::Complete;
+}
+
 #endif // NETWORK_CONFIGURATOR_COMPATIBLE

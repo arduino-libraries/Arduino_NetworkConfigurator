@@ -42,12 +42,14 @@ enum class StatusMessage {
 };
 
 /* Commands codes */
-enum class RemoteCommands { CONNECT             = 1,
-                            GET_ID              = 2,
-                            GET_BLE_MAC_ADDRESS = 3,
-                            RESET               = 4,
-                            SCAN                = 100,
-                            GET_WIFI_FW_VERSION = 101
+enum class RemoteCommands { CONNECT                         = 1,
+                            GET_ID                          = 2,
+                            GET_BLE_MAC_ADDRESS             = 3,
+                            RESET                           = 4,
+                            SCAN                            = 100,
+                            GET_WIFI_FW_VERSION             = 101,
+                            GET_PROVISIONING_SKETCH_VERSION = 200,
+                            GET_NETCONFIG_LIB_VERSION       = 201,
 };
 
 /* Types of outgoing messages */
@@ -56,7 +58,9 @@ enum class MessageOutputType { STATUS,
                                UHWID,
                                JWT,
                                BLE_MAC_ADDRESS,
-                               WIFI_FW_VERSION
+                               WIFI_FW_VERSION,
+                               PROV_SKETCH_VERSION,
+                               NETCONFIG_LIB_VERSION,
 };
 
 /* Types of ingoing messages */
@@ -80,6 +84,8 @@ struct ProvisioningOutputMessage {
     const char *jwt;
     const uint8_t *BLEMacAddress;
     const char *wifiFwVersion;
+    const char *provSketchVersion;
+    const char *netConfigLibVersion;
   } m;
 };
 

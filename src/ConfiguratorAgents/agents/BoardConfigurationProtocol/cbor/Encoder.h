@@ -59,3 +59,19 @@ public:
 protected:
   MessageEncoder::Status encode(CborEncoder* encoder, Message *msg) override;
 };
+
+class ProvSketchVersionProvisioningMessageEncoder: public CBORMessageEncoderInterface {
+  public:
+  ProvSketchVersionProvisioningMessageEncoder()
+    : CBORMessageEncoderInterface(CBORProvSketchVersionProvisioningMessage, ProvSketchVersionProvisioningMessageId) {}
+  protected:
+    MessageEncoder::Status encode(CborEncoder* encoder, Message *msg) override;
+  };
+
+class NetConfigLibVersProvisioningMessageEncoder: public CBORMessageEncoderInterface {
+  public:
+  NetConfigLibVersProvisioningMessageEncoder()
+    : CBORMessageEncoderInterface(CBORNetConfigLibVersProvisioningMessage, NetConfigLibVersProvisioningMessageId) {}
+  protected:
+    MessageEncoder::Status encode(CborEncoder* encoder, Message *msg) override;
+  };
