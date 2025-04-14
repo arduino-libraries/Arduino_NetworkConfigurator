@@ -201,7 +201,7 @@ void NetworkConfiguratorClass::setStorage(KVStore &kvstore) {
   _kvstore = &kvstore;
 }
 
-void NetworkConfiguratorClass::setReconfigurePin(uint32_t pin) {
+void NetworkConfiguratorClass::setReconfigurePin(int pin) {
   _resetInput->setPin(pin);
 }
 

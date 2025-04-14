@@ -112,10 +112,15 @@ public:
   /**
    * @brief Sets the pin used for the reconfiguration procedure.
    * This must be set before calling the begin() method.
+   * Use the value DISABLE_PIN to disable the reset pin and
+   * the reset procedure.
    * @param pin The pin number to be used for reconfiguration,
    * internally it's mapped to an interrupt with INPUT_PULLUP mode.
+   * The pin must be in the list of digital pins usable for interrupts.
+   * Please refer to the Arduino documentation for more details:
+   * https://docs.arduino.cc/language-reference/en/functions/external-interrupts/attachInterrupt/
    */
-  void setReconfigurePin(uint32_t pin);
+  void setReconfigurePin(int pin);
 
   /**
    * @brief Adds a callback function to be triggered every time the

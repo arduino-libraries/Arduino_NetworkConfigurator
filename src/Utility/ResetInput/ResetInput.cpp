@@ -16,25 +16,27 @@ ResetInput &ResetInput::getInstance() {
   return instance;
 }
 
-ResetInput::ResetInput():
-  _pin {PIN_RECONFIGURE}
-  {
-    _expired = false;
-    _startPressed = 0;
-    _fireEvent = false;
-    _pressedCustomCallback = nullptr;
-  }
+ResetInput::ResetInput() {
+  _pin = PIN_RECONFIGURE;
+  _expired = false;
+  _startPressed = 0;
+  _fireEvent = false;
+  _pressedCustomCallback = nullptr;
+}
 
 void ResetInput::begin() {
+  if(_pin == DISABLE_PIN){
+    return;
+  }
 #ifdef ARDUINO_OPTA
-  pinMode(PIN_RECONFIGURE, INPUT);
+  pinMode(_pin, INPUT);
 #else
-  pinMode(PIN_RECONFIGURE, INPUT_PULLUP);
+  pinMode(_pin, INPUT_PULLUP);
 #endif
   pinMode(LED_RECONFIGURE, OUTPUT);
   digitalWrite(LED_RECONFIGURE, LED_OFF);
 
-  attachInterrupt(digitalPinToInterrupt(PIN_RECONFIGURE),_pressedCallback, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(_pin),_pressedCallback, CHANGE);
 }
 
 bool ResetInput::isEventFired() {
@@ -55,15 +57,19 @@ void ResetInput::setPinChangedCallback(ResetInputCallback callback) {
   _pressedCustomCallback = callback;
 }
 
-void ResetInput::setPin(uint32_t pin) {
-  _pin = pin;
+void ResetInput::setPin(int pin) {
+  if(pin < 0){
+    _pin = DISABLE_PIN;
+  }else {
+    _pin = pin;
+  }
 }
 
 void ResetInput::_pressedCallback() {
 #if defined(ARDUINO_NANO_RP2040_CONNECT)
-  if(digitalRead(PIN_RECONFIGURE) == HIGH){
+  if(digitalRead(_pin) == HIGH){
 #else
-  if(digitalRead(PIN_RECONFIGURE) == LOW){
+  if(digitalRead(_pin) == LOW){
 #endif
 #if !defined(ARDUINO_NANO_RP2040_CONNECT) && !defined(ARDUINO_SAMD_MKRWIFI1010)
     LEDFeedbackClass::getInstance().stop();

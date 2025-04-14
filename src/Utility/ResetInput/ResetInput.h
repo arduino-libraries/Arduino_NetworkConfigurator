@@ -11,6 +11,8 @@
 #include "Arduino.h"
 #include <functional>
 
+#define DISABLE_PIN -1
+
 /**
  * @class ResetInput
  * @brief A singleton class to handle input of the reset functionality with interrupt-based monitoring.
@@ -48,17 +50,21 @@ public:
   /**
    * @brief Set the pin to be monitored for reset events.
    * By default, the pin is set as INPUT_PULLUP.
+   * Use the value DISABLE_PIN to disable the pin and the reset procedure.
    * This function must be called before invoking the `begin` method.
-   * @param pin The pin number to be monitored.
+   * @param pin The pin number to be monitored. The pin must
+   * be in the list of digital pins usable for interrupts.
+   * Please refer to the Arduino documentation for more details:
+   * https://docs.arduino.cc/language-reference/en/functions/external-interrupts/attachInterrupt/
    */
-  void setPin(uint32_t pin);
+  void setPin(int pin);
 private:
   /**
    * @brief Private constructor to enforce the singleton pattern.
    */
   ResetInput();
   static inline ResetInputCallback _pressedCustomCallback;
-  uint32_t _pin;
+  static inline int _pin;
   static inline volatile bool _expired;
   static inline volatile bool _fireEvent;
   static inline volatile uint32_t _startPressed;
