@@ -7,6 +7,7 @@
 */
 #include "ANetworkConfigurator_Config.h"
 #if NETWORK_CONFIGURATOR_COMPATIBLE
+#include "Arduino_NetworkConfigurator.h"
 
 #include <Arduino_DebugUtils.h>
 #include "ConnectionHandlerDefinitions.h"
@@ -15,7 +16,6 @@
 #ifdef BOARD_HAS_WIFI
 #include "WiFiConnectionHandler.h"
 #endif
-#include "Arduino_NetworkConfigurator.h"
 
 #define NC_CONNECTION_RETRY_TIMER_ms 120000
 #define NC_CONNECTION_TIMEOUT_ms 15000
@@ -71,13 +71,13 @@ bool NetworkConfiguratorClass::begin() {
     DEBUG_ERROR(F("The current WiFi firmware version is not the latest and it may cause compatibility issues. Please upgrade the WiFi firmware"));
   }
   _agentsManager->addRequestHandler(RequestType::SCAN, scanReqHandler);
+
+  _agentsManager->addRequestHandler(RequestType::GET_WIFI_FW_VERSION, getWiFiFWVersionHandler);
 #endif
   // Register callbacks to agentsManager
   _agentsManager->addRequestHandler(RequestType::CONNECT, connectReqHandler);
 
   _agentsManager->addReturnNetworkSettingsCallback(setNetworkSettingsHandler);
-
-  _agentsManager->addRequestHandler(RequestType::GET_WIFI_FW_VERSION, getWiFiFWVersionHandler);
 
   _agentsManager->addRequestHandler(RequestType::GET_NETCONFIG_LIB_VERSION, getNetConfLibVersionHandler);
 
@@ -419,7 +419,10 @@ String NetworkConfiguratorClass::decodeConnectionErrorMessage(NetworkConnectionS
 }
 
 void NetworkConfiguratorClass::handleGetWiFiFWVersion() {
-  String fwVersion = WiFi.firmwareVersion();
+  String fwVersion = "";
+  #ifdef BOARD_HAS_WIFI
+  fwVersion = WiFi.firmwareVersion();
+  #endif
   ProvisioningOutputMessage fwVersionMsg = { MessageOutputType::WIFI_FW_VERSION };
   fwVersionMsg.m.wifiFwVersion = fwVersion.c_str();
   _agentsManager->sendMsg(fwVersionMsg);
