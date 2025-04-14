@@ -14,6 +14,7 @@
  #include <Decoder.h>
  #include <cbor/MessageDecoder.h>
  #include "../../src/ConfiguratorAgents/agents/BoardConfigurationProtocol/cbor/CBOR.h"
+ #include "../../src/ConfiguratorAgents/agents/BoardConfigurationProtocol/cbor/CBORInstances.h"
  #include <IPAddress.h>
 
  /******************************************************************************

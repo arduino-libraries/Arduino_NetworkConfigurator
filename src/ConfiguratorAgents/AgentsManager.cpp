@@ -302,11 +302,13 @@ void AgentsManagerClass::updateProgressRequest(StatusMessage type) {
 void AgentsManagerClass::updateProgressRequest(MessageOutputType type) {
   RequestType key = RequestType::NONE;
   switch (type) {
-    case MessageOutputType::NETWORK_OPTIONS: key = RequestType::SCAN               ; break;
-    case MessageOutputType::UHWID:           key = RequestType::GET_ID             ; break;
-    case MessageOutputType::JWT:             key = RequestType::GET_ID             ; break;
-    case MessageOutputType::BLE_MAC_ADDRESS: key = RequestType::GET_BLE_MAC_ADDRESS; break;
-    case MessageOutputType::WIFI_FW_VERSION: key = RequestType::GET_WIFI_FW_VERSION; break;
+    case MessageOutputType::NETWORK_OPTIONS:       key = RequestType::SCAN                           ; break;
+    case MessageOutputType::UHWID:                 key = RequestType::GET_ID                         ; break;
+    case MessageOutputType::JWT:                   key = RequestType::GET_ID                         ; break;
+    case MessageOutputType::BLE_MAC_ADDRESS:       key = RequestType::GET_BLE_MAC_ADDRESS            ; break;
+    case MessageOutputType::WIFI_FW_VERSION:       key = RequestType::GET_WIFI_FW_VERSION            ; break;
+    case MessageOutputType::PROV_SKETCH_VERSION:   key = RequestType::GET_PROVISIONING_SKETCH_VERSION; break;
+    case MessageOutputType::NETCONFIG_LIB_VERSION: key = RequestType::GET_NETCONFIG_LIB_VERSION      ; break;
   }
 
   if (key == RequestType::NONE) {
@@ -336,12 +338,14 @@ void AgentsManagerClass::handleReceivedCommands(RemoteCommands cmd) {
 
   RequestType type = RequestType::NONE;
   switch (cmd) {
-    case RemoteCommands::CONNECT:             type = RequestType::CONNECT            ; break;
-    case RemoteCommands::SCAN:                type = RequestType::SCAN               ; break;
-    case RemoteCommands::GET_ID:              type = RequestType::GET_ID             ; break;
-    case RemoteCommands::GET_BLE_MAC_ADDRESS: type = RequestType::GET_BLE_MAC_ADDRESS; break;
-    case RemoteCommands::RESET:               type = RequestType::RESET              ; break;
-    case RemoteCommands::GET_WIFI_FW_VERSION: type = RequestType::GET_WIFI_FW_VERSION; break;
+    case RemoteCommands::CONNECT:                         type = RequestType::CONNECT                        ; break;
+    case RemoteCommands::SCAN:                            type = RequestType::SCAN                           ; break;
+    case RemoteCommands::GET_ID:                          type = RequestType::GET_ID                         ; break;
+    case RemoteCommands::GET_BLE_MAC_ADDRESS:             type = RequestType::GET_BLE_MAC_ADDRESS            ; break;
+    case RemoteCommands::RESET:                           type = RequestType::RESET                          ; break;
+    case RemoteCommands::GET_WIFI_FW_VERSION:             type = RequestType::GET_WIFI_FW_VERSION            ; break;
+    case RemoteCommands::GET_PROVISIONING_SKETCH_VERSION: type = RequestType::GET_PROVISIONING_SKETCH_VERSION; break;
+    case RemoteCommands::GET_NETCONFIG_LIB_VERSION:       type = RequestType::GET_NETCONFIG_LIB_VERSION      ; break;
   }
 
   if(type == RequestType::NONE) {

@@ -48,6 +48,8 @@ enum CBORProvisioningMessageTag: CBORTag {
   CBORJWTProvisioningMessage                = 0x012011,
   CBORBLEMacAddressProvisioningMessage      = 0x012013,
   CBORWiFiFWVersionProvisioningMessage      = 0x012014,
+  CBORProvSketchVersionProvisioningMessage  = 0x012015,
+  CBORNetConfigLibVersProvisioningMessage   = 0x012016,
 };
 
 enum ProvisioningMessageId: MessageId {
@@ -57,6 +59,8 @@ enum ProvisioningMessageId: MessageId {
   UniqueHardwareIdProvisioningMessageId,
   BLEMacAddressProvisioningMessageId,
   WiFiFWVersionProvisioningMessageId,
+  ProvSketchVersionProvisioningMessageId,
+  NetConfigLibVersProvisioningMessageId,
   JWTProvisioningMessageId,
   TimestampProvisioningMessageId,
   CommandsProvisioningMessageId,
@@ -116,6 +120,20 @@ struct WiFiFWVersionProvisioningMessage {
   ProvisioningMessage c;
   struct {
     const char *wifiFwVersion; //The payload is a string.
+  };
+};
+
+struct ProvSketchVersionProvisioningMessage {
+  ProvisioningMessage c;
+  struct {
+    const char *provSketchVersion; //The payload is a string.
+  };
+};
+
+struct NetConfigLibVersionProvisioningMessage {
+  ProvisioningMessage c;
+  struct {
+    const char *netConfigLibVersion; //The payload is a string.
   };
 };
 

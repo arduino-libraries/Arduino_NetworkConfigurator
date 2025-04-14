@@ -7,8 +7,7 @@
 */
 #pragma once
 
-#define NETWORK_CONFIGURATOR_COMPATIBLE 0
-#define ZERO_TOUCH_ENABLED 0
+#define ANetworkConfigurator_LIB_VERSION "0.1.0"
 
 #if defined(ARDUINO_SAMD_MKRWIFI1010)
   #define NETWORK_CONFIGURATOR_COMPATIBLE 1
@@ -117,6 +116,15 @@
   #define RED_LED LEDR
   #define LED_ON LOW
   #define LED_OFF HIGH
+#endif
+
+#ifdef CI_TEST
+  #define NETWORK_CONFIGURATOR_COMPATIBLE 1
+#endif
+
+#ifndef NETWORK_CONFIGURATOR_COMPATIBLE
+  #define NETWORK_CONFIGURATOR_COMPATIBLE 0
+  #define ZERO_TOUCH_ENABLED 0
 #endif
 
 #ifndef RESET_HOLD_TIME
