@@ -68,6 +68,17 @@ void setup() {
   /* Add the interfaces that are enabled for configuring the network*/
   NetworkConfigurator.addAgent(BLEAgent);
   NetworkConfigurator.addAgent(SerialAgent);
+
+  //Uncomment this for disabling the reconfiguration pin and the reconfiguration procedure
+  //NetworkConfigurator.setReconfigurePin(DISABLE_PIN);
+
+  /* Uncomment and specify your preferred pin for changing the default reconfiguration pin
+  * The pin must be in the list of digital pins usable for interrupts.
+  * Please refer to the Arduino documentation for more details:
+  * https://docs.arduino.cc/language-reference/en/functions/external-interrupts/attachInterrupt/
+  */
+  //NetworkConfigurator.setReconfigurePin(your_pin);
+
   /* Add a custom callback function to be invoked every time the interrupt on reconfiguration pin is fired*/
   NetworkConfigurator.addReconfigurePinCallback(onResetPinInterrupt);
   /* Start the network configurator */
