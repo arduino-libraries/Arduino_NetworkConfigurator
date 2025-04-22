@@ -75,6 +75,9 @@ bool BoardConfigurationProtocol::sendMsg(ProvisioningOutputMessage &msg) {
     case MessageOutputType::NETCONFIG_LIB_VERSION:
       res = sendVersion(msg.m.netConfigLibVersion, msg.type);
       break;
+    case MessageOutputType::PROV_PUBLIC_KEY:
+      res = sendProvPublicKey(msg.m.provPublicKey, strlen(msg.m.provPublicKey));
+      break;
     default:
       break;
   }
@@ -292,6 +295,23 @@ bool BoardConfigurationProtocol::sendJwt(const char *jwt, size_t len) {
   }
 
   return res;
+}
+
+bool BoardConfigurationProtocol::sendProvPublicKey(const char *provPublicKey, size_t len) {
+
+  size_t cborDataLen = CBOR_MIN_PROV_PUBIC_KEY_LEN + len;
+  uint8_t data[cborDataLen];
+
+  if (!CBORAdapter::provPublicKeyToCBOR(provPublicKey, data, &cborDataLen)) {
+    return false;
+  }
+
+  if (!sendData(PacketManager::MessageType::DATA, data, cborDataLen)) {
+    DEBUG_WARNING("BoardConfigurationProtocol::%s failed to send JWT", __FUNCTION__);
+    return false;
+  }
+
+  return true;
 }
 
 bool BoardConfigurationProtocol::sendBleMacAddress(const uint8_t *mac, size_t len) {

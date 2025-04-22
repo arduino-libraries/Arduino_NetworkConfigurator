@@ -61,6 +61,7 @@ enum class MessageOutputType { STATUS,
                                WIFI_FW_VERSION,
                                PROV_SKETCH_VERSION,
                                NETCONFIG_LIB_VERSION,
+                               PROV_PUBLIC_KEY
 };
 
 /* Types of ingoing messages */
@@ -86,6 +87,7 @@ struct ProvisioningOutputMessage {
     const char *wifiFwVersion;
     const char *provSketchVersion;
     const char *netConfigLibVersion;
+    const char *provPublicKey;
   } m;
 };
 

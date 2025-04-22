@@ -96,6 +96,7 @@ private:
   bool sendNetworkOptions(const NetworkOptions *netOptions);
   bool sendUhwid(const byte *uhwid);
   bool sendJwt(const char *jwt, size_t len);
+  bool sendProvPublicKey(const char *provPublicKey, size_t len);
   bool sendBleMacAddress(const uint8_t *mac, size_t len);
   bool sendVersion(const char *version, MessageOutputType type);
   TransmissionResult transmitStream();
