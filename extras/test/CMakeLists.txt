@@ -46,8 +46,8 @@ endif()
 
 include_directories(include)
 include_directories(../../src)
-include_directories(../../src/ConfiguratorAgents)
-include_directories(../../src/ConfiguratorAgents/agents/BoardConfigurationProtocol/cbor)
+include_directories(../../src/configuratorAgents)
+include_directories(../../src/configuratorAgents/agents/BoardConfigurationProtocol/cbor)
 
 # add_library(cloudutils STATIC IMPORTED GLOBAL)
 add_library(cloudutils INTERFACE)
@@ -98,8 +98,8 @@ set(TEST_SRCS
 )
 
 set(TEST_DUT_SRCS
-  ../../src/ConfiguratorAgents/agents/BoardConfigurationProtocol/cbor/Decoder.cpp
-  ../../src/ConfiguratorAgents/agents/BoardConfigurationProtocol/cbor/Encoder.cpp
+  ../../src/configuratorAgents/agents/BoardConfigurationProtocol/cbor/Decoder.cpp
+  ../../src/configuratorAgents/agents/BoardConfigurationProtocol/cbor/Encoder.cpp
 
   ${cloudutils_SOURCE_DIR}/src/cbor/tinycbor/src/cborencoder.c
   ${cloudutils_SOURCE_DIR}/src/cbor/tinycbor/src/cborencoder_close_container_checked.c

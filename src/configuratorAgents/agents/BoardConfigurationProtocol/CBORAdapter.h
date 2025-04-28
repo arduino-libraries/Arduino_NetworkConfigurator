@@ -8,7 +8,7 @@
 
 #pragma once
 #include "Arduino.h"
-#include "ConfiguratorAgents/MessagesDefinitions.h"
+#include "configuratorAgents/MessagesDefinitions.h"
 #include "settings/settings.h"
 #include "cbor/CBOR.h"
 #include "./cbor/CBOR.h"

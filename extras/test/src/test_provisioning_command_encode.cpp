@@ -11,8 +11,8 @@
  #include <memory>
  #include <Encoder.h>
  #include <cbor/MessageEncoder.h>
- #include "../../src/ConfiguratorAgents/agents/BoardConfigurationProtocol/cbor/CBOR.h"
- #include "../../src/ConfiguratorAgents/agents/BoardConfigurationProtocol/cbor/CBORInstances.h"
+ #include "../../src/configuratorAgents/agents/BoardConfigurationProtocol/cbor/CBOR.h"
+ #include "../../src/configuratorAgents/agents/BoardConfigurationProtocol/cbor/CBORInstances.h"
 
  /******************************************************************************
     TEST CODE

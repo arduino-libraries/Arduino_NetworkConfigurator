@@ -12,7 +12,7 @@
 
 #include "Arduino.h"
 #include "Arduino_ConnectionHandler.h"
-#include "ConfiguratorAgents/AgentsManager.h"
+#include "configuratorAgents/AgentsManager.h"
 #include <settings/settings.h>
 #include <Arduino_TimedAttempt.h>
 #include <Arduino_KVStore.h>

@@ -9,9 +9,9 @@
 #pragma once
 #include <list>
 #include "Arduino.h"
-#include "ConfiguratorAgents/agents/ConfiguratorAgent.h"
-#include "ConfiguratorAgents/agents/BoardConfigurationProtocol/BoardConfigurationProtocol.h"
-#include "ConfiguratorAgents/agents/BoardConfigurationProtocol/cbor/CBORInstances.h"
+#include "configuratorAgents/agents/ConfiguratorAgent.h"
+#include "configuratorAgents/agents/BoardConfigurationProtocol/BoardConfigurationProtocol.h"
+#include "configuratorAgents/agents/BoardConfigurationProtocol/cbor/CBORInstances.h"
 #include "utility/LEDFeedback.h"
 
 /**
