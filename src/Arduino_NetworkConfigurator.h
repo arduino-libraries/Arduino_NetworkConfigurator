@@ -16,8 +16,8 @@
 #include <settings/settings.h>
 #include <Arduino_TimedAttempt.h>
 #include <Arduino_KVStore.h>
-#include "Utility/ResetInput.h"
-#include "Utility/LEDFeedback.h"
+#include "utility/ResetInput.h"
+#include "utility/LEDFeedback.h"
 
 /**
  * @enum NetworkConfiguratorStates

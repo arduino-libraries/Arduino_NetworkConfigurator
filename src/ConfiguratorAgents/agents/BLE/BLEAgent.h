@@ -17,7 +17,7 @@
 #include "BLECharacteristic.h"
 #include "ConfiguratorAgents/agents/ConfiguratorAgent.h"
 #include "ConfiguratorAgents/agents/BoardConfigurationProtocol/BoardConfigurationProtocol.h"
-#include "Utility/LEDFeedback.h"
+#include "utility/LEDFeedback.h"
 #include "ConfiguratorAgents/agents/BoardConfigurationProtocol/cbor/CBORInstances.h"
 
 #define BASE_LOCAL_NAME "Arduino"
