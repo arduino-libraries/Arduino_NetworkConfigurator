@@ -9,7 +9,7 @@
 #if NETWORK_CONFIGURATOR_COMPATIBLE
 
 #include "ResetInput.h"
-#include "Utility/LEDFeedback/LEDFeedback.h"
+#include "Utility/LEDFeedback.h"
 
 ResetInput &ResetInput::getInstance() {
   static ResetInput instance;

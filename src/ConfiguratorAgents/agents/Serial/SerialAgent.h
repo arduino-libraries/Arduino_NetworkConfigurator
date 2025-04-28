@@ -12,7 +12,7 @@
 #include "ConfiguratorAgents/agents/ConfiguratorAgent.h"
 #include "ConfiguratorAgents/agents/BoardConfigurationProtocol/BoardConfigurationProtocol.h"
 #include "ConfiguratorAgents/agents/BoardConfigurationProtocol/cbor/CBORInstances.h"
-#include "Utility/LEDFeedback/LEDFeedback.h"
+#include "Utility/LEDFeedback.h"
 
 /**
  * @class SerialAgentClass
