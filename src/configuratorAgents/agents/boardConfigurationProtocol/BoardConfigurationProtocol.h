@@ -9,7 +9,7 @@
 #pragma once
 #include <list>
 #include "PacketManager.h"
-#include "ConfiguratorAgents/MessagesDefinitions.h"
+#include "configuratorAgents/MessagesDefinitions.h"
 
 /**
  * @class BoardConfigurationProtocol

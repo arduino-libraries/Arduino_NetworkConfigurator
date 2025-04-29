@@ -9,10 +9,10 @@
 #pragma once
 #include <list>
 #include "Arduino.h"
-#include "ConfiguratorAgents/agents/ConfiguratorAgent.h"
-#include "ConfiguratorAgents/agents/BoardConfigurationProtocol/BoardConfigurationProtocol.h"
-#include "ConfiguratorAgents/agents/BoardConfigurationProtocol/cbor/CBORInstances.h"
-#include "Utility/LEDFeedback/LEDFeedback.h"
+#include "configuratorAgents/agents/ConfiguratorAgent.h"
+#include "configuratorAgents/agents/boardConfigurationProtocol/BoardConfigurationProtocol.h"
+#include "configuratorAgents/agents/boardConfigurationProtocol/cbor/CBORInstances.h"
+#include "utility/LEDFeedback.h"
 
 /**
  * @class SerialAgentClass

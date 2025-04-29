@@ -8,8 +8,8 @@
 
 #pragma once
 #include "settings/settings.h"
-#include "ConfiguratorAgents/NetworkOptionsDefinitions.h"
-#include "ConfiguratorAgents/MessagesDefinitions.h"
+#include "configuratorAgents/NetworkOptionsDefinitions.h"
+#include "configuratorAgents/MessagesDefinitions.h"
 #include "Arduino.h"
 
 /**

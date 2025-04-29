@@ -12,7 +12,7 @@
 #include <Arduino_CBOR.h>
 #include <ConnectionHandlerDefinitions.h>
 #include <settings/settings.h>
-#include <ConfiguratorAgents/NetworkOptionsDefinitions.h>
+#include <configuratorAgents/NetworkOptionsDefinitions.h>
 
 #define UHWID_SIZE                  32
 #define PROVISIONING_JWT_SIZE      269 // Max length of jwt is 268 + \0

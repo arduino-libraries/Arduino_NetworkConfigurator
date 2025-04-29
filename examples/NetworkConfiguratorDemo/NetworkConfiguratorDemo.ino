@@ -34,8 +34,8 @@
 #include <GenericConnectionHandler.h>
 #include <Arduino_KVStore.h>
 #include <Arduino_NetworkConfigurator.h>
-#include <ConfiguratorAgents/agents/BLE/BLEAgent.h>
-#include <ConfiguratorAgents/agents/Serial/SerialAgent.h>
+#include <configuratorAgents/agents/BLEAgent.h>
+#include <configuratorAgents/agents/SerialAgent.h>
 
 KVStore kvstore;
 BLEAgentClass BLEAgent;
