@@ -10,8 +10,8 @@
 #include <list>
 #include "Arduino.h"
 #include "configuratorAgents/agents/ConfiguratorAgent.h"
-#include "configuratorAgents/agents/BoardConfigurationProtocol/BoardConfigurationProtocol.h"
-#include "configuratorAgents/agents/BoardConfigurationProtocol/cbor/CBORInstances.h"
+#include "configuratorAgents/agents/boardConfigurationProtocol/BoardConfigurationProtocol.h"
+#include "configuratorAgents/agents/boardConfigurationProtocol/cbor/CBORInstances.h"
 #include "utility/LEDFeedback.h"
 
 /**

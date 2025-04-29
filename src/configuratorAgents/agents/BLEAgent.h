@@ -16,9 +16,9 @@
 #include "BLEStringCharacteristic.h"
 #include "BLECharacteristic.h"
 #include "configuratorAgents/agents/ConfiguratorAgent.h"
-#include "configuratorAgents/agents/BoardConfigurationProtocol/BoardConfigurationProtocol.h"
+#include "configuratorAgents/agents/boardConfigurationProtocol/BoardConfigurationProtocol.h"
 #include "utility/LEDFeedback.h"
-#include "configuratorAgents/agents/BoardConfigurationProtocol/cbor/CBORInstances.h"
+#include "configuratorAgents/agents/boardConfigurationProtocol/cbor/CBORInstances.h"
 
 #define BASE_LOCAL_NAME "Arduino"
 #define ARDUINO_COMPANY_ID 0x09A3
