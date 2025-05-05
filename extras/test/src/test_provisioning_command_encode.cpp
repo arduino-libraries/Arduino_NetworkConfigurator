@@ -123,6 +123,7 @@
    {
     JWTProvisioningMessage command;
     command.c.id = ProvisioningMessageId::JWTProvisioningMessageId;
+    memset(command.jwt, 0x00, 269);
     memset(command.jwt, 0xCA, 268);
     uint8_t buffer[512];
     size_t bytes_encoded = sizeof(buffer);

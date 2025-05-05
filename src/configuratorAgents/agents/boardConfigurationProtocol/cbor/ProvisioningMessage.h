@@ -105,7 +105,7 @@ struct UniqueHardwareIdProvisioningMessage {
 struct JWTProvisioningMessage {
   ProvisioningMessage c;
   struct {
-    char jwt[PROVISIONING_JWT_SIZE]; //The payload is an array of char with a maximum length of 268, not null terminated. It's not a string.
+    char jwt[PROVISIONING_JWT_SIZE]; //The payload is a string with maximum dimension of 268 characters + '\0'.
   };
 };
 
