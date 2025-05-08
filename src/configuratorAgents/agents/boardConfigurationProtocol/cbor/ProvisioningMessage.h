@@ -11,7 +11,7 @@
 #include <stddef.h>
 #include <Arduino_CBOR.h>
 #include <ConnectionHandlerDefinitions.h>
-#include <settings/settings.h>
+#include <connectionHandlerModels/settings.h>
 #include <configuratorAgents/NetworkOptionsDefinitions.h>
 
 #define UHWID_SIZE                  32

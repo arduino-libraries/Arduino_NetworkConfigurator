@@ -7,7 +7,6 @@
 */
 
 #pragma once
-#include "settings/settings.h"
 #include "configuratorAgents/NetworkOptionsDefinitions.h"
 #include "configuratorAgents/MessagesDefinitions.h"
 #include "Arduino.h"

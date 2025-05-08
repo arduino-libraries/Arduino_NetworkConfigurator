@@ -10,7 +10,6 @@
 
 #include <Arduino_DebugUtils.h>
 #include <algorithm>
-#include <settings/settings.h>
 #include "AgentsManager.h"
 #include "NetworkOptionsDefinitions.h"
 #include "utility/LEDFeedback.h"
