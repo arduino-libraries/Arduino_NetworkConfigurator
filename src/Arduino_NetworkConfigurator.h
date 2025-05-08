@@ -13,7 +13,7 @@
 #include "Arduino.h"
 #include "Arduino_ConnectionHandler.h"
 #include "configuratorAgents/AgentsManager.h"
-#include <settings/settings.h>
+#include <connectionHandlerModels/settings.h>
 #include <Arduino_TimedAttempt.h>
 #include <Arduino_KVStore.h>
 #include "utility/ResetInput.h"
