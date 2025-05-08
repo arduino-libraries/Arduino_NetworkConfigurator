@@ -9,7 +9,7 @@
 #if NETWORK_CONFIGURATOR_COMPATIBLE
 
 #include "Decoder.h"
-#include <settings/settings_default.h>
+#include <connectionHandlerModels/settings_default.h>
 #if defined(BOARD_HAS_ETHERNET)
 #include <IPAddress.h>
 #endif

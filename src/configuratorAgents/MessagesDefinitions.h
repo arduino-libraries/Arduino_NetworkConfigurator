@@ -9,7 +9,7 @@
 #pragma once
 #include "Arduino.h"
 #include "NetworkOptionsDefinitions.h"
-#include <settings/settings.h>
+#include <connectionHandlerModels/settings.h>
 
 #define MAX_UHWID_SIZE 32
 #define MAX_JWT_SIZE  269

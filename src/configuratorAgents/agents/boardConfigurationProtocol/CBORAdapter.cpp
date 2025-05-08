@@ -11,7 +11,6 @@
 #include "CBORAdapter.h"
 #include "cbor/MessageEncoder.h"
 #include "cbor/MessageDecoder.h"
-#include <settings/settings_default.h>
 
 bool CBORAdapter::uhwidToCBOR(const byte *uhwid, uint8_t *data, size_t *len) {
   CBORMessageEncoder encoder;
