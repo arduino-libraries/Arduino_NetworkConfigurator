@@ -225,6 +225,22 @@
     }
    }
 
+   WHEN("Encode a message with provisioning  public key")
+   {
+    ProvPublicKeyProvisioningMessage command;
+    command.c.id = ProvisioningMessageId::ProvPublicKeyProvisioningMessageId;
+    command.provPublicKey = "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE7JxCtXl5SvIrHmiasqyN4pyoXRlm44d5WXNpqmvJ\nk0tH8UpmIeHG7YPAkKLaqid95v/wLVoWeX5EbjxmlCkFtw==\n-----END PUBLIC KEY-----\n";
+    uint8_t buffer[50];
+    size_t bytes_encoded = sizeof(buffer);
+
+    CBORMessageEncoder encoder;
+    MessageEncoder::Status err = encoder.encode((Message*)&command, buffer, bytes_encoded);
+
+    THEN("The encoding is failing") {
+        REQUIRE(err == MessageEncoder::Status::Error);
+    }
+   }
+
    WHEN("Encode a message with provisioning ble mac Address ")
    {
     BLEMacAddressProvisioningMessage command;
@@ -300,7 +316,6 @@
     //   81              # array(1)
     //     65            # text(5)
     //        312E362E30 # "1.6.0"
-    printf("res %d\n", (int)err);
     THEN("The encoding is successful") {
         REQUIRE(err == MessageEncoder::Status::Complete);
         REQUIRE(bytes_encoded == sizeof(expected_result));
