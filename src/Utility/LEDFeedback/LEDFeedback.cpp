@@ -48,7 +48,7 @@ const uint32_t cloud[][4] = {
 };
 
 const uint32_t snake[][4] = {
-  { 0xffffffff, 0xffffffff, 0xffffffff, 1300 },
+  { 0xffffffff, 0xffffffff, 0xffffffff, 2000 },
 	{ 0x7fffffff, 0xffffffff, 0xfffff7ff, 66 },
 	{ 0x3fe7ffff, 0xffffffff, 0xff7ff3fe, 66 },
 	{ 0x1fc3fe7f, 0xfffffff7, 0xff3fe1fc, 66 },
