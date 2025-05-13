@@ -194,6 +194,9 @@ void LEDFeedbackClass::setMode(LEDFeedbackMode mode) {
         _framePtr = nullptr;
         matrix.loadSequence(snake);
         matrix.play(true);
+        /* For fixing the issue that the first
+         * frame of the first run is not shown */
+        matrix.loadSequence(snake);
       #endif
       _ledChangeInterval = HEARTBEAT_INTERVAL;
       _count = 0;
