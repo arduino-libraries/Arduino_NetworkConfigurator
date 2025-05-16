@@ -33,6 +33,7 @@ NetworkConfiguratorClass::NetworkConfiguratorClass(ConnectionHandler &connection
     _state{ NetworkConfiguratorStates::END },
     _connectionHandler{ &connectionHandler },
     _connectionHandlerIstantiated{ false },
+    _configInProgress{ false },
     _kvstore{ nullptr },
     _connectionTimeout{ NC_CONNECTION_TIMEOUT_ms, NC_CONNECTION_TIMEOUT_ms },
     _connectionRetryTimer{ NC_CONNECTION_RETRY_TIMER_ms, NC_CONNECTION_RETRY_TIMER_ms },
@@ -547,8 +548,11 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleConnecting() {
   _agentsManager->update();  //To keep alive the connection with the configurator
   StatusMessage err;
   ConnectionResult res = connectToNetwork(&err);
-
+  _configInProgress = _agentsManager->isConfigInProgress();
   if (res == ConnectionResult::SUCCESS) {
+    if (_configInProgress) {
+      _ledFeedback->setMode(LEDFeedbackClass::LEDFeedbackMode::PEER_CONNECTED);
+    }
     return NetworkConfiguratorStates::CONFIGURED;
   } else if (res == ConnectionResult::FAILED) {
     sendStatus(err);
@@ -560,17 +564,16 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleConnecting() {
 }
 
 NetworkConfiguratorStates NetworkConfiguratorClass::handleConfigured() {
-  bool configInprogress = _agentsManager->isConfigInProgress();
-
-  if (configInprogress) {
-    _ledFeedback->setMode(LEDFeedbackClass::LEDFeedbackMode::PEER_CONNECTED);
-  }
-
   _agentsManager->update();
+  const bool updatedConfigInprogress = _agentsManager->isConfigInProgress();
+
   // If the agent manager changes state, it means that user is trying to configure the network, so the network configurator should change state
-  if (_agentsManager->isConfigInProgress() && !configInprogress) {
-    scanNetworkOptions();
-    return NetworkConfiguratorStates::UPDATING_CONFIG;
+  if (_configInProgress != updatedConfigInprogress) {
+    _configInProgress = updatedConfigInprogress;
+    if (_configInProgress) {
+      scanNetworkOptions();
+      return NetworkConfiguratorStates::UPDATING_CONFIG;
+    }
   }
 
   return NetworkConfiguratorStates::CONFIGURED;

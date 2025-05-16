@@ -162,6 +162,7 @@ private:
   ConnectionHandler *_connectionHandler;
   static inline models::NetworkSetting _networkSetting;
   bool _connectionHandlerIstantiated;
+  bool _configInProgress;
   ResetInput *_resetInput;
   LEDFeedbackClass *_ledFeedback;
   /* Timeout instances */
