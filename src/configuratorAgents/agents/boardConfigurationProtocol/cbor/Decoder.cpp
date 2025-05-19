@@ -10,34 +10,10 @@
 
 #include "Decoder.h"
 #include <connectionHandlerModels/settings_default.h>
+#include <cbor/utils/decoder.h>
 #if defined(BOARD_HAS_ETHERNET)
 #include <IPAddress.h>
 #endif
-
-// FIXME move this utility functions
-static bool copyCBORStringToArray(CborValue * param, char * dest, size_t dest_size) {
-  if (cbor_value_is_text_string(param)) {
-    // NOTE: keep in mind that _cbor_value_copy_string tries to put a \0 at the end of the string
-    if(_cbor_value_copy_string(param, dest, &dest_size, NULL) == CborNoError) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-// FIXME dest_size should be also returned, the copied byte array can have a different size from the starting one
-// for the time being we need this on SHA256 only
-static bool copyCBORByteToArray(CborValue * param, uint8_t * dest, size_t dest_size) {
-  if (cbor_value_is_byte_string(param)) {
-    // NOTE: keep in mind that _cbor_value_copy_string tries to put a \0 at the end of the string
-    if(_cbor_value_copy_string(param, dest, &dest_size, NULL) == CborNoError) {
-      return true;
-    }
-  }
-
-  return false;
-}
 
 MessageDecoder::Status TimestampProvisioningMessageDecoder::decode(CborValue* param, Message* message) {
   TimestampProvisioningMessage* ts = (TimestampProvisioningMessage*) message;
@@ -56,8 +32,9 @@ MessageDecoder::Status TimestampProvisioningMessageDecoder::decode(CborValue* pa
 MessageDecoder::Status WifiConfigProvisioningMessageDecoder::decode(CborValue* param, Message* message) {
   NetworkConfigProvisioningMessage* provisioningNetworkConfig = (NetworkConfigProvisioningMessage*) message;
   memset(&provisioningNetworkConfig->networkSetting, 0x00, sizeof(models::NetworkSetting));
+  size_t ssidSize = sizeof(provisioningNetworkConfig->networkSetting.wifi.ssid);
   // Message is composed of 2 parameters: ssid and password
-  if (!copyCBORStringToArray(param, provisioningNetworkConfig->networkSetting.wifi.ssid, sizeof(provisioningNetworkConfig->networkSetting.wifi.ssid))) {
+  if (cbor::utils::copyCBORStringToArray(param, provisioningNetworkConfig->networkSetting.wifi.ssid, ssidSize) == MessageDecoder::Status::Error) {
     return MessageDecoder::Status::Error;
   }
 
@@ -66,7 +43,8 @@ MessageDecoder::Status WifiConfigProvisioningMessageDecoder::decode(CborValue* p
     return MessageDecoder::Status::Error;
   }
 
-  if (!copyCBORStringToArray(param, provisioningNetworkConfig->networkSetting.wifi.pwd, sizeof(provisioningNetworkConfig->networkSetting.wifi.pwd))) {
+  size_t pwdSize = sizeof(provisioningNetworkConfig->networkSetting.wifi.pwd);
+  if (cbor::utils::copyCBORStringToArray(param, provisioningNetworkConfig->networkSetting.wifi.pwd, pwdSize) == MessageDecoder::Status::Error) {
     return MessageDecoder::Status::Error;
   }
   provisioningNetworkConfig->networkSetting.type = NetworkAdapter::WIFI;
@@ -92,8 +70,9 @@ MessageDecoder::Status CommandsProvisioningMessageDecoder::decode(CborValue* par
 MessageDecoder::Status LoRaConfigProvisioningMessageDecoder::decode(CborValue* param, Message* message) {
   NetworkConfigProvisioningMessage* provisioningNetworkConfig = (NetworkConfigProvisioningMessage*) message;
   memset(&provisioningNetworkConfig->networkSetting, 0x00, sizeof(models::NetworkSetting));
+  size_t appeuiSize = sizeof(provisioningNetworkConfig->networkSetting.lora.appeui);
   // Message is composed of 5 parameters: app_eui, app_key, band, channel_mask, device_class
-  if (!copyCBORStringToArray(param, provisioningNetworkConfig->networkSetting.lora.appeui, sizeof(provisioningNetworkConfig->networkSetting.lora.appeui))) {
+  if (cbor::utils::copyCBORStringToArray(param, provisioningNetworkConfig->networkSetting.lora.appeui, appeuiSize) == MessageDecoder::Status::Error) {
     return MessageDecoder::Status::Error;
   }
 
@@ -102,7 +81,8 @@ MessageDecoder::Status LoRaConfigProvisioningMessageDecoder::decode(CborValue* p
     return MessageDecoder::Status::Error;
   }
 
-  if (!copyCBORStringToArray(param, provisioningNetworkConfig->networkSetting.lora.appkey, sizeof(provisioningNetworkConfig->networkSetting.lora.appkey))) {
+  size_t appkeySize = sizeof(provisioningNetworkConfig->networkSetting.lora.appkey);
+  if (cbor::utils::copyCBORStringToArray(param, provisioningNetworkConfig->networkSetting.lora.appkey, appkeySize) == MessageDecoder::Status::Error) {
     return MessageDecoder::Status::Error;
   }
 
@@ -127,7 +107,8 @@ MessageDecoder::Status LoRaConfigProvisioningMessageDecoder::decode(CborValue* p
     return MessageDecoder::Status::Error;
   }
 
-  if(!copyCBORStringToArray(param, provisioningNetworkConfig->networkSetting.lora.channelMask, sizeof(provisioningNetworkConfig->networkSetting.lora.channelMask))) {
+  size_t channelMaskSize = sizeof(provisioningNetworkConfig->networkSetting.lora.channelMask);
+  if(cbor::utils::copyCBORStringToArray(param, provisioningNetworkConfig->networkSetting.lora.channelMask, channelMaskSize) == MessageDecoder::Status::Error) {
     return MessageDecoder::Status::Error;
   }
 
@@ -138,7 +119,9 @@ MessageDecoder::Status LoRaConfigProvisioningMessageDecoder::decode(CborValue* p
 
   char deviceClass[LORA_DEVICE_CLASS_SIZE];
   memset(deviceClass, 0x00, sizeof(deviceClass));
-  if (!copyCBORStringToArray(param, deviceClass, sizeof(deviceClass))) {
+
+  size_t deviceClassSize = sizeof(deviceClass);
+  if (cbor::utils::copyCBORStringToArray(param, deviceClass, deviceClassSize) == MessageDecoder::Status::Error) {
     return MessageDecoder::Status::Error;
   }
 
@@ -159,8 +142,9 @@ MessageDecoder::Status CATM1ConfigProvisioningMessageDecoder::decode(CborValue* 
   CborValue array_iter;
   size_t arrayLength = 0;
 
+  size_t pinSize = sizeof(provisioningNetworkConfig->networkSetting.catm1.pin);
   // Message is composed of 5 parameters: pin, band, apn, login and password
-  if (!copyCBORStringToArray(param, provisioningNetworkConfig->networkSetting.catm1.pin, sizeof(provisioningNetworkConfig->networkSetting.catm1.pin))) {
+  if (cbor::utils::copyCBORStringToArray(param, provisioningNetworkConfig->networkSetting.catm1.pin, pinSize) == MessageDecoder::Status::Error) {
     return MessageDecoder::Status::Error;
   }
 
@@ -208,7 +192,8 @@ MessageDecoder::Status CATM1ConfigProvisioningMessageDecoder::decode(CborValue* 
     return MessageDecoder::Status::Error;
   }
 
-  if (!copyCBORStringToArray(param, provisioningNetworkConfig->networkSetting.catm1.apn, sizeof(provisioningNetworkConfig->networkSetting.catm1.apn))) {
+  size_t apnSize = sizeof(provisioningNetworkConfig->networkSetting.catm1.apn);
+  if (cbor::utils::copyCBORStringToArray(param, provisioningNetworkConfig->networkSetting.catm1.apn, apnSize) == MessageDecoder::Status::Error) {
     return MessageDecoder::Status::Error;
   }
 
@@ -217,7 +202,8 @@ MessageDecoder::Status CATM1ConfigProvisioningMessageDecoder::decode(CborValue* 
     return MessageDecoder::Status::Error;
   }
 
-  if (!copyCBORStringToArray(param, provisioningNetworkConfig->networkSetting.catm1.login, sizeof(provisioningNetworkConfig->networkSetting.catm1.login))) {
+  size_t loginSize = sizeof(provisioningNetworkConfig->networkSetting.catm1.login);
+  if (cbor::utils::copyCBORStringToArray(param, provisioningNetworkConfig->networkSetting.catm1.login, loginSize) == MessageDecoder::Status::Error) {
     return MessageDecoder::Status::Error;
   }
 
@@ -226,7 +212,8 @@ MessageDecoder::Status CATM1ConfigProvisioningMessageDecoder::decode(CborValue* 
     return MessageDecoder::Status::Error;
   }
 
-  if (!copyCBORStringToArray(param, provisioningNetworkConfig->networkSetting.catm1.pass, sizeof(provisioningNetworkConfig->networkSetting.catm1.pass))) {
+  size_t passSize = sizeof(provisioningNetworkConfig->networkSetting.catm1.pass);
+  if (cbor::utils::copyCBORStringToArray(param, provisioningNetworkConfig->networkSetting.catm1.pass, passSize) == MessageDecoder::Status::Error) {
     return MessageDecoder::Status::Error;
   }
 
@@ -343,8 +330,9 @@ MessageDecoder::Status EthernetConfigProvisioningMessageDecoder::decode(CborValu
 #if defined(BOARD_HAS_NB) || defined(BOARD_HAS_GSM) ||defined(BOARD_HAS_CELLULAR)
 static inline MessageDecoder::Status extractCellularFields(CborValue* param, models::CellularSetting* cellSetting) {
 
+   size_t pinSize = sizeof(cellSetting->pin);
   // Message is composed of 4 parameters: pin, apn, login and password
-  if (!copyCBORStringToArray(param, cellSetting->pin, sizeof(cellSetting->pin))) {
+  if (cbor::utils::copyCBORStringToArray(param, cellSetting->pin, pinSize) == MessageDecoder::Status::Error) {
     return MessageDecoder::Status::Error;
   }
 
@@ -353,7 +341,8 @@ static inline MessageDecoder::Status extractCellularFields(CborValue* param, mod
     return MessageDecoder::Status::Error;
   }
 
-  if (!copyCBORStringToArray(param, cellSetting->apn, sizeof(cellSetting->apn))) {
+  size_t apnSize = sizeof(cellSetting->apn);
+  if (cbor::utils::copyCBORStringToArray(param, cellSetting->apn, apnSize) == MessageDecoder::Status::Error) {
     return MessageDecoder::Status::Error;
   }
 
@@ -362,7 +351,8 @@ static inline MessageDecoder::Status extractCellularFields(CborValue* param, mod
     return MessageDecoder::Status::Error;
   }
 
-  if (!copyCBORStringToArray(param, cellSetting->login, sizeof(cellSetting->login))) {
+  size_t loginSize = sizeof(cellSetting->login);
+  if (cbor::utils::copyCBORStringToArray(param, cellSetting->login, loginSize) == MessageDecoder::Status::Error) {
     return MessageDecoder::Status::Error;
   }
 
@@ -371,7 +361,8 @@ static inline MessageDecoder::Status extractCellularFields(CborValue* param, mod
     return MessageDecoder::Status::Error;
   }
 
-  if (!copyCBORStringToArray(param, cellSetting->pass, sizeof(cellSetting->pass))) {
+  size_t passSize = sizeof(cellSetting->pass);
+  if (cbor::utils::copyCBORStringToArray(param, cellSetting->pass, passSize) == MessageDecoder::Status::Error) {
     return MessageDecoder::Status::Error;
   }
 
