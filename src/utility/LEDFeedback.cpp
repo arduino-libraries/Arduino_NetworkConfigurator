@@ -18,7 +18,7 @@
 #ifdef BOARD_HAS_LED_MATRIX
 #include "Arduino_LED_Matrix.h"
 
-ArduinoLEDMatrix matrix;
+ArduinoLEDMatrix ledMatrixAnimationHandler;
 const uint32_t bluetooth[3] = {
 
   0x401600d,
@@ -158,7 +158,7 @@ void LEDFeedbackClass::begin() {
 #endif
 
 #ifdef BOARD_HAS_LED_MATRIX
-  matrix.begin();
+  ledMatrixAnimationHandler.begin();
 #endif
 
 }
@@ -179,7 +179,7 @@ void LEDFeedbackClass::setMode(LEDFeedbackMode mode) {
       {
         _ledChangeInterval = 0;
         #ifdef BOARD_HAS_LED_MATRIX
-          matrix.clear();
+          ledMatrixAnimationHandler.clear();
         #endif
       }
       break;
@@ -192,11 +192,11 @@ void LEDFeedbackClass::setMode(LEDFeedbackMode mode) {
       #endif
       #ifdef BOARD_HAS_LED_MATRIX
         _framePtr = nullptr;
-        matrix.loadSequence(snake);
-        matrix.play(true);
+        ledMatrixAnimationHandler.loadSequence(snake);
+        ledMatrixAnimationHandler.play(true);
         /* For fixing the issue that the first
          * frame of the first run is not shown */
-        matrix.loadSequence(snake);
+        ledMatrixAnimationHandler.loadSequence(snake);
       #endif
       _ledChangeInterval = HEARTBEAT_INTERVAL;
       _count = 0;
@@ -211,7 +211,7 @@ void LEDFeedbackClass::setMode(LEDFeedbackMode mode) {
       _ledPin = GREEN_LED;
     #endif
     #ifdef BOARD_HAS_LED_MATRIX
-      matrix.loadFrame(bluetooth);
+      ledMatrixAnimationHandler.loadFrame(bluetooth);
       _framePtr = (uint32_t*)bluetooth;
     #endif
       _ledChangeInterval = ALWAYS_ON_INTERVAL;
@@ -225,8 +225,8 @@ void LEDFeedbackClass::setMode(LEDFeedbackMode mode) {
       _ledPin = GREEN_LED;
       #ifdef BOARD_HAS_LED_MATRIX
         _framePtr = nullptr;
-        matrix.loadSequence(LEDMATRIX_ANIMATION_WIFI_SEARCH);
-        matrix.play(true);
+        ledMatrixAnimationHandler.loadSequence(LEDMATRIX_ANIMATION_WIFI_SEARCH);
+        ledMatrixAnimationHandler.play(true);
       #endif
       _ledChangeInterval = ALWAYS_ON_INTERVAL;
 
@@ -239,8 +239,8 @@ void LEDFeedbackClass::setMode(LEDFeedbackMode mode) {
       #endif
       #ifdef BOARD_HAS_LED_MATRIX
       _framePtr = nullptr;
-      matrix.loadSequence(cloud);
-      matrix.play(true);
+      ledMatrixAnimationHandler.loadSequence(cloud);
+      ledMatrixAnimationHandler.play(true);
       #endif
       _ledPin = GREEN_LED;
       _ledChangeInterval = SLOWBLINK_INTERVAL;
@@ -258,7 +258,7 @@ void LEDFeedbackClass::setMode(LEDFeedbackMode mode) {
       #endif
       #ifdef BOARD_HAS_LED_MATRIX
         _framePtr = (uint32_t*)LEDMATRIX_EMOJI_SAD;
-        matrix.loadFrame(LEDMATRIX_EMOJI_SAD);
+        ledMatrixAnimationHandler.loadFrame(LEDMATRIX_EMOJI_SAD);
       #endif
     }
       break;
@@ -327,7 +327,7 @@ void LEDFeedbackClass::turnOFF() {
 #endif
 #ifdef BOARD_HAS_LED_MATRIX
   if(_framePtr != nullptr){
-    matrix.clear();
+    ledMatrixAnimationHandler.clear();
   }
 
 #endif
@@ -342,7 +342,7 @@ void LEDFeedbackClass::turnON() {
 #endif
 #ifdef BOARD_HAS_LED_MATRIX
   if(_framePtr != nullptr){
-    matrix.loadFrame(_framePtr);
+    ledMatrixAnimationHandler.loadFrame(_framePtr);
   }
 #endif
   _ledState = true;
