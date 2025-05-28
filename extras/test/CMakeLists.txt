@@ -24,8 +24,8 @@ FetchContent_Declare(
 
 FetchContent_Declare(
   connectionhandler
-  GIT_REPOSITORY      https://github.com/andreagilardoni/Arduino_ConnectionHandler.git
-  GIT_TAG             connectionhandler-settings
+  GIT_REPOSITORY      https://github.com/arduino-libraries/Arduino_ConnectionHandler.git
+  GIT_TAG             master
   CONFIGURE_COMMAND   ""
   BUILD_COMMAND       ""
 )
