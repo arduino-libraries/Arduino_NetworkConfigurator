@@ -16,8 +16,8 @@ FetchContent_Declare(
 
 FetchContent_Declare(
   cloudutils
-  GIT_REPOSITORY      https://github.com/arduino-libraries/Arduino_CloudUtils.git
-  GIT_TAG             main
+  GIT_REPOSITORY      https://github.com/fabik111/Arduino_CloudUtils.git
+  GIT_TAG             add-standard-encoders
   CONFIGURE_COMMAND   ""
   BUILD_COMMAND       ""
 )
