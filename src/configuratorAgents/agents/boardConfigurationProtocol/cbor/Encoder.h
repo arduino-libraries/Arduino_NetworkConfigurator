@@ -52,14 +52,6 @@ protected:
   MessageEncoder::Status encode(CborEncoder* encoder, Message *msg) override;
 };
 
-class WiFiFWVersionProvisioningMessageEncoder: public CBORMessageEncoderInterface {
-public:
-  WiFiFWVersionProvisioningMessageEncoder()
-  : CBORMessageEncoderInterface(CBORWiFiFWVersionProvisioningMessage, WiFiFWVersionProvisioningMessageId) {}
-protected:
-  MessageEncoder::Status encode(CborEncoder* encoder, Message *msg) override;
-};
-
 class ProvSketchVersionProvisioningMessageEncoder: public CBORMessageEncoderInterface {
   public:
   ProvSketchVersionProvisioningMessageEncoder()
