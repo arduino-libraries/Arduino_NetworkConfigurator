@@ -11,6 +11,28 @@
 #include "ResetInput.h"
 #include "utility/LEDFeedback.h"
 
+#if defined(ARDUINO_PORTENTA_H7_M7)
+#include <Wire.h>
+
+
+bool isPortentaMachineControlAttached() {
+  Wire.begin();
+  Wire.beginTransmission(I2C_ADD_DETECT_MACHINE_CONTROL_1);
+  if (Wire.endTransmission() != 0) {
+    return false;
+  }
+
+  Wire.beginTransmission(I2C_ADD_DETECT_MACHINE_CONTROL_2);
+  if (Wire.endTransmission() != 0) {
+    return false;
+  }
+
+  Wire.end();
+  return true;
+}
+
+#endif
+
 ResetInput &ResetInput::getInstance() {
   static ResetInput instance;
   return instance;
@@ -25,6 +47,12 @@ ResetInput::ResetInput() {
 }
 
 void ResetInput::begin() {
+#if defined(ARDUINO_PORTENTA_H7_M7)
+  if(isPortentaMachineControlAttached()) {
+    return; // Portenta Machine Control is not supported
+  }
+#endif
+
   if(_pin == DISABLE_PIN){
     return;
   }
@@ -35,7 +63,6 @@ void ResetInput::begin() {
 #endif
   pinMode(LED_RECONFIGURE, OUTPUT);
   digitalWrite(LED_RECONFIGURE, LED_OFF);
-
   attachInterrupt(digitalPinToInterrupt(_pin),_pressedCallback, CHANGE);
 }
 
