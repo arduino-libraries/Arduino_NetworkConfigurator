@@ -41,7 +41,7 @@ NetworkConfiguratorClass::NetworkConfiguratorClass(ConnectionHandler &connection
       _receivedEvent = NetworkConfiguratorEvents::NONE;
       _optionUpdateTimer.begin(NC_UPDATE_NETWORK_OPTIONS_TIMER_ms); //initialize the timer before calling begin
       _agentsManager = &AgentsManagerClass::getInstance();
-      _resetInput = &ResetInput::getInstance();
+      _resetInput = &ResetInputBase::getInstance();
       _ledFeedback = &LEDFeedbackClass::getInstance();
 }
 
@@ -123,7 +123,8 @@ NetworkConfiguratorStates NetworkConfiguratorClass::update() {
    * - Arduino GIGA R1 WiFi: short the pin 7 to GND until the led turns off
    * - Arduino Nano RP2040 Connect: short the pin 2 to 3.3V until the led turns off
    * - Portenta H7: short the pin 0 to GND until the led turns off
-   * - Portenta Machine Control: the reset is not available
+   * - Portenta Machine Control: plug the device to a 24V power source, short the pin Digital Inputs 0
+   *                             to 24VOUT until the led (`LED_BUILTIN`) turns off
    * - Other boards: short the pin 2 to GND until the led turns off
    */
 
@@ -210,7 +211,7 @@ void NetworkConfiguratorClass::setReconfigurePin(int pin) {
   _resetInput->setPin(pin);
 }
 
-void NetworkConfiguratorClass::addReconfigurePinCallback(ResetInput::ResetInputCallback callback) {
+void NetworkConfiguratorClass::addReconfigurePinCallback(ResetInputBase::ResetInputCallback callback) {
   _resetInput->setPinChangedCallback(callback);
 }
 

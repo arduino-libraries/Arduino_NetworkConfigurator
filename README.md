@@ -35,8 +35,8 @@ The procedure:
 * `Arduino GIGA R1 WiFi`: short the pin 7 to GND until the led turns off
 * `Arduino Nano RP2040 Connect`: short the pin 2 to 3.3V until the led turns off
 * `Arduino Portenta H7`: short the pin 0 to GND until the led turns off
+* `Portenta Machine Control`: plug the device to a 24V power source, short the pin Digital Inputs 0 to 24VOUT until the led (`LED_BUILTIN`) turns off
 * Other boards: short the pin 2 to GND until the led turns off
-* `Portenta Machine Control`: currently the reset procedure is not available
 
 ### More on the reconfiguration pin
 Internally, the pin indicated in the procedure is set as `INPUT_PULLUP` (except for `Arduino Opta` ) and it's attached to an ISR fired on every change of the pin's status.
@@ -46,6 +46,10 @@ In order to be notified when the ISR is fired, it's possible to register a callb
 ### Change the reconfiguration pin
 In order to change the default pin for resetting the board, it's possible to use the function `NetworkConfigurator.setReconfigurePin(your_pin)` specifying the new pin.
 The pin must be in the list of digital pins usable for interrupts. Please refer to the Arduino documentation for more details: https://docs.arduino.cc/language-reference/en/functions/external-interrupts/attachInterrupt/
+
+N.B.: For `Portenta Machine Control`, the pin must be one of the Digital Inputs 0-7.
+      The parameter must be one of the range DIN_READ_CH_PIN_00-DIN_READ_CH_PIN_07.
+      The defines are available in the Portenta Machine Control library and you must include Arduino_PortentaMachineControl.h for having access to them.
 
 ### Disable the reconfiguration feature
 In order to disable the reconfiguration procedure, use this function in the sketch `NetworkConfigurator.setReconfigurePin(DISABLE_PIN)`

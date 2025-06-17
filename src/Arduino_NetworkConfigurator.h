@@ -16,7 +16,7 @@
 #include <connectionHandlerModels/settings.h>
 #include <Arduino_TimedAttempt.h>
 #include <Arduino_KVStore.h>
-#include "utility/ResetInput.h"
+#include "utility/ResetInputBase.h"
 #include "utility/LEDFeedback.h"
 
 /**
@@ -59,7 +59,8 @@ enum class NetworkConfiguratorStates { ZERO_TOUCH_CONFIG,
  * - Arduino GIGA R1 WiFi: short the pin 7 to GND until the led turns off
  * - Arduino Nano RP2040 Connect: short the pin 2 to 3.3V until the led turns off
  * - Portenta H7: short the pin 0 to GND until the led turns off
- * - Portenta Machine Control: the reset is not available
+ * - Portenta Machine Control: plug the device to a 24V power source, short the pin Digital Inputs 0
+ *                             to 24VOUT until the led (`LED_BUILTIN`) turns off
  * - Other boards: short the pin 2 to GND until the led turns off
  *
  */
@@ -121,6 +122,10 @@ public:
    * The pin must be in the list of digital pins usable for interrupts.
    * Please refer to the Arduino documentation for more details:
    * https://docs.arduino.cc/language-reference/en/functions/external-interrupts/attachInterrupt/
+   * N.B.: For Portenta Machine Control, the pin must be one of the Digital Inputs 0-7.
+   * The parameter must be one of the range DIN_READ_CH_PIN_00-DIN_READ_CH_PIN_07.
+   * The defines are available in the Portenta Machine Control library and you must include
+   * Arduino_PortentaMachineControl.h for having access to them.
    */
   void setReconfigurePin(int pin);
 
@@ -129,7 +134,7 @@ public:
    * interrupt on the reconfiguration pin is fired.
    * @param callback Pointer to the callback function.
    */
-  void addReconfigurePinCallback(ResetInput::ResetInputCallback callback);
+  void addReconfigurePinCallback(ResetInputBase::ResetInputCallback callback);
 
   /**
    * @brief Checks if a specific configuration agent is enabled.
@@ -165,7 +170,7 @@ private:
   static inline models::NetworkSetting _networkSetting;
   bool _connectionHandlerIstantiated;
   bool _configInProgress;
-  ResetInput *_resetInput;
+  ResetInputBase *_resetInput;
   LEDFeedbackClass *_ledFeedback;
   /* Timeout instances */
   // Timeout for connection attempt

@@ -8,68 +8,82 @@
 
 #pragma once
 
-#include "Arduino.h"
-#include <functional>
+#include "ANetworkConfigurator_Config.h"
+#include "ResetInputBase.h"
+#include "LEDFeedback.h"
 
-#define DISABLE_PIN -1
-
-/**
- * @class ResetInput
- * @brief A singleton class to handle input of the reset functionality with interrupt-based monitoring.
- *
- * This class provides methods to configure and monitor a reset input pin. It allows
- * setting up a custom callback function to be executed when the pin status changes.
- */
-class ResetInput{
+class ResetInput : public ResetInputBase {
 public:
-  /**
-   * @typedef ResetInput::ResetInputCallback
-   * @brief A type definition for the callback function to be executed on pin status change.
-   */
-  typedef std::function<void()> ResetInputCallback;
-  /**
-   * @brief Get the singleton instance of the ResetInput class.
-   * @return A reference to the ResetInput instance.
-   */
-  static ResetInput& getInstance();
-  /**
-   * @brief Initialize the reset input by setting up the interrupt pin.
-   */
-  void begin();
-  /**
-   * @brief Check if the reset event has been fired.
-   * @return True if the event is fired, otherwise false.
-   */
-  bool isEventFired();
-  /**
-   * @brief Set a custom callback function to be called when the pin status changes.
-   * This function must be called before invoking the `begin` method.
-   * @param callback The custom callback function to be executed.
-   */
-  void setPinChangedCallback(ResetInputCallback callback);
-  /**
-   * @brief Set the pin to be monitored for reset events.
-   * By default, the pin is set as INPUT_PULLUP.
-   * Use the value DISABLE_PIN to disable the pin and the reset procedure.
-   * This function must be called before invoking the `begin` method.
-   * @param pin The pin number to be monitored. The pin must
-   * be in the list of digital pins usable for interrupts.
-   * Please refer to the Arduino documentation for more details:
-   * https://docs.arduino.cc/language-reference/en/functions/external-interrupts/attachInterrupt/
-   */
-  void setPin(int pin);
+  static ResetInput &getInstance() {
+    static ResetInput instance;
+    return instance;
+  }
+
+  void begin() override {
+    if(_pin == DISABLE_PIN){
+      return;
+    }
+  #ifdef ARDUINO_OPTA
+    pinMode(_pin, INPUT);
+  #else
+    pinMode(_pin, INPUT_PULLUP);
+  #endif
+    pinMode(LED_RECONFIGURE, OUTPUT);
+    digitalWrite(LED_RECONFIGURE, LED_OFF);
+    attachInterrupt(digitalPinToInterrupt(_pin),_pressedCallback, CHANGE);
+  }
+
+  bool isEventFired() override  {
+    if(_startPressed != 0){
+  #if defined(ARDUINO_NANO_RP2040_CONNECT) || defined(ARDUINO_SAMD_MKRWIFI1010)
+      LEDFeedbackClass::getInstance().stop();
+  #endif
+      if(micros() - _startPressed > RESET_HOLD_TIME){
+        digitalWrite(LED_RECONFIGURE, LED_OFF);
+        _expired = true;
+      }
+    }
+
+    return _fireEvent;
+  }
+
 private:
-  /**
-   * @brief Private constructor to enforce the singleton pattern.
-   */
-  ResetInput();
-  static inline ResetInputCallback _pressedCustomCallback;
-  static inline int _pin;
+  ResetInput() {
+    _pin = PIN_RECONFIGURE;
+    _expired = false;
+    _startPressed = 0;
+    _fireEvent = false;
+  }
   static inline volatile bool _expired;
   static inline volatile bool _fireEvent;
   static inline volatile uint32_t _startPressed;
   /**
    * @brief Internal callback function to handle pin press events.
    */
-  static void _pressedCallback();
+  static void _pressedCallback() {
+  #if defined(ARDUINO_NANO_RP2040_CONNECT)
+    if(digitalRead(_pin) == HIGH){
+  #else
+    if(digitalRead(_pin) == LOW){
+  #endif
+  #if !defined(ARDUINO_NANO_RP2040_CONNECT) && !defined(ARDUINO_SAMD_MKRWIFI1010)
+      LEDFeedbackClass::getInstance().stop();
+  #endif
+      _startPressed = micros();
+      digitalWrite(LED_RECONFIGURE, LED_ON);
+    } else {
+      digitalWrite(LED_RECONFIGURE, LED_OFF);
+      if(_startPressed != 0 && _expired){
+        _fireEvent = true;
+      }else{
+        LEDFeedbackClass::getInstance().restart();
+      }
+      _startPressed = 0;
+    }
+
+    if (_pressedCustomCallback) {
+      _pressedCustomCallback();
+    }
+  }
 };
+
