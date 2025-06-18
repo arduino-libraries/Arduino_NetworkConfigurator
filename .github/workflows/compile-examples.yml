@@ -93,6 +93,7 @@ jobs:
             libraries: |
               - name: Arduino_Cellular
               - name: Blues Wireless Notecard
+              - name: Arduino_PortentaMachineControl
           # Nicla Vision
           - board:
               type: mbed_nicla
