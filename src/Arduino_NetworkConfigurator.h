@@ -59,6 +59,7 @@ enum class NetworkConfiguratorStates { ZERO_TOUCH_CONFIG,
  * - Arduino GIGA R1 WiFi: short the pin 7 to GND until the led turns off
  * - Arduino Nano RP2040 Connect: short the pin 2 to 3.3V until the led turns off
  * - Portenta H7: short the pin 0 to GND until the led turns off
+ * - Portenta C33: short the pin 0 to GND until the led turns off
  * - Portenta Machine Control: the reset is not available
  * - Other boards: short the pin 2 to GND until the led turns off
  *
