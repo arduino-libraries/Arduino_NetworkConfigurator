@@ -87,9 +87,9 @@ bool CBORAdapter::wifiFWVersionToCBOR(const char *wifiFWVersion, uint8_t *data, 
   if(*len < CBOR_MIN_WIFI_FW_VERSION_LEN + strlen(wifiFWVersion)) {
     return false;
   }
-  WiFiFWVersionProvisioningMessage wifiFWVersionMsg;
-  wifiFWVersionMsg.c.id = ProvisioningMessageId::WiFiFWVersionProvisioningMessageId;
-  wifiFWVersionMsg.wifiFwVersion = wifiFWVersion;
+  VersionMessage wifiFWVersionMsg;
+  wifiFWVersionMsg.c.id = StandardMessageId::WiFiFWVersionMessageId;
+  wifiFWVersionMsg.params.version = wifiFWVersion;
 
   MessageEncoder::Status status = encoder.encode((Message *)&wifiFWVersionMsg, data, *len);
 

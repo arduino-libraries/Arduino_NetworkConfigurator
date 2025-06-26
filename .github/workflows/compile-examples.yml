@@ -31,7 +31,8 @@ jobs:
         - name: Arduino_DebugUtils
         - name: Arduino_ConnectionHandler
         - name: ArduinoBLE
-        - name: Arduino_CloudUtils
+        - source-url: https://github.com/fabik111/Arduino_CloudUtils.git
+          version: add-standard-encoders
         - name: Arduino_KVStore
       SKETCH_PATHS: |
         - examples/NetworkConfiguratorDemo
