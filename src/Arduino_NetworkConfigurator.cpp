@@ -49,19 +49,9 @@ bool NetworkConfiguratorClass::begin() {
   if(_state != NetworkConfiguratorStates::END) {
     return true;
   }
-  /*
-   * If the board is zero touch capable, starts with zero touch configuration mode
-   * In this state the board will try to connect to the network using a set of
-   * default network settings ex. Ethernet with DHCP
-   * This mode will fail if the provided ConnectionHandler is not GenericConnectionHandler type
-   * falling back to read the network settings from the storage
-   */
 
-  #if  ZERO_TOUCH_ENABLED
-  _state = NetworkConfiguratorStates::ZERO_TOUCH_CONFIG;
-  #else
   _state = NetworkConfiguratorStates::READ_STORED_CONFIG;
-  #endif
+
   _connectionHandler->enableCheckInternetAvailability(true);
 
   memset(&_networkSetting, 0x00, sizeof(models::NetworkSetting));
@@ -98,10 +88,10 @@ NetworkConfiguratorStates NetworkConfiguratorClass::update() {
   _ledFeedback->update();
 
   switch (_state) {
+    case NetworkConfiguratorStates::READ_STORED_CONFIG: nextState = handleReadStorage    (); break;
 #if ZERO_TOUCH_ENABLED
     case NetworkConfiguratorStates::ZERO_TOUCH_CONFIG:  nextState = handleZeroTouchConfig(); break;
 #endif
-    case NetworkConfiguratorStates::READ_STORED_CONFIG: nextState = handleReadStorage    (); break;
     case NetworkConfiguratorStates::WAITING_FOR_CONFIG: nextState = handleWaitingForConf (); break;
     case NetworkConfiguratorStates::CONNECTING:         nextState = handleConnecting     (); break;
     case NetworkConfiguratorStates::CONFIGURED:         nextState = handleConfigured     (); break;
@@ -459,7 +449,7 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleZeroTouchConfig() {
     defaultEthernetSettings();
     #endif
     if (!_connectionHandler->updateSetting(_networkSetting)) {
-      return NetworkConfiguratorStates::READ_STORED_CONFIG;
+      return NetworkConfiguratorStates::WAITING_FOR_CONFIG;
     }
     _connectionHandlerIstantiated = true;
     _connectionTimeout.reload();
@@ -475,9 +465,10 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleZeroTouchConfig() {
       sendStatus(StatusMessage::ERROR);
     }
     _connectionHandlerIstantiated = false;
-    return NetworkConfiguratorStates::READ_STORED_CONFIG;
+    return NetworkConfiguratorStates::WAITING_FOR_CONFIG;
   }
-  return NetworkConfiguratorStates::ZERO_TOUCH_CONFIG;
+
+  return handleWaitingForConf();
 }
 #endif
 
@@ -518,7 +509,16 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleReadStorage() {
   if (_optionUpdateTimer.getWaitTime() == 0) {
     scanNetworkOptions();
   }
+  /*
+   * If the board is zero touch capable and without network configuration, it starts the zero touch configuration mode
+   * In this state the board will try to connect to the network using a set of
+   * default network settings ex. Ethernet with DHCP
+   */
+  #if  ZERO_TOUCH_ENABLED
+  return NetworkConfiguratorStates::ZERO_TOUCH_CONFIG;
+  #else
   return NetworkConfiguratorStates::WAITING_FOR_CONFIG;
+  #endif
 }
 
 NetworkConfiguratorStates NetworkConfiguratorClass::handleWaitingForConf() {
