@@ -75,3 +75,11 @@ class NetConfigLibVersProvisioningMessageEncoder: public CBORMessageEncoderInter
   protected:
     MessageEncoder::Status encode(CborEncoder* encoder, Message *msg) override;
   };
+
+class ProvPublicKeyProvisioningMessageEncoder: public CBORMessageEncoderInterface {
+  public:
+  ProvPublicKeyProvisioningMessageEncoder()
+    : CBORMessageEncoderInterface(CBORProvPublicKeyProvisioningMessage, ProvPublicKeyProvisioningMessageId) {}
+  protected:
+    MessageEncoder::Status encode(CborEncoder* encoder, Message *msg) override;
+  };
