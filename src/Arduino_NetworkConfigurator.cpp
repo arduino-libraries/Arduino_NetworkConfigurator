@@ -503,6 +503,10 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleReadStorage() {
 
   if(credFound && _connectionHandler->updateSetting(_networkSetting)) {
     _connectionHandlerIstantiated = true;
+    _configInProgress = _agentsManager->isConfigInProgress();
+    if (_configInProgress) {
+      return NetworkConfiguratorStates::UPDATING_CONFIG;
+    }
     return NetworkConfiguratorStates::CONFIGURED;
   }
 
@@ -583,7 +587,8 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleConfigured() {
 }
 
 NetworkConfiguratorStates NetworkConfiguratorClass::handleUpdatingConfig() {
-  if (_agentsManager->isConfigInProgress() == false) {
+  _configInProgress = _agentsManager->isConfigInProgress();
+  if (_configInProgress == false) {
     //If peer disconnects without updating the network settings, go to connecting state for check the connection
     sendStatus(StatusMessage::CONNECTING);
     return NetworkConfiguratorStates::CONNECTING;
