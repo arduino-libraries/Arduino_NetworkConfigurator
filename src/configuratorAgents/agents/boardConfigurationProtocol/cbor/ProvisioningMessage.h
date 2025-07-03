@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <Arduino_CBOR.h>
+#include <cbor/standards/StandardMessages.h>
 #include <ConnectionHandlerDefinitions.h>
 #include <connectionHandlerModels/settings.h>
 #include <configuratorAgents/NetworkOptionsDefinitions.h>
@@ -47,7 +48,6 @@ enum CBORProvisioningMessageTag: CBORTag {
   CBORUniqueHardwareIdProvisioningMessage   = 0x012010,
   CBORJWTProvisioningMessage                = 0x012011,
   CBORBLEMacAddressProvisioningMessage      = 0x012013,
-  CBORWiFiFWVersionProvisioningMessage      = 0x012014,
   CBORProvSketchVersionProvisioningMessage  = 0x012015,
   CBORNetConfigLibVersProvisioningMessage   = 0x012016,
 };
@@ -58,7 +58,6 @@ enum ProvisioningMessageId: MessageId {
   ListWifiNetworksProvisioningMessageId,
   UniqueHardwareIdProvisioningMessageId,
   BLEMacAddressProvisioningMessageId,
-  WiFiFWVersionProvisioningMessageId,
   ProvSketchVersionProvisioningMessageId,
   NetConfigLibVersProvisioningMessageId,
   JWTProvisioningMessageId,
@@ -113,13 +112,6 @@ struct BLEMacAddressProvisioningMessage {
   ProvisioningMessage c;
   struct {
     uint8_t macAddress[BLE_MAC_ADDRESS_SIZE];
-  };
-};
-
-struct WiFiFWVersionProvisioningMessage {
-  ProvisioningMessage c;
-  struct {
-    const char *wifiFwVersion; //The payload is a string.
   };
 };
 
