@@ -239,7 +239,15 @@ AgentsManagerStates AgentsManagerClass::handleInit() {
         (*agent)->end();
       }
     }
-    LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::PEER_CONNECTED);
+
+    if(_selectedAgent->getAgentType() == ConfiguratorAgent::AgentTypes::BLE) {
+      LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::PEER_CONNECTED_BLE);
+    } else if(_selectedAgent->getAgentType() == ConfiguratorAgent::AgentTypes::USB_SERIAL) {
+      LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::PEER_CONNECTED_SERIAL);
+    } else {
+      LEDFeedbackClass::getInstance().setMode(LEDFeedbackClass::LEDFeedbackMode::PEER_CONNECTED);
+    }
+
   }
   return nextState;
 }
