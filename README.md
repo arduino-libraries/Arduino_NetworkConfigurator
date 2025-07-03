@@ -53,7 +53,7 @@ In order to disable the reconfiguration procedure, use this function in the sket
 
 
 ## Configurator Agents
-The library provides a set of *Configurator Agents* that added as plug-in to the sketch handle the communication between the Arduino Network Configurator and an external client ([*Arduino IoT App*](https://cloud.arduino.cc/iot-remote-app/) and Arduino IoT Cloud) for configuring the board.
+The library provides a set of *Configurator Agents* that added as plug-in to the sketch handle the communication between the Arduino Network Configurator and an external client ([*Arduino IoT App*](https://cloud.arduino.cc/iot-remote-app/), Arduino IoT Cloud, [*Arduino Cloud CLI from v0.3.4*](https://github.com/arduino/arduino-cloud-cli)) for configuring the board.
 
 Out-of-the box there are 2 Configurator Agents
 * `BLEAgent`: manage the BLE interface
