@@ -19,6 +19,14 @@
 #include "Arduino_LED_Matrix.h"
 
 ArduinoLEDMatrix ledMatrixAnimationHandler;
+
+const uint32_t usb_image[3] = {
+  0x3c,
+  0x267fe0,
+  0x160e0000,
+
+};
+
 const uint32_t bluetooth[3] = {
 
   0x401600d,
@@ -28,22 +36,16 @@ const uint32_t bluetooth[3] = {
 
 const uint32_t cloud[][4] = {
 	{
-		0xc013,
-		0x82644424,
-		0x24023fc,
-		66
+		0x1c023,
+		0x4484044,
+		0x43f8000,
+		500
 	},
 	{
-		0xc013,
-		0x82644424,
-		0x24023fc,
-		66
-	},
-	{
-		0xc013,
-		0x82644824,
-		0x24023fc,
-		66
+		0xe011,
+		0x82242022,
+		0x21fc000,
+		500
 	}
 };
 
@@ -204,17 +206,25 @@ void LEDFeedbackClass::setMode(LEDFeedbackMode mode) {
       break;
     case LEDFeedbackMode::PEER_CONNECTED:
     {
-    #ifdef BOARD_HAS_RGB
-      turnOFF();
-      _ledPin = BLUE_LED;
-    #else
-      _ledPin = GREEN_LED;
-    #endif
+      configurePeerConnectedMode();
+    }
+      break;
+    case LEDFeedbackMode::PEER_CONNECTED_BLE:
+    {
+      configurePeerConnectedMode();
     #ifdef BOARD_HAS_LED_MATRIX
       ledMatrixAnimationHandler.loadFrame(bluetooth);
       _framePtr = (uint32_t*)bluetooth;
     #endif
-      _ledChangeInterval = ALWAYS_ON_INTERVAL;
+    }
+      break;
+    case LEDFeedbackMode::PEER_CONNECTED_SERIAL:
+    {
+      configurePeerConnectedMode();
+    #ifdef BOARD_HAS_LED_MATRIX
+      ledMatrixAnimationHandler.loadFrame(usb_image);
+      _framePtr = (uint32_t*)usb_image;
+    #endif
     }
       break;
     case LEDFeedbackMode::CONNECTING_TO_NETWORK:
@@ -346,6 +356,16 @@ void LEDFeedbackClass::turnON() {
   }
 #endif
   _ledState = true;
+}
+
+void LEDFeedbackClass::configurePeerConnectedMode() {
+  #ifdef BOARD_HAS_RGB
+    turnOFF();
+    _ledPin = BLUE_LED;
+  #else
+    _ledPin = GREEN_LED;
+  #endif
+    _ledChangeInterval = ALWAYS_ON_INTERVAL;
 }
 
 #endif // NETWORK_CONFIGURATOR_COMPATIBLE

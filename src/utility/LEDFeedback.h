@@ -16,6 +16,8 @@ public:
         NONE,
         BLE_AVAILABLE,
         PEER_CONNECTED,
+        PEER_CONNECTED_BLE,
+        PEER_CONNECTED_SERIAL,
         CONNECTING_TO_NETWORK,
         CONNECTED_TO_CLOUD,
         ERROR
@@ -30,6 +32,7 @@ private:
     LEDFeedbackClass() {};
     void turnON();
     void turnOFF();
+    void configurePeerConnectedMode();
     LEDFeedbackMode _mode = LEDFeedbackMode::NONE;
     uint32_t _lastUpdate = 0;
     uint32_t _count = 0;
