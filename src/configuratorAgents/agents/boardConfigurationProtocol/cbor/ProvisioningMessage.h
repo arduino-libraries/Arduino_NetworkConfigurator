@@ -50,6 +50,7 @@ enum CBORProvisioningMessageTag: CBORTag {
   CBORBLEMacAddressProvisioningMessage      = 0x012013,
   CBORProvSketchVersionProvisioningMessage  = 0x012015,
   CBORNetConfigLibVersProvisioningMessage   = 0x012016,
+  CBORProvPublicKeyProvisioningMessage      = 0x012017,
 };
 
 enum ProvisioningMessageId: MessageId {
@@ -61,6 +62,7 @@ enum ProvisioningMessageId: MessageId {
   ProvSketchVersionProvisioningMessageId,
   NetConfigLibVersProvisioningMessageId,
   JWTProvisioningMessageId,
+  ProvPublicKeyProvisioningMessageId,
   TimestampProvisioningMessageId,
   CommandsProvisioningMessageId,
   WifiConfigProvisioningMessageId,
@@ -105,6 +107,13 @@ struct JWTProvisioningMessage {
   ProvisioningMessage c;
   struct {
     char jwt[PROVISIONING_JWT_SIZE]; //The payload is a string with maximum dimension of 268 characters + '\0'.
+  };
+};
+
+struct ProvPublicKeyProvisioningMessage {
+  ProvisioningMessage c;
+  struct {
+    const char *provPublicKey; //The payload is a string.
   };
 };
 

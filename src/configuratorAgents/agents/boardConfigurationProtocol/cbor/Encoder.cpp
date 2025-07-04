@@ -154,4 +154,23 @@ MessageEncoder::Status NetConfigLibVersProvisioningMessageEncoder::encode(CborEn
   return MessageEncoder::Status::Complete;
 }
 
+MessageEncoder::Status ProvPublicKeyProvisioningMessageEncoder::encode(CborEncoder *encoder, Message *msg) {
+  ProvPublicKeyProvisioningMessage * provisioningProvPublicKey = (ProvPublicKeyProvisioningMessage*) msg;
+  CborEncoder array_encoder;
+
+  if(cbor_encoder_create_array(encoder, &array_encoder, 1) != CborNoError) {
+    return MessageEncoder::Status::Error;
+  }
+
+  if(cbor_encode_text_stringz(&array_encoder, provisioningProvPublicKey->provPublicKey) != CborNoError) {
+    return MessageEncoder::Status::Error;
+  }
+
+  if(cbor_encoder_close_container(encoder, &array_encoder) != CborNoError) {
+    return MessageEncoder::Status::Error;
+  }
+
+  return MessageEncoder::Status::Complete;
+}
+
 #endif // NETWORK_CONFIGURATOR_COMPATIBLE
