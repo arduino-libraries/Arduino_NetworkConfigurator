@@ -7,6 +7,7 @@ static StatusProvisioningMessageEncoder             statusProvisioningMessageEnc
 static ListWifiNetworksProvisioningMessageEncoder   listWifiNetworksProvisioningMessageEncoder;
 static UniqueHardwareIdProvisioningMessageEncoder   uniqueHardwareIdProvisioningMessageEncoder;
 static JWTProvisioningMessageEncoder                jWTProvisioningMessageEncoder;
+static ProvPublicKeyProvisioningMessageEncoder      provPublicKeyProvisioningMessageEncoder;
 static BLEMacAddressProvisioningMessageEncoder      bLEMacAddressProvisioningMessageEncoder;
 static ProvSketchVersionProvisioningMessageEncoder  provSketchVersionProvisioningMessageEncoder;
 static NetConfigLibVersProvisioningMessageEncoder   netConfigLibVersProvisioningMessageEncoder;
