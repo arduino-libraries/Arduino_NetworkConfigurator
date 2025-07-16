@@ -86,7 +86,6 @@ bool NetworkConfiguratorClass::begin() {
     DEBUG_ERROR("NetworkConfiguratorClass::%s Failed to initialize the AgentsManagerClass", __FUNCTION__);
   }
 
-  _connectionTimeout.begin(NC_CONNECTION_TIMEOUT_ms);
   _connectionRetryTimer.begin(NC_CONNECTION_RETRY_TIMER_ms);
   _resetInput->begin();
 
@@ -112,7 +111,7 @@ NetworkConfiguratorStates NetworkConfiguratorClass::update() {
 
   if(_state != nextState){
     if(nextState == NetworkConfiguratorStates::CONNECTING){
-      _connectionTimeout.reload();
+      setConnectionTimeoutTimer();
     }
     _state = nextState;
   }
@@ -395,6 +394,60 @@ bool NetworkConfiguratorClass::handleConnectRequest() {
   return true;
 }
 
+void NetworkConfiguratorClass::setConnectionTimeoutTimer() {
+  uint32_t timeout = 0;
+  switch (_networkSetting.type) {
+#if defined(BOARD_HAS_WIFI)
+    case NetworkAdapter::WIFI:
+      timeout = 15000; // 15 seconds
+      break;
+#endif
+
+#if defined(BOARD_HAS_ETHERNET)
+    case NetworkAdapter::ETHERNET:
+      timeout = 15000; // 15 seconds
+      break;
+#endif
+
+#if defined(BOARD_HAS_NB)
+    case NetworkAdapter::NB:
+      timeout = 25000; // 25 seconds
+      break;
+#endif
+
+#if defined(BOARD_HAS_GSM)
+    case NetworkAdapter::GSM:
+      timeout = 25000; // 25 seconds
+      break;
+#endif
+
+#if defined(BOARD_HAS_CATM1_NBIOT)
+    case NetworkAdapter::CATM1:
+      timeout = 25000; // 25 seconds
+      break;
+#endif
+
+#if defined(BOARD_HAS_CELLULAR)
+    case NetworkAdapter::CELL:
+      timeout = 25000; // 25 seconds
+      break;
+#endif
+
+#if defined(BOARD_HAS_LORA)
+    case NetworkAdapter::LORA:
+      timeout 15000; // 15 seconds
+      break;
+#endif
+    default:
+      timeout = 15000; // Default to 15 seconds for other adapters
+      break;
+  }
+
+  _connectionTimeout.begin(timeout);
+  _connectionTimeout.reload();
+  return;
+}
+
 String NetworkConfiguratorClass::decodeConnectionErrorMessage(NetworkConnectionState err, StatusMessage *errorCode) {
   switch (err) {
     case NetworkConnectionState::ERROR:
@@ -462,7 +515,7 @@ NetworkConfiguratorStates NetworkConfiguratorClass::handleZeroTouchConfig() {
       return NetworkConfiguratorStates::READ_STORED_CONFIG;
     }
     _connectionHandlerIstantiated = true;
-    _connectionTimeout.reload();
+    setConnectionTimeoutTimer();
   }
 
   StatusMessage err;
