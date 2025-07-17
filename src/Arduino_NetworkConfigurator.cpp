@@ -399,47 +399,47 @@ void NetworkConfiguratorClass::setConnectionTimeoutTimer() {
   switch (_networkSetting.type) {
 #if defined(BOARD_HAS_WIFI)
     case NetworkAdapter::WIFI:
-      timeout = 15000; // 15 seconds
+      timeout = NC_CONNECTION_TIMEOUT_ms; // 15 seconds
       break;
 #endif
 
 #if defined(BOARD_HAS_ETHERNET)
     case NetworkAdapter::ETHERNET:
-      timeout = 15000; // 15 seconds
+      timeout = NC_CONNECTION_TIMEOUT_ms; // 15 seconds
       break;
 #endif
 
 #if defined(BOARD_HAS_NB)
     case NetworkAdapter::NB:
-      timeout = 25000; // 25 seconds
+      timeout = 2 * NC_CONNECTION_TIMEOUT_ms; // 30 seconds
       break;
 #endif
 
 #if defined(BOARD_HAS_GSM)
     case NetworkAdapter::GSM:
-      timeout = 25000; // 25 seconds
+      timeout = 2 * NC_CONNECTION_TIMEOUT_ms; // 30 seconds
       break;
 #endif
 
 #if defined(BOARD_HAS_CATM1_NBIOT)
     case NetworkAdapter::CATM1:
-      timeout = 25000; // 25 seconds
+      timeout = 2 * NC_CONNECTION_TIMEOUT_ms; // 30 seconds
       break;
 #endif
 
 #if defined(BOARD_HAS_CELLULAR)
     case NetworkAdapter::CELL:
-      timeout = 25000; // 25 seconds
+      timeout = 2 * NC_CONNECTION_TIMEOUT_ms; // 30 seconds
       break;
 #endif
 
 #if defined(BOARD_HAS_LORA)
     case NetworkAdapter::LORA:
-      timeout 15000; // 15 seconds
+      timeout = NC_CONNECTION_TIMEOUT_ms; // 15 seconds
       break;
 #endif
     default:
-      timeout = 15000; // Default to 15 seconds for other adapters
+      timeout = NC_CONNECTION_TIMEOUT_ms; // Default to 15 seconds for other adapters
       break;
   }
 
