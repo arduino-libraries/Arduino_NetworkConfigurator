@@ -207,6 +207,9 @@ private:
 
   void startReconfigureProcedure();
 
+  // Returns the connection timeout in milliseconds according to the set network type
+  void setConnectionTimeoutTimer();
+
   String decodeConnectionErrorMessage(NetworkConnectionState err, StatusMessage *errorCode);
   ConnectionResult connectToNetwork(StatusMessage *err);
   ConnectionResult disconnectFromNetwork();
