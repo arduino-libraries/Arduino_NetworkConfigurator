@@ -21,11 +21,13 @@
 #define CBOR_MIN_WIFI_FW_VERSION_LEN CBOR_DATA_HEADER_LEN + 1 // CBOR_DATA_HEADER_LEN + 1 byte for the length of the string
 #define CBOR_MIN_PROV_SKETCH_VERSION_LEN CBOR_DATA_HEADER_LEN + 1 // CBOR_DATA_HEADER_LEN + 1 byte for the length of the string
 #define CBOR_MIN_NETCONFIG_LIB_VERSION_LEN CBOR_DATA_HEADER_LEN + 1 // CBOR_DATA_HEADER_LEN + 1 byte for the length of the string
+#define CBOR_MIN_PROV_PUBIC_KEY_LEN CBOR_DATA_HEADER_LEN + 3 // CBOR_DATA_HEADER_LEN + 2 bytes for the length of the string + 1 byte for the type of the string
 
 class CBORAdapter {
 public:
   static bool uhwidToCBOR(const byte *uhwid, uint8_t *data, size_t *len);
   static bool jwtToCBOR(const char *jwt, uint8_t *data, size_t *len);
+  static bool provPublicKeyToCBOR(const char *provPublicKey, uint8_t *data, size_t *len);
   static bool BLEMacAddressToCBOR(const uint8_t *mac, uint8_t *data, size_t *len);
   static bool wifiFWVersionToCBOR(const char *wifiFWVersion, uint8_t *data, size_t *len);
   static bool provSketchVersionToCBOR(const char *provSketchVersion, uint8_t *data, size_t *len);
