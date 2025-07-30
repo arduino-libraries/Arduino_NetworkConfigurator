@@ -11,6 +11,10 @@
 #include "ResetInput.h"
 #include "utility/LEDFeedback.h"
 
+#if defined(ARDUINO_NICLA_VISION)
+#include <pinDefinitions.h>
+#endif
+
 #if defined(ARDUINO_PORTENTA_H7_M7)
 #include <Wire.h>
 
@@ -39,7 +43,12 @@ ResetInput &ResetInput::getInstance() {
 }
 
 ResetInput::ResetInput() {
+  #if defined(ARDUINO_NICLA_VISION)
+  _pin = PinNameToIndex(PIN_RECONFIGURE);
+  #else
   _pin = PIN_RECONFIGURE;
+  #endif
+
   _expired = false;
   _startPressed = 0;
   _fireEvent = false;
