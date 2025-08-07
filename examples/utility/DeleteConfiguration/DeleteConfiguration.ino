@@ -1,0 +1,54 @@
+/*
+  Copyright (c) 2025 Arduino SA
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+*/
+
+/*
+ * This sketch wipes out the stored network configuration
+ * using the NetworkConfigurator library.
+ * This sketch doesn't use the reconfiguration procedure.
+*/
+
+#include <Arduino_ConnectionHandler.h>
+#include <GenericConnectionHandler.h>
+#include <Arduino_KVStore.h>
+#include <Arduino_NetworkConfigurator.h>
+#include <configuratorAgents/agents/BLEAgent.h>
+#include <configuratorAgents/agents/SerialAgent.h>
+
+KVStore kvstore;
+BLEAgentClass BLEAgent;
+SerialAgentClass SerialAgent;
+GenericConnectionHandler conMan;
+NetworkConfiguratorClass NetworkConfigurator(conMan);
+
+void setup() {
+  /* Initialize serial debug port and wait up to 5 seconds for port to open */
+  Serial.begin(9600);
+  for(unsigned long const serialBeginTime = millis(); !Serial && (millis() - serialBeginTime <= 5000); ) { }
+
+  /* Set the debug message level:
+  * - DBG_ERROR: Only show error messages
+  * - DBG_WARNING: Show warning and error messages
+  * - DBG_INFO: Show info, warning, and error messages
+  * - DBG_DEBUG: Show debug, info, warning, and error messages
+  * - DBG_VERBOSE: Show all messages
+  */
+  setDebugMessageLevel(DBG_INFO);
+
+  /* Set the KVStore */
+  NetworkConfigurator.setStorage(kvstore);
+  /* Wipe out the network configuration */
+  if (NetworkConfigurator.resetStoredConfiguration()) {
+    Serial.println("Network configuration reset successfully.");
+  } else {
+    Serial.println("Failed to reset network configuration.");
+  }
+
+}
+
+void loop() {
+}
