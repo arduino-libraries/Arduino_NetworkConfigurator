@@ -35,6 +35,7 @@ jobs:
         - name: Arduino_KVStore
       SKETCH_PATHS: |
         - examples/NetworkConfiguratorDemo
+        - examples/utility/DeleteConfiguration
       SKETCHES_REPORTS_PATH: sketches-reports
     strategy:
       fail-fast: false
