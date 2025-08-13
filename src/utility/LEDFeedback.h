@@ -8,7 +8,7 @@
 #pragma once
 #include "Arduino.h"
 
-
+#define INVALID_LED_PIN -1
 
 class LEDFeedbackClass {
 public:
@@ -37,8 +37,8 @@ private:
     uint32_t _lastUpdate = 0;
     uint32_t _count = 0;
     bool _ledState = false;
-    uint16_t _ledPin = 0;
+    int _ledPin = INVALID_LED_PIN;
     uint32_t* _framePtr = nullptr;
-    int32_t _ledChangeInterval = 500;
+    int32_t _ledChangeInterval = 0;
     bool stopped = false;
 };

@@ -180,6 +180,7 @@ void LEDFeedbackClass::setMode(LEDFeedbackMode mode) {
     case LEDFeedbackMode::NONE:
       {
         _ledChangeInterval = 0;
+        turnOFF();
         #ifdef BOARD_HAS_LED_MATRIX
           ledMatrixAnimationHandler.clear();
         #endif
@@ -288,14 +289,11 @@ void LEDFeedbackClass::restart() {
 }
 
 void LEDFeedbackClass::update() {
-  if(stopped) {
+  if(stopped || _mode == LEDFeedbackMode::NONE) {
     return;
   }
 
-  if(_ledChangeInterval == 0) {
-    turnOFF();
-    return;
-  } else if (_ledChangeInterval == ALWAYS_ON_INTERVAL) {
+  if (_ledChangeInterval == ALWAYS_ON_INTERVAL) {
     turnON();
     return;
   }
@@ -330,11 +328,13 @@ void LEDFeedbackClass::update() {
 }
 
 void LEDFeedbackClass::turnOFF() {
-#ifdef BOARD_USE_NINA
-  WiFiDrv::digitalWrite(_ledPin, LED_OFF);
-#else
-  digitalWrite(_ledPin, LED_OFF);
-#endif
+  if(_ledPin != INVALID_LED_PIN) {
+  #ifdef BOARD_USE_NINA
+    WiFiDrv::digitalWrite(_ledPin, LED_OFF);
+  #else
+    digitalWrite(_ledPin, LED_OFF);
+  #endif
+  }
 #ifdef BOARD_HAS_LED_MATRIX
   if(_framePtr != nullptr){
     ledMatrixAnimationHandler.clear();
@@ -345,11 +345,13 @@ void LEDFeedbackClass::turnOFF() {
 }
 
 void LEDFeedbackClass::turnON() {
-#ifdef BOARD_USE_NINA
-  WiFiDrv::digitalWrite(_ledPin, LED_ON);
-#else
-  digitalWrite(_ledPin, LED_ON);
-#endif
+  if(_ledPin != INVALID_LED_PIN) {
+  #ifdef BOARD_USE_NINA
+    WiFiDrv::digitalWrite(_ledPin, LED_ON);
+  #else
+    digitalWrite(_ledPin, LED_ON);
+  #endif
+  }
 #ifdef BOARD_HAS_LED_MATRIX
   if(_framePtr != nullptr){
     ledMatrixAnimationHandler.loadFrame(_framePtr);
