@@ -57,10 +57,17 @@ bool NetworkConfiguratorClass::begin() {
   memset(&_networkSetting, 0x00, sizeof(models::NetworkSetting));
   _ledFeedback->begin();
 #ifdef BOARD_HAS_WIFI
+#ifdef ARDUINO_OPTA
+  if(_getPid_() == OPTA_WIFI_PID) {
+#endif
   String fv = WiFi.firmwareVersion();
   if (fv < WIFI_FIRMWARE_LATEST_VERSION) {
     DEBUG_ERROR(F("The current WiFi firmware version is not the latest and it may cause compatibility issues. Please upgrade the WiFi firmware"));
   }
+
+#ifdef ARDUINO_OPTA
+  }
+#endif
   _agentsManager->addRequestHandler(RequestType::SCAN, scanReqHandler);
 
   _agentsManager->addRequestHandler(RequestType::GET_WIFI_FW_VERSION, getWiFiFWVersionHandler);
@@ -294,6 +301,13 @@ bool NetworkConfiguratorClass::insertWiFiAP(WiFiOption &wifiOptObj, char *ssid, 
 
 bool NetworkConfiguratorClass::scanWiFiNetworks(WiFiOption &wifiOptObj) {
   wifiOptObj.numDiscoveredWiFiNetworks = 0;
+
+#if defined(ARDUINO_OPTA)
+  if(_getPid_() != OPTA_WIFI_PID) {
+    return true; // Skip scanning if it's not the Opta with WiFi
+  }
+#endif
+
 #if defined(ARDUINO_UNOR4_WIFI)
   WiFi.end();
 #endif
@@ -348,6 +362,14 @@ bool NetworkConfiguratorClass::handleConnectRequest() {
     sendStatus(StatusMessage::PARAMS_NOT_FOUND);
     return false;
   }
+
+#ifdef ARDUINO_OPTA
+  if(_networkSetting.type == NetworkAdapter::WIFI && _getPid_() != OPTA_WIFI_PID) {
+    DEBUG_WARNING("NetworkConfiguratorClass::%s WiFi configuration is not supported on this board", __FUNCTION__);
+    sendStatus(StatusMessage::INVALID_PARAMS);
+    return false;
+  }
+#endif
 
   if (_kvstore != nullptr) {
     if (!_kvstore->begin()) {
@@ -469,7 +491,13 @@ String NetworkConfiguratorClass::decodeConnectionErrorMessage(NetworkConnectionS
 void NetworkConfiguratorClass::handleGetWiFiFWVersion() {
   String fwVersion = "";
   #ifdef BOARD_HAS_WIFI
+  #ifdef ARDUINO_OPTA
+  if(_getPid_() == OPTA_WIFI_PID) {
+  #endif
   fwVersion = WiFi.firmwareVersion();
+  #ifdef ARDUINO_OPTA
+  }
+  #endif
   #endif
   ProvisioningOutputMessage fwVersionMsg = { MessageOutputType::WIFI_FW_VERSION };
   fwVersionMsg.m.wifiFwVersion = fwVersion.c_str();
