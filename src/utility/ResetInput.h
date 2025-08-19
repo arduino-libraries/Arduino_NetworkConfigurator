@@ -65,6 +65,7 @@ private:
   ResetInput();
   static inline ResetInputCallback _pressedCustomCallback;
   static inline int _pin;
+  static inline int _ledFeedbackPin;
   static inline volatile bool _expired;
   static inline volatile bool _fireEvent;
   static inline volatile uint32_t _startPressed;
