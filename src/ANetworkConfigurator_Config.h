@@ -7,7 +7,7 @@
 */
 #pragma once
 
-#define ANetworkConfigurator_LIB_VERSION "0.4.0"
+#define ANetworkConfigurator_LIB_VERSION "0.4.1"
 
 #if defined(ARDUINO_SAMD_MKRWIFI1010)
   #define NETWORK_CONFIGURATOR_COMPATIBLE 1
