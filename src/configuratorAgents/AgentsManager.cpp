@@ -19,7 +19,13 @@
  ******************************************************************************/
 
 bool AgentsManagerClass::addAgent(ConfiguratorAgent &agent) {
+#ifdef ARDUINO_OPTA
+  if(agent.getAgentType() == ConfiguratorAgent::AgentTypes::BLE && _getPid_() != OPTA_WIFI_PID) {
+    return false;
+  }
+#endif
   _agentsList.push_back(&agent);
+  return true;
 }
 
 AgentsManagerClass &AgentsManagerClass::getInstance() {

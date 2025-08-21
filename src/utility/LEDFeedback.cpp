@@ -150,10 +150,15 @@ void LEDFeedbackClass::begin() {
 #else
   pinMode(GREEN_LED, OUTPUT);
   digitalWrite(GREEN_LED, LED_OFF);
-  pinMode(BLUE_LED, OUTPUT);
-  digitalWrite(BLUE_LED, LED_OFF);
+
   pinMode(RED_LED, OUTPUT);
   digitalWrite(RED_LED, LED_OFF);
+  #if defined(ARDUINO_OPTA)
+    if(_getPid_() == OPTA_WIFI_PID){
+      pinMode(BLUE_LED, OUTPUT);
+      digitalWrite(BLUE_LED, LED_OFF);
+    }
+  #endif
 #endif
 #else
   pinMode(GREEN_LED, OUTPUT);
@@ -364,6 +369,11 @@ void LEDFeedbackClass::configurePeerConnectedMode() {
   #ifdef BOARD_HAS_RGB
     turnOFF();
     _ledPin = BLUE_LED;
+    #if defined(ARDUINO_OPTA)
+    if(_getPid_() != OPTA_WIFI_PID){
+      _ledPin = GREEN_LED;
+    }
+    #endif
   #else
     _ledPin = GREEN_LED;
   #endif

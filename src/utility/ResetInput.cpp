@@ -48,7 +48,7 @@ ResetInput::ResetInput() {
   #else
   _pin = PIN_RECONFIGURE;
   #endif
-
+  _ledFeedbackPin = LED_RECONFIGURE;
   _expired = false;
   _startPressed = 0;
   _fireEvent = false;
@@ -67,11 +67,14 @@ void ResetInput::begin() {
   }
 #ifdef ARDUINO_OPTA
   pinMode(_pin, INPUT);
+  if(_getPid_() != OPTA_WIFI_PID){
+    _ledFeedbackPin = GREEN_LED;
+  }
 #else
   pinMode(_pin, INPUT_PULLUP);
 #endif
-  pinMode(LED_RECONFIGURE, OUTPUT);
-  digitalWrite(LED_RECONFIGURE, LED_OFF);
+  pinMode(_ledFeedbackPin, OUTPUT);
+  digitalWrite(_ledFeedbackPin, LED_OFF);
   attachInterrupt(digitalPinToInterrupt(_pin),_pressedCallback, CHANGE);
 }
 
@@ -81,7 +84,7 @@ bool ResetInput::isEventFired() {
     LEDFeedbackClass::getInstance().stop();
 #endif
     if(micros() - _startPressed > RESET_HOLD_TIME){
-      digitalWrite(LED_RECONFIGURE, LED_OFF);
+      digitalWrite(_ledFeedbackPin, LED_OFF);
       _expired = true;
     }
   }
@@ -111,9 +114,9 @@ void ResetInput::_pressedCallback() {
     LEDFeedbackClass::getInstance().stop();
 #endif
     _startPressed = micros();
-    digitalWrite(LED_RECONFIGURE, LED_ON);
+    digitalWrite(_ledFeedbackPin, LED_ON);
   } else {
-    digitalWrite(LED_RECONFIGURE, LED_OFF);
+    digitalWrite(_ledFeedbackPin, LED_OFF);
     if(_startPressed != 0 && _expired){
       _fireEvent = true;
     }else{
