@@ -66,9 +66,14 @@ private:
   static inline ResetInputCallback _pressedCustomCallback;
   static inline int _pin;
   static inline int _ledFeedbackPin;
+  static inline int _ledOff;
+  static inline int _ledOn;
   static inline volatile bool _expired;
   static inline volatile bool _fireEvent;
   static inline volatile uint32_t _startPressed;
+  #if defined(ARDUINO_NANO_RP2040_CONNECT)
+  static inline volatile uint32_t _lastEvent;
+  #endif
   /**
    * @brief Internal callback function to handle pin press events.
    */
