@@ -194,7 +194,15 @@ void LEDFeedbackClass::setMode(LEDFeedbackMode mode) {
     case LEDFeedbackMode::BLE_AVAILABLE:{
       #ifdef BOARD_HAS_RGB
         turnOFF();
+        #ifdef ARDUINO_OPTA
+          if(_getPid_() != OPTA_WIFI_PID){
+            _ledPin = GREEN_LED;
+          } else {
+            _ledPin = BLUE_LED;
+          }
+        #else
         _ledPin = BLUE_LED;
+        #endif
       #else
         _ledPin = GREEN_LED;
       #endif
