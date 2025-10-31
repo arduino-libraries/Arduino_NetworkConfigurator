@@ -84,9 +84,9 @@ void ResetInput::begin() {
   pinMode(_ledFeedbackPin, OUTPUT);
   digitalWrite(_ledFeedbackPin, _ledOff);
   attachInterrupt(digitalPinToInterrupt(_pin),_pressedCallback, CHANGE);
-  #if !defined(ARDUINO_OPTA)
+#if defined(ARDUINO_NANO_RP2040_CONNECT) || defined(ARDUINO_PORTENTA_H7_M7) || defined(ARDUINO_GIGA) ||defined(ARDUINO_NICLA_VISION)
   pinMode(_pin, INPUT_PULLUP);
-  #endif
+#endif
 }
 
 bool ResetInput::isEventFired() {
