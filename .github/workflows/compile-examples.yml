@@ -82,8 +82,8 @@ jobs:
               - name: arduino:mbed_nano
             libraries: |
               - name: Blues Wireless Notecard
-              - source-url: https://github.com/andreagilardoni/WiFiNINA.git
-                version: 31616ac5a30f6281c68f982bc39800771b2fbaeb
+              - name: WiFiNINA
+              - name: Arduino_SpiNINA
               - source-url: https://github.com/adafruit/Adafruit_SleepyDog.git
           # Portenta
           - board:
