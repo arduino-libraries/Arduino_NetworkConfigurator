@@ -13,6 +13,10 @@
 #include "ConnectionHandlerDefinitions.h"
 #include "configuratorAgents/MessagesDefinitions.h"
 
+#if defined(ARDUINO_OPTA) && defined(ARDUINO_ARCH_ZEPHYR)
+#include "utility/OptaBoardInfo.h"
+#endif
+
 #ifdef BOARD_HAS_WIFI
 #include "WiFiConnectionHandler.h"
 #endif

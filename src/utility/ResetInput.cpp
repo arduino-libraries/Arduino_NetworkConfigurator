@@ -11,6 +11,9 @@
 #include "ResetInput.h"
 #include "utility/LEDFeedback.h"
 
+#if defined(ARDUINO_OPTA) && defined(ARDUINO_ARCH_ZEPHYR)
+#include "utility/OptaBoardInfo.h"
+#endif
 
 #if defined(ARDUINO_PORTENTA_H7_M7)
 #include <Wire.h>
