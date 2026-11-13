@@ -11,9 +11,6 @@
 #include "ResetInput.h"
 #include "utility/LEDFeedback.h"
 
-#if defined(ARDUINO_NICLA_VISION)
-#include <pinDefinitions.h>
-#endif
 
 #if defined(ARDUINO_PORTENTA_H7_M7)
 #include <Wire.h>
@@ -43,11 +40,7 @@ ResetInput &ResetInput::getInstance() {
 }
 
 ResetInput::ResetInput() {
-  #if defined(ARDUINO_NICLA_VISION)
-  _pin = PinNameToIndex(PIN_RECONFIGURE);
-  #else
   _pin = PIN_RECONFIGURE;
-  #endif
   _ledFeedbackPin = LED_RECONFIGURE;
   #if defined(ARDUINO_NANO_RP2040_CONNECT)
   _ledOn = 1;
