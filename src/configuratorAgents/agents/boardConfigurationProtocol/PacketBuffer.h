@@ -46,6 +46,9 @@ public:
   virtual bool copyArray(int positionFrom, const uint8_t *srcBuf, size_t len) = 0;
 
   PacketBuffer &operator=(const PacketBuffer &msg) {
+    if (this == &msg) { // guards self assignment
+      return *this;
+    }
     _bytesTransferred = msg._bytesTransferred;
     _bytesToTransfer = msg._bytesToTransfer;
     _validityTs = msg._validityTs;
