@@ -138,6 +138,6 @@
 #define BCP_DEBUG_PACKET 0
 #endif
 
-// Set to 1 for logging newtwork configurations secrets 
+// Set to 1 for logging network configurations secrets
 // Be careful the secrets will be printed in the serial monitor in clear text
 #define DEBUG_NETWORK_CREDENTIALS 0
