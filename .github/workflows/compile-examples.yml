@@ -101,7 +101,6 @@ jobs:
               - name: arduino:samd
               - name: arduino:mbed_nano
             libraries: |
-              - name: Blues Wireless Notecard
               - name: WiFiNINA
               - name: Arduino_SpiNINA
               - source-url: https://github.com/adafruit/Adafruit_SleepyDog.git
@@ -113,31 +112,24 @@ jobs:
               - name: arduino:mbed_portenta
             libraries: |
               - name: Arduino_Cellular
-              - name: Blues Wireless Notecard
           # Nicla Vision
           - board:
               type: mbed_nicla
             platforms: |
               # Install mbed_nicla platform via Boards Manager
               - name: arduino:mbed_nicla
-            libraries: |
-              - name: Blues Wireless Notecard
           # Opta
           - board:
               type: mbed_opta
             platforms: |
               # Install mbed_opta platform via Boards Manager
               - name: arduino:mbed_opta
-            libraries: |
-              - name: Blues Wireless Notecard
           # GIGA
           - board:
               type: mbed_giga
             platforms: |
               # Install mbed_giga platform via Boards Manager
               - name: arduino:mbed_giga
-            libraries: |
-              - name: Blues Wireless Notecard
           # Portenta C33
           - board:
               type: renesas_portenta
@@ -146,7 +138,6 @@ jobs:
               - name: arduino:renesas_portenta
             libraries: |
               - name: Arduino_Cellular
-              - name: Blues Wireless Notecard
           # UNO R4 WiFi
           - board:
               type: renesas_uno
