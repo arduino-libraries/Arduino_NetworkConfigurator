@@ -13,6 +13,10 @@
 #include "ConnectionHandlerDefinitions.h"
 #include "configuratorAgents/MessagesDefinitions.h"
 
+#if defined(ARDUINO_OPTA) && defined(ARDUINO_ARCH_ZEPHYR)
+#include "utility/OptaBoardInfo.h"
+#endif
+
 #ifdef BOARD_HAS_WIFI
 #include "WiFiConnectionHandler.h"
 #endif
@@ -60,10 +64,12 @@ bool NetworkConfiguratorClass::begin() {
 #ifdef ARDUINO_OPTA
   if(_getPid_() == OPTA_WIFI_PID) {
 #endif
+#ifdef WIFI_FIRMWARE_LATEST_VERSION
   String fv = WiFi.firmwareVersion();
   if (fv < WIFI_FIRMWARE_LATEST_VERSION) {
     DEBUG_ERROR(F("The current WiFi firmware version is not the latest and it may cause compatibility issues. Please upgrade the WiFi firmware"));
   }
+#endif
 
 #ifdef ARDUINO_OPTA
   }

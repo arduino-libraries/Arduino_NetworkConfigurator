@@ -14,6 +14,10 @@
 #include "NetworkOptionsDefinitions.h"
 #include "utility/LEDFeedback.h"
 
+#if defined(ARDUINO_OPTA) && defined(ARDUINO_ARCH_ZEPHYR)
+#include "utility/OptaBoardInfo.h"
+#endif
+
 /******************************************************************************
  * PUBLIC MEMBER FUNCTIONS
  ******************************************************************************/

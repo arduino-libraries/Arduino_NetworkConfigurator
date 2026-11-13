@@ -15,6 +15,10 @@
 #include "utility/wifi_drv.h"
 #endif
 
+#if defined(ARDUINO_OPTA) && defined(ARDUINO_ARCH_ZEPHYR)
+#include "utility/OptaBoardInfo.h"
+#endif
+
 #ifdef BOARD_HAS_LED_MATRIX
 #include "Arduino_LED_Matrix.h"
 

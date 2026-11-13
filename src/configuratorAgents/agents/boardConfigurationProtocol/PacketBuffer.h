@@ -46,11 +46,15 @@ public:
   virtual bool copyArray(int positionFrom, const uint8_t *srcBuf, size_t len) = 0;
 
   PacketBuffer &operator=(const PacketBuffer &msg) {
+    if (this == &msg) { // guards self assignment
+      return *this;
+    }
     _bytesTransferred = msg._bytesTransferred;
     _bytesToTransfer = msg._bytesToTransfer;
     _validityTs = msg._validityTs;
     allocate(msg._size);
     memcpy(_buffer.get(), msg._buffer.get(), msg._size);
+    return *this;
   }
 
   void allocate(size_t n) {
@@ -136,10 +140,11 @@ public:
 
   OutputPacketBuffer &operator+=(uint8_t newChar) {
     copyArray(bytesToTransfer(), &newChar, sizeof(newChar));
+    return *this;
   }
 
   bool copyArray(const uint8_t *srcBuf, size_t len) {
-    copyArray(bytesToTransfer(), srcBuf, len);
+    return copyArray(bytesToTransfer(), srcBuf, len);
   }
 
   bool copyArray(int positionFrom, const uint8_t *srcBuf, size_t len) override {
@@ -179,10 +184,11 @@ public:
   };
   InputPacketBuffer &operator+=(uint8_t newChar) {
     copyArray(transferredBytes(), &newChar, sizeof(newChar));
+    return *this;
   }
 
   bool copyArray(const uint8_t *srcBuf, size_t len) {
-    copyArray(transferredBytes(), srcBuf, len);
+    return copyArray(transferredBytes(), srcBuf, len);
   }
 
   bool copyArray(int positionFrom, const uint8_t *srcBuf, size_t len) override {
