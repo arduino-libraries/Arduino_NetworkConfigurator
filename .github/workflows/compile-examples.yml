@@ -69,6 +69,26 @@ jobs:
           - fqbn: arduino:renesas_uno:unor4wifi
             type: renesas_uno
             artifact-name-suffix: arduino-renesas_uno-unor4wifi
+          - fqbn: "arduino:zephyr_main:portentah7"
+            platform-name: arduino:zephyr_main
+            artifact-name-suffix: arduino-zephyr_main-portentah7
+            type: zephyr
+          - fqbn: "arduino:zephyr_main:portentac33"
+            platform-name: arduino:zephyr_main
+            artifact-name-suffix: arduino-zephyr_main-portentac33
+            type: zephyr
+          - fqbn: "arduino:zephyr_main:nicla_vision"
+            platform-name: arduino:zephyr_main
+            artifact-name-suffix: arduino-zephyr_main-nicla_vision
+            type: zephyr
+          - fqbn: "arduino:zephyr_main:giga"
+            platform-name: arduino:zephyr_main
+            artifact-name-suffix: arduino-zephyr_main-giga
+            type: zephyr
+          - fqbn: "arduino:zephyr_main:opta"
+            platform-name: arduino:zephyr_main
+            artifact-name-suffix: arduino-zephyr_main-opta
+            type: zephyr
 
 
         # make board type-specific customizations to the matrix jobs
@@ -135,6 +155,12 @@ jobs:
               - name: arduino:renesas_uno
             libraries: |
               - name: Blues Wireless Notecard
+          # zephyr boards
+          - board:
+              type: zephyr
+            platforms: |
+              # Install zephyr_main platform via Boards Manager
+              - name: arduino:zephyr_main
 
     steps:
       - name: Checkout
